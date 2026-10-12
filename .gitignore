@@ -1,0 +1,5 @@
+third_party/
+build/
+install/
+__pycache__/
+*.pyc
