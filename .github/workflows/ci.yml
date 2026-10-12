@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build cmake clang lld ccache
+
+      - name: Install build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja ccache
+
+      - name: Install build tools (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja ccache -y
+
+      - name: Set up MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache LLVM build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ccache
+            ~/.ccache
+            ~/AppData/Local/ccache
+          key: ccache-${{ matrix.os }}-${{ github.sha }}
+          restore-keys: ccache-${{ matrix.os }}-
+
+      - name: Fetch LLVM sources and apply the Scry overlay
+        run: python scripts/setup_llvm.py
+
+      - name: Build LLVM/Clang/lld with the Scry backend
+        run: >
+          python scripts/build_llvm.py
+          --extra -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build the runtime
+        run: python scripts/build_runtime.py --clang install/bin/clang${{ runner.os == 'Windows' && '.exe' || '' }}
+
+      - name: Build the scryer simulator
+        run: python scripts/build_scryer.py
+
+      - name: Run the backend lit tests
+        run: python build/llvm/bin/llvm-lit -sv third_party/llvm-project/llvm/test/CodeGen/Scry
+
+      - name: Run the C tests on the simulator
+        run: python scripts/run_tests.py
+
+      - name: Run Embench-IoT
+        run: python scripts/run_embench.py --timeout 1800
