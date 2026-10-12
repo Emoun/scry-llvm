@@ -1,0 +1,26 @@
+
+#ifndef ELF_RELOC
+#error "ELF_RELOC must be defined"
+#endif
+
+// Relocations for the Scry architecture.  Code immediates are 8-bit fields
+// (bits 15..8 of a 16-bit instruction word) filled byte-by-byte by const/grow
+// sequences, so symbol addresses are relocated one byte at a time.
+ELF_RELOC(R_SCRY_NONE,         0)
+ELF_RELOC(R_SCRY_8,            1)  // 8-bit absolute data
+ELF_RELOC(R_SCRY_16,           2)  // 16-bit absolute data
+ELF_RELOC(R_SCRY_32,           3)  // 32-bit absolute data
+ELF_RELOC(R_SCRY_64,           4)  // 64-bit absolute data
+ELF_RELOC(R_SCRY_IMM8_B0,      5)  // byte 0 of S+A into imm8 field of const/grow
+ELF_RELOC(R_SCRY_IMM8_B1,      6)  // byte 1 of S+A
+ELF_RELOC(R_SCRY_IMM8_B2,      7)  // byte 2 of S+A
+ELF_RELOC(R_SCRY_IMM8_B3,      8)  // byte 3 of S+A
+ELF_RELOC(R_SCRY_IMM8_B4,      9)  // byte 4 of S+A (scry64)
+ELF_RELOC(R_SCRY_IMM8_B5,     10)  // byte 5 of S+A (scry64)
+ELF_RELOC(R_SCRY_IMM8_B6,     11)  // byte 6 of S+A (scry64)
+ELF_RELOC(R_SCRY_IMM8_B7,     12)  // byte 7 of S+A (scry64)
+ELF_RELOC(R_SCRY_PCREL_IMM8_B0, 13) // byte 0 of S+A-P into imm8 field
+ELF_RELOC(R_SCRY_PCREL_IMM8_B1, 14)
+ELF_RELOC(R_SCRY_PCREL_IMM8_B2, 15)
+ELF_RELOC(R_SCRY_PCREL_IMM8_B3, 16)
+ELF_RELOC(R_SCRY_PCREL_32,    17)  // 32-bit S+A-P data

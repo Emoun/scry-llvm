@@ -1,0 +1,506 @@
+diff --git a/clang/lib/Basic/CMakeLists.txt b/clang/lib/Basic/CMakeLists.txt
+index adfc6ee32..320743569 100644
+--- a/clang/lib/Basic/CMakeLists.txt
++++ b/clang/lib/Basic/CMakeLists.txt
+@@ -122,6 +122,7 @@ add_clang_library(clangBasic
+   Targets/X86.cpp
+   Targets/XCore.cpp
+   Targets/Xtensa.cpp
++  Targets/Scry.cpp
+   TokenKinds.cpp
+   TypeTraits.cpp
+   Version.cpp
+diff --git a/clang/lib/Basic/Targets.cpp b/clang/lib/Basic/Targets.cpp
+index 263253918..1d737391c 100644
+--- a/clang/lib/Basic/Targets.cpp
++++ b/clang/lib/Basic/Targets.cpp
+@@ -40,6 +40,7 @@
+ #include "Targets/X86.h"
+ #include "Targets/XCore.h"
+ #include "Targets/Xtensa.h"
++#include "Targets/Scry.h"
+ #include "clang/Basic/Diagnostic.h"
+ #include "clang/Basic/DiagnosticFrontend.h"
+ #include "llvm/ADT/StringExtras.h"
+@@ -795,6 +796,10 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
+ 
+   case llvm::Triple::xtensa:
+     return std::make_unique<XtensaTargetInfo>(Triple, Opts);
++
++  case llvm::Triple::scry32:
++  case llvm::Triple::scry64:
++    return std::make_unique<ScryTargetInfo>(Triple, Opts);
+   }
+ }
+ } // namespace targets
+diff --git a/clang/lib/CodeGen/CMakeLists.txt b/clang/lib/CodeGen/CMakeLists.txt
+index dbbc35b37..fcc33bca7 100644
+--- a/clang/lib/CodeGen/CMakeLists.txt
++++ b/clang/lib/CodeGen/CMakeLists.txt
+@@ -143,6 +143,7 @@ add_clang_library(clangCodeGen
+   Targets/LoongArch.cpp
+   Targets/M68k.cpp
+   Targets/MSP430.cpp
++  Targets/Scry.cpp
+   Targets/Mips.cpp
+   Targets/NVPTX.cpp
+   Targets/PPC.cpp
+diff --git a/clang/lib/CodeGen/CodeGenModule.cpp b/clang/lib/CodeGen/CodeGenModule.cpp
+index 85ed38f14..a85c2a38d 100644
+--- a/clang/lib/CodeGen/CodeGenModule.cpp
++++ b/clang/lib/CodeGen/CodeGenModule.cpp
+@@ -223,6 +223,10 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
+   case llvm::Triple::msp430:
+     return createMSP430TargetCodeGenInfo(CGM);
+ 
++  case llvm::Triple::scry32:
++  case llvm::Triple::scry64:
++    return createScryTargetCodeGenInfo(CGM);
++
+   case llvm::Triple::riscv32:
+   case llvm::Triple::riscv64: {
+     StringRef ABIStr = Target.getABI();
+diff --git a/clang/lib/CodeGen/TargetInfo.h b/clang/lib/CodeGen/TargetInfo.h
+index db06584d7..e0b8ed583 100644
+--- a/clang/lib/CodeGen/TargetInfo.h
++++ b/clang/lib/CodeGen/TargetInfo.h
+@@ -551,6 +551,9 @@ createWindowsMIPSTargetCodeGenInfo(CodeGenModule &CGM, bool IsOS32);
+ std::unique_ptr<TargetCodeGenInfo>
+ createMSP430TargetCodeGenInfo(CodeGenModule &CGM);
+ 
++std::unique_ptr<TargetCodeGenInfo>
++createScryTargetCodeGenInfo(CodeGenModule &CGM);
++
+ std::unique_ptr<TargetCodeGenInfo>
+ createNVPTXTargetCodeGenInfo(CodeGenModule &CGM);
+ 
+diff --git a/clang/lib/Driver/ToolChains/BareMetal.cpp b/clang/lib/Driver/ToolChains/BareMetal.cpp
+index 6574651b7..d58402138 100644
+--- a/clang/lib/Driver/ToolChains/BareMetal.cpp
++++ b/clang/lib/Driver/ToolChains/BareMetal.cpp
+@@ -46,6 +46,10 @@ static bool isRISCVBareMetal(const llvm::Triple &Triple) {
+ }
+ 
+ /// Is the triple powerpc[64][le]-*-none-eabi?
++static bool isScryBareMetal(const llvm::Triple &Triple) {
++  return Triple.isScry() && Triple.getOS() == llvm::Triple::UnknownOS;
++}
++
+ static bool isPPCBareMetal(const llvm::Triple &Triple) {
+   return Triple.isPPC() && Triple.getOS() == llvm::Triple::UnknownOS &&
+          Triple.getEnvironment() == llvm::Triple::EABI;
+@@ -351,7 +355,7 @@ void BareMetal::findMultilibs(const Driver &D, const llvm::Triple &Triple,
+ bool BareMetal::handlesTarget(const llvm::Triple &Triple) {
+   return arm::isARMEABIBareMetal(Triple) ||
+          aarch64::isAArch64BareMetal(Triple) || isRISCVBareMetal(Triple) ||
+-         isPPCBareMetal(Triple);
++         isPPCBareMetal(Triple) || isScryBareMetal(Triple);
+ }
+ 
+ Tool *BareMetal::buildLinker() const {
+@@ -434,6 +438,10 @@ void BareMetal::addClangTargetOptions(const ArgList &DriverArgs,
+                                       ArgStringList &CC1Args,
+                                       Action::OffloadKind) const {
+   CC1Args.push_back("-nostdsysteminc");
++  // The scryer simulator treats zero-filled (memsz > filesz) memory as
++  // uninitialised, so keep zero-initialised globals in file-backed .data.
++  if (getTriple().isScry())
++    CC1Args.push_back("-fno-zero-initialized-in-bss");
+ }
+ 
+ void BareMetal::addLibStdCxxIncludePaths(
+diff --git a/clang/lib/Driver/ToolChains/BareMetal.h b/clang/lib/Driver/ToolChains/BareMetal.h
+index d3d415b33..62c87fca9 100644
+--- a/clang/lib/Driver/ToolChains/BareMetal.h
++++ b/clang/lib/Driver/ToolChains/BareMetal.h
+@@ -33,6 +33,11 @@ public:
+ 
+ protected:
+   Tool *buildLinker() const override;
++
++  // Scry has no GNU binutils; lld is the only linker that knows the target.
++  const char *getDefaultLinker() const override {
++    return getTriple().isScry() ? "ld.lld" : "ld";
++  }
+   Tool *buildStaticLibTool() const override;
+ 
+ public:
+diff --git a/clang/lib/Driver/ToolChains/CommonArgs.cpp b/clang/lib/Driver/ToolChains/CommonArgs.cpp
+index 10a1a412e..0c707ac54 100644
+--- a/clang/lib/Driver/ToolChains/CommonArgs.cpp
++++ b/clang/lib/Driver/ToolChains/CommonArgs.cpp
+@@ -606,6 +606,10 @@ const char *tools::getLDMOption(const llvm::Triple &T, const ArgList &Args) {
+     return "elf64lppc";
+   case llvm::Triple::riscv32:
+     return "elf32lriscv";
++  case llvm::Triple::scry32:
++    return "elf32scry";
++  case llvm::Triple::scry64:
++    return "elf64scry";
+   case llvm::Triple::riscv64:
+     return "elf64lriscv";
+   case llvm::Triple::sparc:
+diff --git a/lld/ELF/CMakeLists.txt b/lld/ELF/CMakeLists.txt
+index e22897c27..26e02b219 100644
+--- a/lld/ELF/CMakeLists.txt
++++ b/lld/ELF/CMakeLists.txt
+@@ -29,6 +29,7 @@ add_lld_library(lldELF
+   Arch/Mips.cpp
+   Arch/MipsArchTree.cpp
+   Arch/MSP430.cpp
++  Arch/Scry.cpp
+   Arch/PPC.cpp
+   Arch/PPC64.cpp
+   Arch/RISCV.cpp
+diff --git a/lld/ELF/Driver.cpp b/lld/ELF/Driver.cpp
+index ee5a10171..c6e6814c2 100644
+--- a/lld/ELF/Driver.cpp
++++ b/lld/ELF/Driver.cpp
+@@ -177,6 +177,8 @@ static std::tuple<ELFKind, uint16_t, uint8_t> parseEmulation(Ctx &ctx,
+           .Case("elf_iamcu", {ELF32LEKind, EM_IAMCU})
+           .Case("elf64_sparc", {ELF64BEKind, EM_SPARCV9})
+           .Case("msp430elf", {ELF32LEKind, EM_MSP430})
++          .Case("elf32scry", {ELF32LEKind, EM_SCRY})
++          .Case("elf64scry", {ELF64LEKind, EM_SCRY})
+           .Case("elf64_amdgpu", {ELF64LEKind, EM_AMDGPU})
+           .Case("elf64loongarch", {ELF64LEKind, EM_LOONGARCH})
+           .Case("elf64_s390", {ELF64BEKind, EM_S390})
+diff --git a/lld/ELF/InputFiles.cpp b/lld/ELF/InputFiles.cpp
+index 7ba2be5d1..d5a629b8e 100644
+--- a/lld/ELF/InputFiles.cpp
++++ b/lld/ELF/InputFiles.cpp
+@@ -1772,6 +1772,9 @@ static uint16_t getBitcodeMachineKind(Ctx &ctx, StringRef path,
+     return EM_MIPS;
+   case Triple::msp430:
+     return EM_MSP430;
++  case Triple::scry32:
++  case Triple::scry64:
++    return EM_SCRY;
+   case Triple::ppc:
+   case Triple::ppcle:
+     return EM_PPC;
+diff --git a/lld/ELF/ScriptParser.cpp b/lld/ELF/ScriptParser.cpp
+index 07f3f786d..2876543f2 100644
+--- a/lld/ELF/ScriptParser.cpp
++++ b/lld/ELF/ScriptParser.cpp
+@@ -462,6 +462,8 @@ static std::pair<ELFKind, uint16_t> parseBfdName(StringRef s) {
+       .Case("elf64-littleriscv", {ELF64LEKind, EM_RISCV})
+       .Case("elf64-sparc", {ELF64BEKind, EM_SPARCV9})
+       .Case("elf32-msp430", {ELF32LEKind, EM_MSP430})
++      .Case("elf32-scry", {ELF32LEKind, EM_SCRY})
++      .Case("elf64-scry", {ELF64LEKind, EM_SCRY})
+       .Case("elf32-loongarch", {ELF32LEKind, EM_LOONGARCH})
+       .Case("elf64-loongarch", {ELF64LEKind, EM_LOONGARCH})
+       .Case("elf64-s390", {ELF64BEKind, EM_S390})
+diff --git a/lld/ELF/Target.cpp b/lld/ELF/Target.cpp
+index 3fc3e3f16..3ecf1761f 100644
+--- a/lld/ELF/Target.cpp
++++ b/lld/ELF/Target.cpp
+@@ -80,6 +80,8 @@ void elf::setTarget(Ctx &ctx) {
+     return setMipsTargetInfo(ctx);
+   case EM_MSP430:
+     return setMSP430TargetInfo(ctx);
++  case EM_SCRY:
++    return setScryTargetInfo(ctx);
+   case EM_PPC:
+     return setPPCTargetInfo(ctx);
+   case EM_PPC64:
+diff --git a/lld/ELF/Target.h b/lld/ELF/Target.h
+index 30fcb02b4..077850c41 100644
+--- a/lld/ELF/Target.h
++++ b/lld/ELF/Target.h
+@@ -202,6 +202,7 @@ void setAVRTargetInfo(Ctx &);
+ void setHexagonTargetInfo(Ctx &);
+ void setLoongArchTargetInfo(Ctx &);
+ void setMSP430TargetInfo(Ctx &);
++void setScryTargetInfo(Ctx &);
+ void setMipsTargetInfo(Ctx &);
+ void setPPC64TargetInfo(Ctx &);
+ void setPPCTargetInfo(Ctx &);
+diff --git a/llvm/CMakeLists.txt b/llvm/CMakeLists.txt
+index fcbfed495..3672a459d 100644
+--- a/llvm/CMakeLists.txt
++++ b/llvm/CMakeLists.txt
+@@ -543,6 +543,7 @@ set(LLVM_ALL_EXPERIMENTAL_TARGETS
+   CSKY
+   DirectX
+   M68k
++  Scry
+   Xtensa
+ )
+ 
+diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
+index bfcf5dab4..d1064fad9 100644
+--- a/llvm/include/llvm/BinaryFormat/ELF.h
++++ b/llvm/include/llvm/BinaryFormat/ELF.h
+@@ -214,6 +214,7 @@ enum {
+   EM_ARC_COMPACT = 93,   // ARC International ARCompact processor (old
+                          // spelling/synonym: EM_ARC_A5)
+   EM_XTENSA = 94,        // Tensilica Xtensa Architecture
++  EM_SCRY = 0x264,       // Scry forward-temporal-referencing architecture
+   EM_VIDEOCORE = 95,     // Alphamosaic VideoCore processor
+   EM_TMM_GPP = 96,       // Thompson Multimedia General Purpose Processor
+   EM_NS32K = 97,         // National Semiconductor 32000 series
+@@ -1095,6 +1096,11 @@ enum {
+ #include "ELFRelocs/Xtensa.def"
+ };
+ 
++// ELF Relocation types for Scry
++enum {
++#include "ELFRelocs/Scry.def"
++};
++
+ #undef ELF_RELOC
+ 
+ // Section header.
+diff --git a/llvm/include/llvm/IR/RuntimeLibcalls.td b/llvm/include/llvm/IR/RuntimeLibcalls.td
+index e7d636841..d5a0646e4 100644
+--- a/llvm/include/llvm/IR/RuntimeLibcalls.td
++++ b/llvm/include/llvm/IR/RuntimeLibcalls.td
+@@ -2760,6 +2760,16 @@ def HexagonSystemLibrary
+     LibmHasSinCosF32, LibmHasSinCosF64, LibmHasSinCosF128,
+     exp10f, exp10, exp10l_f128, __stack_chk_fail, __stack_chk_guard)>;
+ 
++//===----------------------------------------------------------------------===//
++// Scry Runtime Libcalls
++//===----------------------------------------------------------------------===//
++
++def isScry : RuntimeLibcallPredicate<"TT.isScry()">;
++
++def ScrySystemLibrary
++    : SystemRuntimeLibrary<isScry, (add DefaultRuntimeLibcallImpls,
++                                       __stack_chk_fail, __stack_chk_guard)>;
++
+ //===----------------------------------------------------------------------===//
+ // Lanai Runtime Libcalls
+ //===----------------------------------------------------------------------===//
+diff --git a/llvm/include/llvm/Object/ELFObjectFile.h b/llvm/include/llvm/Object/ELFObjectFile.h
+index ca4135742..e88a6b1bc 100644
+--- a/llvm/include/llvm/Object/ELFObjectFile.h
++++ b/llvm/include/llvm/Object/ELFObjectFile.h
+@@ -1324,6 +1324,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
+       return "elf32-loongarch";
+     case ELF::EM_XTENSA:
+       return "elf32-xtensa";
++    case ELF::EM_SCRY:
++      return "elf32-scry";
+     default:
+       return "elf32-unknown";
+     }
+@@ -1353,6 +1355,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
+       return "elf64-ve";
+     case ELF::EM_LOONGARCH:
+       return "elf64-loongarch";
++    case ELF::EM_SCRY:
++      return "elf64-scry";
+     default:
+       return "elf64-unknown";
+     }
+@@ -1457,6 +1461,9 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
+   case ELF::EM_XTENSA:
+     return Triple::xtensa;
+ 
++  case ELF::EM_SCRY:
++    return EF.getHeader().e_ident[ELF::EI_CLASS] == ELF::ELFCLASS64 ? Triple::scry64 : Triple::scry32;
++
+   default:
+     return Triple::UnknownArch;
+   }
+diff --git a/llvm/include/llvm/TargetParser/Triple.h b/llvm/include/llvm/TargetParser/Triple.h
+index 9c83abeeb..227bb0ed0 100644
+--- a/llvm/include/llvm/TargetParser/Triple.h
++++ b/llvm/include/llvm/TargetParser/Triple.h
+@@ -110,7 +110,9 @@ public:
+     renderscript32, // 32-bit RenderScript
+     renderscript64, // 64-bit RenderScript
+     ve,             // NEC SX-Aurora Vector Engine
+-    LastArchType = ve
++    scry32,         // Scry (32-bit pointers): scry32
++    scry64,         // Scry (64-bit pointers): scry64
++    LastArchType = scry64
+   };
+   enum SubArchType {
+     NoSubArch,
+@@ -1159,6 +1161,11 @@ public:
+     return getArch() == Triple::csky;
+   }
+ 
++  /// Tests whether the target is Scry (32- or 64-bit).
++  bool isScry() const {
++    return getArch() == Triple::scry32 || getArch() == Triple::scry64;
++  }
++
+   /// Tests whether the target is the Apple "arm64e" AArch64 subarch.
+   bool isArm64e() const {
+     return getArch() == Triple::aarch64 &&
+diff --git a/llvm/lib/Object/ELF.cpp b/llvm/lib/Object/ELF.cpp
+index 35b5e0faf..b3d7c232c 100644
+--- a/llvm/lib/Object/ELF.cpp
++++ b/llvm/lib/Object/ELF.cpp
+@@ -183,6 +183,13 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
+       break;
+     }
+     break;
++  case ELF::EM_SCRY:
++    switch (Type) {
++#include "llvm/BinaryFormat/ELFRelocs/Scry.def"
++    default:
++      break;
++    }
++    break;
+   default:
+     break;
+   }
+diff --git a/llvm/lib/ObjectYAML/ELFYAML.cpp b/llvm/lib/ObjectYAML/ELFYAML.cpp
+index d07c37eda..33aba47c4 100644
+--- a/llvm/lib/ObjectYAML/ELFYAML.cpp
++++ b/llvm/lib/ObjectYAML/ELFYAML.cpp
+@@ -272,6 +272,7 @@ void ScalarEnumerationTraits<ELFYAML::ELF_EM>::enumeration(
+   ECase(EM_OPENRISC);
+   ECase(EM_ARC_COMPACT);
+   ECase(EM_XTENSA);
++  ECase(EM_SCRY);
+   ECase(EM_VIDEOCORE);
+   ECase(EM_TMM_GPP);
+   ECase(EM_NS32K);
+@@ -986,6 +987,9 @@ void ScalarEnumerationTraits<ELFYAML::ELF_REL>::enumeration(
+   case ELF::EM_XTENSA:
+ #include "llvm/BinaryFormat/ELFRelocs/Xtensa.def"
+     break;
++  case ELF::EM_SCRY:
++#include "llvm/BinaryFormat/ELFRelocs/Scry.def"
++    break;
+   default:
+     // Nothing to do.
+     break;
+diff --git a/llvm/lib/TargetParser/TargetDataLayout.cpp b/llvm/lib/TargetParser/TargetDataLayout.cpp
+index b8c3b4325..f9602c0ca 100644
+--- a/llvm/lib/TargetParser/TargetDataLayout.cpp
++++ b/llvm/lib/TargetParser/TargetDataLayout.cpp
+@@ -609,6 +609,10 @@ std::string Triple::computeDataLayout(StringRef ABIName) const {
+     return "e-m:e-p:32:32-i1:8:32-i8:8:32-i16:16:32-i64:32-f64:32-a:0:32-n32";
+   case Triple::xtensa:
+     return "e-m:e-p:32:32-i8:8:32-i16:16:32-i64:64-n32";
++  case Triple::scry32:
++    return "e-m:e-p:32:32-i64:64-i128:128-n8:16:32:64-S128";
++  case Triple::scry64:
++    return "e-m:e-p:64:64-i64:64-i128:128-n8:16:32:64-S128";
+   case Triple::nvptx:
+   case Triple::nvptx64:
+     return computeNVPTXDataLayout(*this, ABIName);
+diff --git a/llvm/lib/TargetParser/Triple.cpp b/llvm/lib/TargetParser/Triple.cpp
+index a4f9dd42c..bedc99cb3 100644
+--- a/llvm/lib/TargetParser/Triple.cpp
++++ b/llvm/lib/TargetParser/Triple.cpp
+@@ -88,6 +88,8 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
+   case x86_64:         return "x86_64";
+   case xcore:          return "xcore";
+   case xtensa:         return "xtensa";
++  case scry32:         return "scry32";
++  case scry64:         return "scry64";
+   }
+ 
+   llvm_unreachable("Invalid ArchType!");
+@@ -259,6 +261,9 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
+   case dxil:        return "dx";
+ 
+   case xtensa:      return "xtensa";
++
++  case scry32:
++  case scry64:      return "scry";
+   }
+ }
+ 
+@@ -518,6 +523,8 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
+       .Case("loongarch64", loongarch64)
+       .Case("dxil", dxil)
+       .Case("xtensa", xtensa)
++      .Case("scry32", scry32)
++      .Case("scry64", scry64)
+       .Default(UnknownArch);
+ }
+ 
+@@ -670,6 +677,8 @@ static Triple::ArchType parseArch(StringRef ArchName) {
+                   "dxilv1.9"},
+                  Triple::dxil)
+           .Case("xtensa", Triple::xtensa)
++          .Case("scry32", Triple::scry32)
++          .Case("scry64", Triple::scry64)
+           .Default(Triple::UnknownArch);
+ 
+   // Some architectures require special parsing logic just to compute the
+@@ -1028,6 +1037,8 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
+   case Triple::ve:
+   case Triple::xcore:
+   case Triple::xtensa:
++  case Triple::scry32:
++  case Triple::scry64:
+     return Triple::ELF;
+ 
+   case Triple::mipsel:
+@@ -1754,6 +1765,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
+   case llvm::Triple::x86:
+   case llvm::Triple::xcore:
+   case llvm::Triple::xtensa:
++  case llvm::Triple::scry32:
+     return 32;
+ 
+   case llvm::Triple::aarch64:
+@@ -1778,6 +1790,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
+   case llvm::Triple::spirv64:
+   case llvm::Triple::systemz:
+   case llvm::Triple::ve:
++  case llvm::Triple::scry64:
+   case llvm::Triple::wasm64:
+   case llvm::Triple::x86_64:
+     return 64;
+@@ -1864,6 +1877,7 @@ Triple Triple::get32BitArchVariant() const {
+   case Triple::x86:
+   case Triple::xcore:
+   case Triple::xtensa:
++  case Triple::scry32:
+     // Already 32-bit.
+     break;
+ 
+@@ -1893,6 +1907,7 @@ Triple Triple::get32BitArchVariant() const {
+     T.setArch(Triple::spirv32, getSubArch());
+     break;
+   case Triple::wasm64:         T.setArch(Triple::wasm32);  break;
++  case Triple::scry64:         T.setArch(Triple::scry32);  break;
+   case Triple::x86_64:         T.setArch(Triple::x86);     break;
+   }
+   return T;
+@@ -1944,6 +1959,7 @@ Triple Triple::get64BitArchVariant() const {
+   case Triple::ve:
+   case Triple::wasm64:
+   case Triple::x86_64:
++  case Triple::scry64:
+     // Already 64-bit.
+     break;
+ 
+@@ -1976,6 +1992,7 @@ Triple Triple::get64BitArchVariant() const {
+   case Triple::thumb:           T.setArch(Triple::aarch64);    break;
+   case Triple::thumbeb:         T.setArch(Triple::aarch64_be); break;
+   case Triple::wasm32:          T.setArch(Triple::wasm64);     break;
++  case Triple::scry32:          T.setArch(Triple::scry64);     break;
+   case Triple::x86:             T.setArch(Triple::x86_64);     break;
+   }
+   return T;
+@@ -2019,6 +2036,8 @@ Triple Triple::getBigEndianArchVariant() const {
+   case Triple::ve:
+   case Triple::csky:
+   case Triple::xtensa:
++  case Triple::scry32:
++  case Triple::scry64:
+ 
+   // ARM is intentionally unsupported here, changing the architecture would
+   // drop any arch suffixes.
+@@ -2140,6 +2159,8 @@ bool Triple::isLittleEndian() const {
+   case Triple::x86_64:
+   case Triple::xcore:
+   case Triple::xtensa:
++  case Triple::scry32:
++  case Triple::scry64:
+     return true;
+   default:
+     return false;
