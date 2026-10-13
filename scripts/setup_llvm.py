@@ -60,16 +60,28 @@ def apply_patches(llvm: pathlib.Path):
         print("No patches to apply")
         return
     git = shutil.which("git")
+    git_apply = None
+    if git:
+        # When the LLVM tree lives inside a git checkout (e.g. third_party/ of
+        # this repository), git interprets patch paths relative to that
+        # repository's root and silently skips everything else.  Prefix the
+        # paths with the tree's location in the repository so they resolve.
+        git_apply = [git, "apply"]
+        prefix = subprocess.run([git, "rev-parse", "--show-prefix"], cwd=llvm,
+                                capture_output=True, text=True)
+        if prefix.returncode == 0 and prefix.stdout.strip():
+            git_apply.append("--directory=" + prefix.stdout.strip().rstrip("/"))
     for p in patches:
         print(f"Applying {p.name}")
-        if git:
+        if git_apply:
             # --check first so re-running setup is harmless.
-            chk = subprocess.run([git, "apply", "--check", "--reverse", str(p)],
+            chk = subprocess.run(git_apply + ["--check", "--reverse", str(p)],
                                  cwd=llvm, capture_output=True)
             if chk.returncode == 0:
                 print("  already applied")
                 continue
-            subprocess.run([git, "apply", str(p)], cwd=llvm, check=True)
+            subprocess.run(git_apply + ["--check", str(p)], cwd=llvm, check=True)
+            subprocess.run(git_apply + [str(p)], cwd=llvm, check=True)
         else:
             subprocess.run(["patch", "-p1", "-N", "-i", str(p)], cwd=llvm, check=True)
 
@@ -95,7 +107,10 @@ def main():
         download(tarball)
         print("Extracting (this takes a while) ...", flush=True)
         with tarfile.open(tarball) as tf:
-            tf.extractall(llvm.parent)
+            if hasattr(tarfile, "data_filter"):
+                tf.extractall(llvm.parent, filter="data")
+            else:
+                tf.extractall(llvm.parent)
         (llvm.parent / f"llvm-project-{LLVM_VERSION}.src").rename(llvm)
         tarball.unlink()
 

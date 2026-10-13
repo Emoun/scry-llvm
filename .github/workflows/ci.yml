@@ -55,7 +55,7 @@ jobs:
       - name: Build LLVM/Clang/lld with the Scry backend
         run: >
           python scripts/build_llvm.py
-          --extra -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          --extra=-DCMAKE_C_COMPILER_LAUNCHER=ccache --extra=-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build the runtime
         run: python scripts/build_runtime.py --clang install/bin/clang${{ runner.os == 'Windows' && '.exe' || '' }}

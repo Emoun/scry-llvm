@@ -4,7 +4,7 @@
 Usage:
     build_llvm.py [--llvm-src <dir>] [--build-dir <dir>] [--prefix <dir>]
                   [--jobs N] [--build-type Release|Debug|RelWithDebInfo]
-                  [--no-assertions] [--configure-only] [--extra <cmake arg> ...]
+                  [--no-assertions] [--configure-only] [--extra=<cmake arg> ...]
 
 Requires CMake >= 3.20, Ninja, and a C++17 host compiler (clang, gcc or MSVC).
 On Windows run from a "x64 Native Tools" prompt or let CMake find MSVC.
@@ -40,7 +40,9 @@ def main():
     ap.add_argument("--no-assertions", action="store_true")
     ap.add_argument("--configure-only", action="store_true")
     ap.add_argument("--no-install", action="store_true")
-    ap.add_argument("--extra", nargs="*", default=[], help="extra cmake arguments")
+    ap.add_argument("--extra", action="append", default=[], metavar="CMAKE_ARG",
+                    help="extra cmake argument, e.g. --extra=-DLLVM_CCACHE_BUILD=ON "
+                         "(repeatable; use the = form for arguments starting with -)")
     args = ap.parse_args()
 
     src = pathlib.Path(args.llvm_src).resolve() / "llvm"
