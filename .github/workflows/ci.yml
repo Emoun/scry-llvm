@@ -5,6 +5,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A run builds LLVM from source, so supersede it when the branch moves on.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: ${{ matrix.os }}

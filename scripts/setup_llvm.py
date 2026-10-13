@@ -71,19 +71,26 @@ def apply_patches(llvm: pathlib.Path):
                                 capture_output=True, text=True)
         if prefix.returncode == 0 and prefix.stdout.strip():
             git_apply.append("--directory=" + prefix.stdout.strip().rstrip("/"))
-    for p in patches:
-        print(f"Applying {p.name}")
-        if git_apply:
-            # --check first so re-running setup is harmless.
-            chk = subprocess.run(git_apply + ["--check", "--reverse", str(p)],
-                                 cwd=llvm, capture_output=True)
-            if chk.returncode == 0:
-                print("  already applied")
-                continue
-            subprocess.run(git_apply + ["--check", str(p)], cwd=llvm, check=True)
-            subprocess.run(git_apply + [str(p)], cwd=llvm, check=True)
-        else:
-            subprocess.run(["patch", "-p1", "-N", "-i", str(p)], cwd=llvm, check=True)
+    for orig in patches:
+        print(f"Applying {orig.name}")
+        # A checkout with CRLF conversion (Git for Windows' default) would
+        # make the patch mismatch the LF upstream sources: apply an LF copy.
+        p = llvm.parent / (orig.name + ".lf")
+        p.write_bytes(orig.read_bytes().replace(b"\r\n", b"\n"))
+        try:
+            if git_apply:
+                # --check first so re-running setup is harmless.
+                chk = subprocess.run(git_apply + ["--check", "--reverse", str(p)],
+                                     cwd=llvm, capture_output=True)
+                if chk.returncode == 0:
+                    print("  already applied")
+                    continue
+                subprocess.run(git_apply + ["--check", str(p)], cwd=llvm, check=True)
+                subprocess.run(git_apply + [str(p)], cwd=llvm, check=True)
+            else:
+                subprocess.run(["patch", "-p1", "-N", "-i", str(p)], cwd=llvm, check=True)
+        finally:
+            p.unlink(missing_ok=True)
 
 
 def main():

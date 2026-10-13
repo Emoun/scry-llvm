@@ -1,0 +1,4 @@
+# Keep LF line endings on every platform: the LLVM patch must match the
+# upstream sources and lit/test expectations are byte-exact.
+* text=auto eol=lf
+*.pdf binary
