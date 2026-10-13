@@ -69,7 +69,7 @@ jobs:
         run: python scripts/build_scryer.py
 
       - name: Run the backend lit tests
-        run: python build/llvm/bin/llvm-lit -sv third_party/llvm-project/llvm/test/CodeGen/Scry
+        run: python scripts/run_lit.py
 
       - name: Run the C tests on the simulator
         run: python scripts/run_tests.py

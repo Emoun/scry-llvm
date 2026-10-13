@@ -84,7 +84,7 @@ echo $?        # exit code = low byte of main's return value
 
 ```sh
 # Backend unit tests (lit, FileCheck) for the LLVM target:
-python3 build/llvm/bin/llvm-lit -sv third_party/llvm-project/llvm/test/CodeGen/Scry
+python3 scripts/run_lit.py
 
 # C programs run on the simulator at -O0 and -O2 (exit code must match
 # the "expect-exit" annotation in each file):
