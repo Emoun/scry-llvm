@@ -21,13 +21,16 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 TOOLS = ["clang", "lld", "llc", "llvm-mc", "llvm-ar", "llvm-nm", "llvm-objdump",
          "llvm-readelf", "llvm-readobj", "llvm-size", "llvm-strip", "llvm-objcopy",
-         "llvm-link", "opt", "llvm-dis", "llvm-as", "FileCheck", "count", "not"]
+         "llvm-link", "opt", "llvm-dis", "llvm-as",
+         # Needed by llvm-lit in the build tree; not installed.
+         "llvm-config", "FileCheck", "count", "not"]
 
 # Install components: the tools above (the lit utilities stay in the build
 # tree, where llvm-lit finds them), the ld.lld symlink and clang's builtin
 # headers.  Only the built targets are installed; a whole-tree
 # "cmake --install" would fail on the libraries that were never built.
-INSTALL_COMPONENTS = [t for t in TOOLS if t not in ("FileCheck", "count", "not")] + [
+INSTALL_COMPONENTS = [t for t in TOOLS
+                      if t not in ("llvm-config", "FileCheck", "count", "not")] + [
     "ld.lld", "clang-resource-headers"]
 
 
