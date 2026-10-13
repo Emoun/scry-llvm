@@ -23,6 +23,13 @@ TOOLS = ["clang", "lld", "llc", "llvm-mc", "llvm-ar", "llvm-nm", "llvm-objdump",
          "llvm-readelf", "llvm-readobj", "llvm-size", "llvm-strip", "llvm-objcopy",
          "llvm-link", "opt", "llvm-dis", "llvm-as", "FileCheck", "count", "not"]
 
+# Install components: the tools above (the lit utilities stay in the build
+# tree, where llvm-lit finds them), the ld.lld symlink and clang's builtin
+# headers.  Only the built targets are installed; a whole-tree
+# "cmake --install" would fail on the libraries that were never built.
+INSTALL_COMPONENTS = [t for t in TOOLS if t not in ("FileCheck", "count", "not")] + [
+    "ld.lld", "clang-resource-headers"]
+
 
 def run(cmd, cwd=None):
     print("  " + " ".join(str(c) for c in cmd), flush=True)
@@ -86,8 +93,10 @@ def main():
         return
     run(["ninja", "-C", str(build), f"-j{args.jobs}", *TOOLS])
     if not args.no_install:
-        run(["ninja", "-C", str(build), "install-distribution"] if False else
-            ["cmake", "--install", str(build), "--prefix", str(prefix)])
+        for component in INSTALL_COMPONENTS:
+            run(["cmake", "--install", str(build), "--prefix", str(prefix),
+                 "--component", component])
+        print(f"Installed the Scry toolchain into {prefix}")
     print("Done. Toolchain in", prefix / "bin")
 
 
