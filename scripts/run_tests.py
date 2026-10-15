@@ -37,6 +37,8 @@ def main():
                     help="optimisation levels to test (default: 0 2)")
     ap.add_argument("--timeout", type=int, default=120, help="seconds per run")
     ap.add_argument("--keep", action="store_true", help="keep build outputs")
+    ap.add_argument("--cflags", action="append", default=[],
+                    help="extra compiler flag (repeatable; use --cflags=-mllvm --cflags=-x)")
     ap.add_argument("tests", nargs="*", help="test names or paths (default: all)")
     args = ap.parse_args()
 
@@ -65,7 +67,7 @@ def main():
             name = f"{src.stem}-O{opt}"
             elf = outdir / (name + ".elf")
             cmd = [str(clang), "--target=" + TRIPLE, "-O" + opt, "-g0",
-                   str(src), "-o", str(elf)]
+                   *args.cflags, str(src), "-o", str(elf)]
             r = subprocess.run(cmd, capture_output=True, text=True)
             if r.returncode != 0:
                 print(f"FAIL {name}: compile error\n{r.stderr}")

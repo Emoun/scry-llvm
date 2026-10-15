@@ -41,12 +41,16 @@ register file for Scry, so the backend keeps values in memory instead.
    in the function's private stack frame.  A register with a single
    definition whose uses all follow it in the same block stays *in flight*
    and gets no slot (`-mllvm -scry-in-flight=false` gives every register a
-   slot); the others, i.e. values live across blocks (PHI copies,
-   loop-carried values, values used in several blocks), get one.
-   Registers of the same size whose live intervals do not overlap share a
-   slot (greedy interval colouring, `-mllvm -scry-share-slots=false`
-   disables it); an in-flight copy of a slot register extends that slot's
-   lifetime, because the lowering reads the source slot at the copy's uses.
+   slot).  A register live across blocks (a PHI copy, a loop-carried value,
+   a value used in several blocks) travels in flight over the edges when it
+   is live into at most `-scry-flight-blocks` (8) blocks and the block it
+   arrives at receives at most `-scry-max-edge-values` (32) such values
+   (section 2.6; `-mllvm -scry-edge-flight=false` disables this); the rest
+   get a slot.  Registers of the same size whose live intervals do not
+   overlap share a slot (greedy interval colouring, `-mllvm
+   -scry-share-slots=false` disables it); an in-flight copy of a slot
+   register extends that slot's lifetime, because the lowering reads the
+   source slot at the copy's uses.
    The `ARG_*` pseudos are first moved to the top of the entry block,
    because the arguments are delivered there whatever the scheduler did
    with the pseudos.  The generic frame-layout code then assigns final
@@ -212,6 +216,38 @@ its consumers, or a `nop` discards it.  Stack-passed arguments are written
 to the outgoing area, which is reserved in the shared frame before the call
 (`rsrv N`) and freed after it (`free N`); its address is the frame base
 plus the private frame size.
+
+### 2.6 Values in flight across block edges
+
+References are temporal, so a value in flight when a block's jump triggers
+arrives at a known position of the successor: the *p*-th instruction of
+the successor receives what was aimed at "trigger + 1 + p".  Every block
+therefore has a *landing pad*: one instruction per position, which
+receives the value delivered to that position and re-aims it at its
+consumers in the block (or, for a value this block only passes on, at the
+delivery for its own successors).  A pad is a long `echo` (reach 1023, so
+no hop is needed however long the block), or a `nop` when this block does
+not need the value (it is needed by another successor of the delivering
+block) or when nothing arrives at the position.
+
+A block with several successors has one in-flight set at its trigger, so
+it delivers the union of its successors' live-ins, and a block receives
+the union of what its predecessors deliver.  Landing positions are
+assigned function-wide on the final layout: two registers arriving at
+the same block get different positions (greedy colouring in register
+order).  At the end of a block the emitter aims each delivered value at
+its position past the block's last instruction, with the usual hops and
+ordering fixups; the jump trigger is that last instruction, so the values
+are in flight when the jump takes effect, and a loop-carried value never
+touches memory.
+
+Which registers travel this way is decided before the frame is laid out
+(they get no slot): a register live into at most `-scry-flight-blocks`
+blocks whose pads (one per block entered, plus a share of the delivery
+hops, weighted by `-scry-flight-cost` percent) cost less than its slot
+traffic (a store per definition and a load per use not served in flight
+after a definition in the same block), subject to `-scry-max-edge-values`
+per block.
 
 ## 3. C ABI
 

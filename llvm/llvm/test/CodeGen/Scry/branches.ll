@@ -33,12 +33,12 @@ x:
 }
 
 ; A loop with eight volatile loads: the compare delivers straight to the
-; near backward jump, which triggers after the two PHI copies.
+; near backward jump; the loop-carried values are delivered in flight.
 ; CHECK-LABEL: far:
 ; CHECK: lt =>0
-; CHECK-NEXT: jmp -{{[0-9]+}}, 2
-; CHECK-NEXT: st [{{[0-9]+}}]
-; CHECK-NEXT: st [{{[0-9]+}}]
+; CHECK-NEXT: jmp -{{[0-9]+}}, {{[0-9]+}}
+; CHECK-NOT: st
+; CHECK: ret 0
 define i32 @far(ptr %p, i32 %n) {
 entry:
   br label %loop

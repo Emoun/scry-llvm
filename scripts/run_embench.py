@@ -73,6 +73,8 @@ def main():
     ap.add_argument("--metrics-bin", help="path to scryer-metrics (default: next to scryer)")
     ap.add_argument("--json", help="write all per-benchmark metrics to this JSON file")
     ap.add_argument("--keep", action="store_true")
+    ap.add_argument("--cflags", action="append", default=[],
+                    help="extra compiler flag (repeatable; use --cflags=-mllvm --cflags=-x)")
     ap.add_argument("-j", "--jobs", type=int, default=1,
                     help="benchmarks to build and run in parallel (default 1)")
     ap.add_argument("--strict", action="store_true",
@@ -126,7 +128,7 @@ def main():
                "-I", str(support), "-I", str(config), "-I", str(srcdir),
                f"-DWARMUP_HEAT={args.warmup}", f"-DGLOBAL_SCALE_FACTOR={args.gsf}",
                "-DHAVE_BOARDSUPPORT_H", "-ffunction-sections",
-               "-fdata-sections", "-Wl,--gc-sections",
+               "-fdata-sections", "-Wl,--gc-sections", *args.cflags,
                *[str(s) for s in sources], "-o", str(elf), "-lm"]
         t0 = time.time()
         r = subprocess.run(cmd, capture_output=True, text=True)

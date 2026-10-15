@@ -65,6 +65,7 @@
 #include "ScryInstrInfo.h"
 #include "ScryMachineFunctionInfo.h"
 #include "ScrySubtarget.h"
+#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
@@ -79,6 +80,8 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include <array>
+#include <map>
 #include <vector>
 
 using namespace llvm;
@@ -264,6 +267,32 @@ private:
   }
   bool hasSlot(Register R) const { return FuncInfo->getSpillSlot(R) >= 0; }
   unsigned countUsesAfter(Register R, const MachineInstr &Def) const;
+  unsigned countUsesFromStart(Register R) const;
+  bool definedLaterInBlock(Register R, const MachineInstr *After) const;
+  /// Registers delivered in flight to the successors of the current block,
+  /// and the number of uses to count for a definition of R by MI.
+  DenseSet<Register> DeliverSet;
+  bool deliveredAtEnd(Register R, const MachineInstr *Def) const {
+    return DeliverSet.count(R) && !definedLaterInBlock(R, Def);
+  }
+  unsigned extraUses(Register R, const MachineInstr *Def) const {
+    return (hasSlot(R) ? 1 : 0) + (deliveredAtEnd(R, Def) ? 1 : 0);
+  }
+  void computeDeliverSet(MachineBasicBlock &MBB);
+  void emitLandingPads(MachineBasicBlock &MBB);
+  void deliverContract(MachineBasicBlock &MBB);
+  // Edge flight on the final control flow graph: the registers live into
+  // each block that travel in flight, and each such register's landing
+  // position (the slot of the pair is always 0 now).
+  void planEdgeFlight();
+  DenseMap<const MachineBasicBlock *, SmallVector<Register, 8>> EdgeLiveIn;
+  DenseMap<Register, std::pair<unsigned, unsigned>> EdgePos;
+  ArrayRef<Register> edgeLiveIns(const MachineBasicBlock *MBB) const {
+    auto It = EdgeLiveIn.find(MBB);
+    return It == EdgeLiveIn.end() ? ArrayRef<Register>() : ArrayRef<Register>(It->second);
+  }
+  // Deferred bindings of a contract delivery: (output, landing position).
+  SmallVector<std::pair<Output, int>, 8> *DeferredBinds = nullptr;
   Operand operandFor(const MachineOperand &MO);
   void produce(unsigned V, int ItemIdx, int RefOp, int Reach);
   void bindOutput(const Output &O, int Consumer, bool IsArg = false);
@@ -305,6 +334,9 @@ private:
   DenseSet<const MachineInstr *> FoldedNegations;
   // Compares whose only user is a jump of their block.
   DenseSet<const MachineInstr *> JumpOnlyCompares;
+  // For those: does the jump fire on a non-zero operand (backward target),
+  // and does the branch fire when its condition is true (polarity)?
+  DenseMap<const MachineInstr *, std::pair<bool, bool>> JumpOnlyInfo;
   bool jumpNeedsNegation(const MachineBasicBlock &MBB,
                          const PlannedJump &J) const {
     return J.TakenOnNonZero != isBackward(&MBB, J.Target);
@@ -417,12 +449,22 @@ void ScryTemporalLowering::setRef(int Idx, int TargetIdx, bool Second) {
   }
 }
 
-/// Number of instructions emitConstBytes will emit.
-static unsigned constBytesLen(uint64_t Value, unsigned Scale) {
-  unsigned N = 1;
-  for (unsigned i = 1; i < Scale; ++i)
-    if ((Value >> (8 * i)) & 0xff)
-      N = i + 1;
+/// Number of instructions emitConstBytes will emit: the leading bytes that
+/// the const's own extension produces (zero for unsigned types, the sign
+/// for signed ones) are left out.
+static unsigned constBytesLen(uint64_t Value, unsigned Scale,
+                              bool Signed = false) {
+  unsigned N = Scale;
+  while (N > 1) {
+    unsigned Top = (Value >> (8 * (N - 1))) & 0xff;
+    unsigned Next = (Value >> (8 * (N - 2))) & 0xff;
+    bool Redundant = Signed ? (Top == 0xff && (Next & 0x80)) ||
+                                  (Top == 0 && !(Next & 0x80))
+                            : Top == 0;
+    if (!Redundant)
+      break;
+    --N;
+  }
   return N;
 }
 
@@ -430,7 +472,7 @@ static unsigned constBytesLen(uint64_t Value, unsigned Scale) {
 /// instruction.  Any ready inputs are forwarded behind it.
 void ScryTemporalLowering::emitConstBytes(unsigned TypeCode3, uint64_t Value,
                                           unsigned Scale) {
-  unsigned N = constBytesLen(Value, Scale);
+  unsigned N = constBytesLen(Value, Scale, TypeCode3 & 1);
   emit(Scry::CONST, {(int64_t)TypeCode3, (int64_t)((Value >> (8 * (N - 1))) & 0xff)});
   for (int i = (int)N - 2; i >= 0; --i)
     emit(Scry::GROW, {(int64_t)((Value >> (8 * i)) & 0xff)});
@@ -535,6 +577,44 @@ unsigned ScryTemporalLowering::countUsesAfter(Register R,
       break;
   }
   return N;
+}
+
+/// Number of operand uses of R in the current block before its first
+/// definition there (uses of the value arriving at the block start).
+unsigned ScryTemporalLowering::countUsesFromStart(Register R) const {
+  unsigned N = 0;
+  for (const MachineInstr &MI : *CurMBB) {
+    if (MI.isDebugInstr())
+      continue;
+    bool Redefines = false;
+    for (const MachineOperand &MO : MI.operands()) {
+      if (!MO.isReg() || MO.getReg() != R)
+        continue;
+      if (MO.isDef())
+        Redefines = true;
+      else if (MI.getOpcode() != TargetOpcode::KILL)
+        ++N;
+    }
+    if (Redefines)
+      break;
+  }
+  return N;
+}
+
+/// Is R defined again in the current block after instruction After (or
+/// anywhere in it when After is null)?
+bool ScryTemporalLowering::definedLaterInBlock(Register R,
+                                               const MachineInstr *After) const {
+  bool Seen = After == nullptr;
+  for (const MachineInstr &MI : *CurMBB) {
+    if (&MI == After) {
+      Seen = true;
+      continue;
+    }
+    if (Seen && MI.definesRegister(R, /*TRI=*/nullptr))
+      return true;
+  }
+  return false;
 }
 
 /// Execution time of an output for operand ordering: outputs of one item are
@@ -691,7 +771,7 @@ unsigned ScryTemporalLowering::chainLength(const Operand &O) const {
   case Operand::Slot:
     return shortSlot(O.Reg) ? 1 : frameAddrLen(slotOffset(O.Reg)) + 1;
   case Operand::Const:
-    return constBytesLen(O.Imm, O.Scale);
+    return constBytesLen(O.Imm, O.Scale, O.TypeCode & 1);
   case Operand::FrameAddr:
     return frameAddrLen(O.Imm);
   case Operand::SymAddr:
@@ -841,6 +921,7 @@ int ScryTemporalLowering::prepareOperands(ArrayRef<Operand> Ops, unsigned Gap,
       for (unsigned i = R; i != Q; ++i)
         bindOutput(Chosen[i], RunStart);
       return C;
+      // (never deferred: Plan A needs Gap == 0)
     }
   }
 
@@ -934,6 +1015,13 @@ int ScryTemporalLowering::prepareOperands(ArrayRef<Operand> Ops, unsigned Gap,
   }
 
   int C = curIndex() + Gap;
+  if (DeferredBinds) {
+    for (unsigned k = 0; k != P; ++k)
+      DeferredBinds->push_back({Chosen[k], 0});
+    for (auto &B : ToBind)
+      DeferredBinds->push_back({Output{B.first, B.second, 1023}, 0});
+    return C;
+  }
   for (unsigned k = 0; k != P; ++k)
     bindOutput(Chosen[k], C, IsArg);
   for (auto &B : ToBind)
@@ -955,8 +1043,12 @@ int ScryTemporalLowering::consume(unsigned Opc, ArrayRef<Operand> Ops,
 int ScryTemporalLowering::nextOutputTime(const Operand &O) const {
   if (O.K != Operand::Flight)
     return INT32_MAX;
+  const ValueState &VS = Values[O.V];
+  // A value that must be copied first is re-emitted by the dup, i.e. late.
+  if (VS.RemainingUses > VS.Pending.size())
+    return INT32_MAX - 1;
   int T = INT32_MAX;
-  for (const Output &P : Values[O.V].Pending)
+  for (const Output &P : VS.Pending)
     T = std::min(T, outputTime(P));
   return T;
 }
@@ -1028,7 +1120,7 @@ Operand ScryTemporalLowering::operandFor(const MachineOperand &MO) {
   if (hasSlot(R))
     return Operand::slot(R);
   // A constant without a slot is rebuilt wherever it is used.
-  if (const MachineInstr *Def = MRI->getVRegDef(R)) {
+  if (const MachineInstr *Def = MRI->hasOneDef(R) ? MRI->getVRegDef(R) : nullptr) {
     switch (Def->getOpcode()) {
     case Scry::CONST_8: case Scry::CONST_16: case Scry::CONST_32: case Scry::CONST_64: {
       unsigned Scale = scaleOf(R);
@@ -1152,6 +1244,7 @@ static bool isOrderingCompare(unsigned Opc) {
 static bool isEqualityCompare(unsigned Opc) {
   switch (Opc) {
   case Scry::CMP_EQ_GR8: case Scry::CMP_EQ_GR16: case Scry::CMP_EQ_GR32: case Scry::CMP_EQ_GR64:
+  case Scry::CMP_NE_GR8: case Scry::CMP_NE_GR16: case Scry::CMP_NE_GR32: case Scry::CMP_NE_GR64:
     return true;
   default:
     return false;
@@ -1173,8 +1266,9 @@ void ScryTemporalLowering::planNegationFolds(MachineBasicBlock &MBB,
           isOrderingCompare(Def->getOpcode())))
       continue;
     JumpOnlyCompares.insert(Def);
-    if (jumpNeedsNegation(MBB, J) && (isNegatingCompare(Def->getOpcode()) ||
-                                      isEqualityCompare(Def->getOpcode())))
+    JumpOnlyInfo[Def] = {isBackward(&MBB, J.Target), J.TakenOnNonZero};
+    if (jumpNeedsNegation(MBB, J) && isNegatingCompare(Def->getOpcode()) &&
+        !isEqualityCompare(Def->getOpcode()))
       FoldedNegations.insert(Def);
   }
 }
@@ -1196,8 +1290,14 @@ void ScryTemporalLowering::emitJump(MachineBasicBlock &MBB,
   int First = curIndex();
 
   if (J.Cond.isValid()) {
-    bool Neg = jumpNeedsNegation(MBB, J) &&
-               !FoldedNegations.count(MRI->getVRegDef(J.Cond));
+    // Equality compares feeding only this jump produce the operand in the
+    // needed polarity themselves; so do folded negating compares.
+    const MachineInstr *CondDef =
+        MRI->hasOneDef(J.Cond) ? MRI->getVRegDef(J.Cond) : nullptr;
+    bool Handled = CondDef && (FoldedNegations.count(CondDef) ||
+                               (JumpOnlyCompares.count(CondDef) &&
+                                isEqualityCompare(CondDef->getOpcode())));
+    bool Neg = jumpNeedsNegation(MBB, J) && !Handled;
     Operand C = operandFor(MachineOperand::CreateReg(J.Cond, false));
     if (Neg) {
       ++FnNegations;
@@ -1252,7 +1352,7 @@ void ScryTemporalLowering::emitJump(MachineBasicBlock &MBB,
 /// Create the value for the result register D of MI, counting its consumers
 /// in this block (plus the slot store if it lives across blocks).
 unsigned ScryTemporalLowering::defineValue(Register D, const MachineInstr &MI) {
-  unsigned Uses = countUsesAfter(D, MI) + (hasSlot(D) ? 1 : 0);
+  unsigned Uses = countUsesAfter(D, MI) + extraUses(D, &MI);
   unsigned V = newValue(Uses);
   RegValue[D] = V;
   SlotAlias.erase(D);
@@ -1276,6 +1376,53 @@ void ScryTemporalLowering::expandBinary(MachineInstr &MI, unsigned RealOpc) {
   bool Commutative = RealOpc == Scry::ADD_L || RealOpc == Scry::MUL_L ||
                      RealOpc == Scry::AND || RealOpc == Scry::OR ||
                      RealOpc == Scry::XOR;
+  // A constant whose upper bytes are a sign extension is shorter as a signed
+  // constant (const sign-extends its byte).  The result keeps the other
+  // operand's unsigned type, so this is only done when that operand is a
+  // value (values are tagged unsigned) and the operation does not depend on
+  // the signedness of its inputs.
+  bool TypeNeutral = RealOpc == Scry::ADD_L || RealOpc == Scry::SUB_L ||
+                     RealOpc == Scry::MUL_L || RealOpc == Scry::AND ||
+                     RealOpc == Scry::OR || RealOpc == Scry::XOR;
+  auto Shorten = [&](Operand &C, const Operand &Other) {
+    if (!TypeNeutral || C.K != Operand::Const || (C.TypeCode & 1) ||
+        Other.K == Operand::Const)
+      return;
+    if (constBytesLen(C.Imm, C.Scale, true) < constBytesLen(C.Imm, C.Scale, false))
+      C.TypeCode |= 1;
+  };
+  Shorten(A, B);
+  Shorten(B, A);
+  // The implicit second operand of a single-input operation: 1 for add,
+  // sub, shift and and; all ones for or and xor; 2 for div.
+  auto IsImplicit = [&](const Operand &C) {
+    if (C.K != Operand::Const)
+      return false;
+    uint64_t Mask = C.Scale == 8 ? ~0ull : ((1ull << (8 * C.Scale)) - 1);
+    uint64_t Val = C.Imm & Mask;
+    switch (RealOpc) {
+    case Scry::ADD_L: case Scry::SUB_L: case Scry::SH_L: case Scry::AND:
+      return Val == 1;
+    case Scry::OR: case Scry::XOR:
+      return Val == Mask;
+    case Scry::DIV_L: case Scry::DIV_H:
+      return Val == 2;
+    default:
+      return false;
+    }
+  };
+  if (IsImplicit(B)) {
+    int Op = consume(RealOpc, {A}, {0});
+    produce(V, Op, 0, 31);
+    defineResult(MI, V);
+    return;
+  }
+  if (Commutative && IsImplicit(A)) {
+    int Op = consume(RealOpc, {B}, {0});
+    produce(V, Op, 0, 31);
+    defineResult(MI, V);
+    return;
+  }
   int Op = Commutative ? consumeCommutative(RealOpc, A, B, {0})
                        : consume(RealOpc, {A, B}, {0});
   produce(V, Op, 0, 31);
@@ -1333,11 +1480,24 @@ void ScryTemporalLowering::expandCompare(MachineInstr &MI, unsigned First,
   Operand OB = operandFor(MI.getOperand(2));
   bool Folded = FoldedNegations.count(&MI);
 
-  // An equality test against zero feeding only a jump: the jump tests the
-  // value itself (x != 0) or its logical not (x == 0, "eq x").
-  if (First == Scry::EQ && JumpOnlyCompares.count(&MI) &&
-      OB.K == Operand::Const && OB.Imm == 0 && !Signed) {
-    bool WantNonZero = Negate != Folded; // the jump wants (x != 0)
+  // An equality test feeding only a jump costs one instruction whatever the
+  // polarities: the jump fires on a non-zero operand (backward target) or
+  // on zero (forward), and the branch fires when a == b (eq) or a != b
+  // (ne), so the operand is either "a == b" (eq) or "a != b" (xor, or the
+  // value itself when b is zero).
+  if (First == Scry::EQ && JumpOnlyCompares.count(&MI) && !Signed) {
+    auto [FiresOnNonZero, Pol] = JumpOnlyInfo.lookup(&MI);
+    bool BranchOnEqual = Pol != Negate;      // the branch fires when a == b
+    bool WantNonZero = BranchOnEqual != FiresOnNonZero; // operand = (a != b)
+    bool ZeroB = OB.K == Operand::Const && OB.Imm == 0;
+    if (!ZeroB) {
+      unsigned V = defineValue(D, MI);
+      int C = WantNonZero ? consumeCommutative(Scry::XOR, OA, OB, {0})
+                          : consumeCommutative(Scry::EQ, OA, OB, {0});
+      produce(V, C, 0, 31);
+      defineResult(MI, V);
+      return;
+    }
     if (WantNonZero && OA.K == Operand::Flight) {
       RegValue[D] = OA.V;
       SlotAlias.erase(D);
@@ -1369,16 +1529,21 @@ void ScryTemporalLowering::expandCompare(MachineInstr &MI, unsigned First,
       llvm_unreachable("fold of a non-negating compare");
   }
 
+  // Comparing against zero: the implicit second operand is zero.
+  bool ZeroB = OB.K == Operand::Const && OB.Imm == 0;
   if (Signed) {
-    unsigned TA = newValue(1), TB = newValue(1);
+    unsigned TA = newValue(1);
     int CA = consume(Scry::CAST, {OA}, {(int64_t)stype(A), 0});
     produce(TA, CA, 1, 31);
-    int CB = consume(Scry::CAST, {OB}, {(int64_t)stype(B), 0});
-    produce(TB, CB, 1, 31);
     OA = Operand::flight(TA);
-    OB = Operand::flight(TB);
+    if (!ZeroB) {
+      unsigned TB = newValue(1);
+      int CB = consume(Scry::CAST, {OB}, {(int64_t)stype(B), 0});
+      produce(TB, CB, 1, 31);
+      OB = Operand::flight(TB);
+    }
   }
-  int Cmp = consume(First, {OA, OB}, {0});
+  int Cmp = ZeroB ? consume(First, {OA}, {0}) : consume(First, {OA, OB}, {0});
   if (Negate) {
     unsigned T = newValue(1);
     produce(T, Cmp, 0, 31);
@@ -1490,7 +1655,7 @@ void ScryTemporalLowering::expandCopy(MachineInstr &MI) {
   if (It != RegValue.end()) {
     unsigned V = It->second;
     // The copy's own use is replaced by the uses of D.
-    Values[V].RemainingUses += countUsesAfter(D, MI) + (hasSlot(D) ? 1 : 0);
+    Values[V].RemainingUses += countUsesAfter(D, MI) + extraUses(D, &MI);
     --Values[V].RemainingUses;
     RegValue[D] = V;
     if (hasSlot(D))
@@ -1539,14 +1704,27 @@ void ScryTemporalLowering::expandCopy(MachineInstr &MI) {
   produce(V, Last, RefOp, RefOp >= 0 ? 31 : 0);
 }
 
-/// CONST_*/ADDR_*: built at each use (and stored once if slot-resident).
+/// CONST_*/ADDR_*: built at each use (and stored once if slot-resident);
+/// one that travels in flight across edges is built here and delivered.
 void ScryTemporalLowering::expandConstDef(MachineInstr &MI) {
   Register D = MI.getOperand(0).getReg();
   Remat[D] = &MI;
   RegValue.erase(D);
   SlotAlias.erase(D);
-  if (hasSlot(D))
+  if (hasSlot(D)) {
     storeOperand(D, operandFor(MI.getOperand(0)));
+    return;
+  }
+  if (deliveredAtEnd(D, &MI)) {
+    Operand Src = operandFor(MI.getOperand(0));
+    Remat.erase(D);
+    unsigned V = defineValue(D, MI);
+    expire(chainLength(Src) + 3);
+    int Last;
+    emitChain(Src, Last);
+    int RefOp = chainRefOp(Src);
+    produce(V, Last, RefOp, RefOp >= 0 ? 31 : 0);
+  }
 }
 
 void ScryTemporalLowering::expandPrologue(MachineBasicBlock &Entry) {
@@ -1588,7 +1766,7 @@ void ScryTemporalLowering::expandPrologue(MachineBasicBlock &Entry) {
   for (unsigned i = 0; i < NumArgs; ++i) {
     unsigned Uses = 0;
     if (ArgRegs[i].isValid())
-      Uses = countUsesAfter(ArgRegs[i], *ArgMIs[i]) + (hasSlot(ArgRegs[i]) ? 1 : 0);
+      Uses = countUsesAfter(ArgRegs[i], *ArgMIs[i]) + extraUses(ArgRegs[i], ArgMIs[i]);
     ArgVals.push_back(newValue(Uses));
     if (ArgRegs[i].isValid())
       RegValue[ArgRegs[i]] = ArgVals.back();
@@ -1639,6 +1817,230 @@ void ScryTemporalLowering::expandPrologue(MachineBasicBlock &Entry) {
       VS.Pending.clear();
     }
   }
+}
+
+/// Liveness of the edge-flight registers on the final control flow graph,
+/// and their landing positions: two registers arriving at the same block
+/// get different positions (greedy colouring in register order).
+void ScryTemporalLowering::planEdgeFlight() {
+  EdgeLiveIn.clear();
+  EdgePos.clear();
+  SmallVector<Register, 32> Regs;
+  for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
+    Register R = Register::index2VirtReg(i);
+    if (FuncInfo->isEdgeFlight(R))
+      Regs.push_back(R);
+  }
+  if (Regs.empty())
+    return;
+  DenseMap<Register, unsigned> IndexOf;
+  for (unsigned i = 0, e = Regs.size(); i != e; ++i)
+    IndexOf[Regs[i]] = i;
+
+  // Upward-exposed uses and definitions per block, then live-in/live-out
+  // by iteration.
+  unsigned N = Regs.size();
+  DenseMap<const MachineBasicBlock *, BitVector> Use, Def, LiveIn, LiveOut;
+  for (MachineBasicBlock &MBB : *MF) {
+    BitVector U(N), D(N);
+    for (MachineInstr &MI : MBB) {
+      if (MI.isDebugInstr())
+        continue;
+      for (MachineOperand &MO : MI.operands()) {
+        if (!MO.isReg() || !MO.getReg().isVirtual())
+          continue;
+        auto It = IndexOf.find(MO.getReg());
+        if (It == IndexOf.end())
+          continue;
+        if (MO.isUse() && !D[It->second])
+          U[It->second] = true;
+      }
+      for (MachineOperand &MO : MI.operands()) {
+        if (!MO.isReg() || !MO.isDef() || !MO.getReg().isVirtual())
+          continue;
+        auto It = IndexOf.find(MO.getReg());
+        if (It != IndexOf.end())
+          D[It->second] = true;
+      }
+    }
+    Use[&MBB] = U;
+    Def[&MBB] = D;
+    LiveIn[&MBB] = BitVector(N);
+    LiveOut[&MBB] = BitVector(N);
+  }
+  bool Changed = true;
+  while (Changed) {
+    Changed = false;
+    for (MachineBasicBlock &MBB : llvm::reverse(*MF)) {
+      BitVector Out(N);
+      for (MachineBasicBlock *S : MBB.successors())
+        Out |= LiveIn[S];
+      BitVector In = Out;
+      In.reset(Def[&MBB]);
+      In |= Use[&MBB];
+      if (In != LiveIn[&MBB] || Out != LiveOut[&MBB]) {
+        LiveIn[&MBB] = In;
+        LiveOut[&MBB] = Out;
+        Changed = true;
+      }
+    }
+  }
+  // Nothing arrives at the entry block (its arguments come from the caller).
+  LiveIn[&MF->front()].reset();
+  for (MachineBasicBlock &MBB : *MF)
+    for (unsigned i : LiveIn[&MBB].set_bits())
+      EdgeLiveIn[&MBB].push_back(Regs[i]);
+
+  // Arrivals: every predecessor delivers the live-ins of all its successors.
+  DenseMap<const MachineBasicBlock *, BitVector> Arrive;
+  for (MachineBasicBlock &P : *MF) {
+    BitVector Deliver(N);
+    for (MachineBasicBlock *S : P.successors())
+      Deliver |= LiveIn[S];
+    for (MachineBasicBlock *S : P.successors()) {
+      auto It = Arrive.find(S);
+      if (It == Arrive.end())
+        It = Arrive.insert({S, BitVector(N)}).first;
+      It->second |= Deliver;
+    }
+  }
+  // Colour: registers arriving at the same block need different positions.
+  SmallVector<unsigned, 16> PositionOf(N, ~0u);
+  for (unsigned i = 0; i != N; ++i) {
+    BitVector Used;
+    for (auto &KV : Arrive) {
+      if (!KV.second[i])
+        continue;
+      for (unsigned j : KV.second.set_bits()) {
+        if (j == i || PositionOf[j] == ~0u)
+          continue;
+        if (Used.size() <= PositionOf[j])
+          Used.resize(PositionOf[j] + 1);
+        Used[PositionOf[j]] = true;
+      }
+    }
+    unsigned Pos = 0;
+    while (Pos < Used.size() && Used[Pos])
+      ++Pos;
+    PositionOf[i] = Pos;
+    EdgePos[Regs[i]] = {Pos, 0};
+  }
+}
+
+/// The registers the current block delivers in flight to its successors:
+/// the union of what is live into them.
+void ScryTemporalLowering::computeDeliverSet(MachineBasicBlock &MBB) {
+  DeliverSet.clear();
+  for (MachineBasicBlock *S : MBB.successors())
+    for (Register R : edgeLiveIns(S))
+      DeliverSet.insert(R);
+}
+
+/// Receive the values arriving in flight at the block start.  Every
+/// predecessor delivers the union of its successors' live-ins at fixed
+/// positions (two registers per position); position p's pad is the p-th
+/// instruction of the block: an echo re-aiming the values at their
+/// consumers, a nop for a position nothing arrives at, and a nop sink for
+/// values this block does not need.
+void ScryTemporalLowering::emitLandingPads(MachineBasicBlock &MBB) {
+  // Arrivals: what any predecessor delivers.
+  DenseSet<Register> Needed;
+  for (Register R : edgeLiveIns(&MBB))
+    Needed.insert(R);
+  std::map<unsigned, Register> Positions;
+  for (MachineBasicBlock *P : MBB.predecessors())
+    for (MachineBasicBlock *S : P->successors())
+      for (Register R : edgeLiveIns(S)) {
+        unsigned Pos = EdgePos.lookup(R).first;
+        assert((!Positions.count(Pos) || Positions[Pos] == R) && "position clash");
+        Positions[Pos] = R;
+      }
+  if (Positions.empty())
+    return;
+
+  unsigned Last = Positions.rbegin()->first;
+  for (unsigned Pos = 0; Pos <= Last; ++Pos) {
+    auto It = Positions.find(Pos);
+    if (It == Positions.end()) {
+      emit(Scry::NOP);
+      continue;
+    }
+    Register R = It->second;
+    unsigned Uses = 0;
+    if (Needed.count(R))
+      Uses = countUsesFromStart(R) +
+             (DeliverSet.count(R) && !definedLaterInBlock(R, nullptr) ? 1 : 0);
+    int Pad;
+    if (Uses == 0) {
+      // Not needed here: discard it.
+      Pad = emit(Scry::NOP);
+    } else {
+      Pad = emit(Scry::ECHOL, {0});
+      unsigned V = newValue(Uses);
+      RegValue[R] = V;
+      Values[V].Pending.push_back({Pad, 0, 1023});
+    }
+    raw_string_ostream OS(Cur->Items[Pad].Comment);
+    OS << "landing pad " << Pos << ": " << printReg(R);
+  }
+}
+
+/// Aim the values the successors expect at their landing positions, which
+/// follow the block's last instruction (the jump trigger).
+void ScryTemporalLowering::deliverContract(MachineBasicBlock &MBB) {
+  if (DeliverSet.empty())
+    return;
+  std::map<unsigned, Register> Positions;
+  for (Register R : DeliverSet)
+    Positions[EdgePos.lookup(R).first] = R;
+
+  // Each position is its own consumer, so there is no ordering to fix:
+  // take an output per value (copying or building it if needed), hop those
+  // that could not reach their position even if every other one hopped
+  // too, and bind once the end is known.
+  struct Delivery {
+    unsigned Pos;
+    Output O;
+  };
+  // Everything pending must survive the copies, chains and hops emitted
+  // below.
+  unsigned Look = 2;
+  for (auto &[Pos, R] : Positions)
+    Look += chainLength(operandFor(MachineOperand::CreateReg(R, false))) + 3;
+  expire(Look);
+  SmallVector<Delivery, 8> Deliveries;
+  int Worst = curIndex() + 2 * (int)Positions.size();
+  for (auto &[Pos, R] : Positions) {
+    Operand Op = operandFor(MachineOperand::CreateReg(R, false));
+    Output O;
+    if (Op.K == Operand::Flight) {
+      ValueState &VS = Values[Op.V];
+      if (VS.RemainingUses > VS.Pending.size())
+        ensureOutputs(Op.V, VS.Pending.size() + 1);
+      takeOutput(Op.V, -1, O);
+      --Values[Op.V].RemainingUses;
+    } else {
+      int Last;
+      emitChain(Op, Last);
+      int H = emit(Scry::ECHOL, {0});
+      ++FnHops;
+      O = Output{H, 0, 1023};
+    }
+    // Hop right away if the output could not reach its position even in
+    // the worst case (every remaining delivery hopping too).
+    if (Cur->refValue(O.Item, Worst + 1 + (int)Pos, false) > O.Reach) {
+      int H = emit(Scry::ECHOL, {0});
+      bindOutput(O, H);
+      ++FnHops;
+      O = Output{H, 0, 1023};
+    }
+    Deliveries.push_back({Pos, O});
+  }
+  int End = curIndex() - 1;
+  for (Delivery &D : Deliveries)
+    bindOutput(D.O, End + 1 + (int)D.Pos);
+  if (!Deliveries.empty() && Cur->Items[Deliveries.front().O.Item].Comment.empty())
+    Cur->Items[Deliveries.front().O.Item].Comment = "deliver to successors";
 }
 
 static std::string describe(const MachineInstr &MI) {
@@ -1865,6 +2267,7 @@ bool ScryTemporalLowering::expandFunction() {
   Blocks.clear();
   FoldedNegations.clear();
   JumpOnlyCompares.clear();
+  JumpOnlyInfo.clear();
   FnNearJumps = FnFarJumps = FnNegations = 0;
   FnHops = FnDups = FnSlotLoads = FnSlotStores = 0;
   Blocks.reserve(MF->size());
@@ -1877,8 +2280,11 @@ bool ScryTemporalLowering::expandFunction() {
     SlotAlias.clear();
     Remat.clear();
 
+    computeDeliverSet(MBB);
     if (&MBB == &MF->front())
       expandPrologue(MBB);
+    else
+      emitLandingPads(MBB);
     SmallVector<PlannedJump, 2> Jumps;
     planJumps(MBB, Jumps);
     planNegationFolds(MBB, Jumps);
@@ -1893,6 +2299,7 @@ bool ScryTemporalLowering::expandFunction() {
       if (!MI.isTerminator())
         EmitJumpsAt(MIIndex.lookup(&MI) + 1);
     }
+    deliverContract(MBB);
     // Every block occupies at least one instruction so that a forward jump
     // never targets the instruction right after its own trigger.
     if (Cur->Items.empty())
@@ -2076,6 +2483,7 @@ bool ScryTemporalLowering::runOnMachineFunction(MachineFunction &Fn) {
     for (MachineInstr &MI : MBB)
       MIIndex[&MI] = N++;
   }
+  planEdgeFlight();
 
   // Relax the jump forms until every target fits; each round moves at least
   // one jump to a more general form.

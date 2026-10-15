@@ -1,12 +1,17 @@
 ; RUN: llc -mtriple=scry32-unknown-none-elf -O2 < %s | FileCheck %s
 
 ; CHECK-LABEL: loop:
-; The loop-closing branch: the compare delivers straight to a near backward
-; jump that triggers after the block's last instruction (the PHI copies).
+; The loop-carried values arrive in flight at the landing pads of the body
+; (one echo per position; nothing is loaded or stored), the compare delivers
+; straight to a near backward jump, and the values for the next iteration
+; (or the exit block) are aimed past the block end.
+; CHECK: %body
+; CHECK: landing pad 1
 ; CHECK: lt =>0
-; CHECK-NEXT: jmp -{{[0-9]+}}, {{[1-9][0-9]*}}
-; CHECK-NEXT: st [{{[0-9]+}}]
+; CHECK-NEXT: jmp -{{[0-9]+}}, {{[0-9]+}}
 ; CHECK-NOT: jmp
+; CHECK-NOT: ld
+; CHECK-NOT: st
 ; CHECK: ret 0
 define i32 @loop(i32 %n) {
 entry:

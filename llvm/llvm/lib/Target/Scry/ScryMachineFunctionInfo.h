@@ -10,6 +10,8 @@
 #define LLVM_LIB_TARGET_SCRY_SCRYMACHINEFUNCTIONINFO_H
 
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/Register.h"
 #include <string>
@@ -57,6 +59,12 @@ public:
   }
   const DenseMap<Register, int> &getSpillSlots() const { return SpillSlots; }
 
+  /// Registers carried in flight across block edges (decided before the
+  /// frame is laid out; ScryTemporalLowering works out the positions on the
+  /// final control flow graph).
+  void setEdgeFlight(Register R) { EdgeFlightRegs.insert(R); }
+  bool isEdgeFlight(Register R) const { return EdgeFlightRegs.count(R); }
+
   /// Assembly comments attached to the first real instruction of each
   /// expanded virtual instruction (for readable .s output).
   void setComment(const MachineInstr *MI, std::string C) {
@@ -69,6 +77,7 @@ public:
 
 private:
   DenseMap<const MachineInstr *, std::string> Comments;
+  DenseSet<Register> EdgeFlightRegs;
 };
 
 } // namespace llvm

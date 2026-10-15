@@ -14,8 +14,9 @@
 //
 // Registers with a single definition whose uses all follow it in the same
 // block get no slot: ScryTemporalLowering keeps them in flight between their
-// producer and their consumers.  The remaining ("cross-block") registers
-// share slots when their live intervals do not overlap (greedy interval
+// producer and their consumers.  Values live across blocks may travel in
+// flight over the edges as well (see runOnMachineFunction).  The remaining
+// ("cross-block") registers share slots when their live intervals do not overlap (greedy interval
 // colouring per slot size), which keeps frames small: the scryer simulator
 // only has a few kilobytes of stack.  Sharing is safe because a slot is
 // written right after its definition and read at each use.
@@ -46,6 +47,24 @@ static cl::opt<bool> InFlightValues(
     "scry-in-flight", cl::Hidden, cl::init(true),
     cl::desc("Keep single-block values in flight instead of in frame slots"));
 
+static cl::opt<bool> EdgeFlight(
+    "scry-edge-flight", cl::Hidden, cl::init(true),
+    cl::desc("Carry values live across blocks in flight over the edges"));
+
+static cl::opt<unsigned> FlightBlocks(
+    "scry-flight-blocks", cl::Hidden, cl::init(8),
+    cl::desc("Carry a value in flight only if it is live into at most this "
+             "many blocks"));
+
+static cl::opt<unsigned> FlightCostPercent(
+    "scry-flight-cost", cl::Hidden, cl::init(70),
+    cl::desc("Weight (percent) of a landing-pad instruction against a slot "
+             "load or store when choosing between flight and slot"));
+
+static cl::opt<unsigned> MaxEdgeValues(
+    "scry-max-edge-values", cl::Hidden, cl::init(32),
+    cl::desc("Maximum number of values arriving in flight at one block"));
+
 namespace {
 
 class ScrySlotAllocation final : public MachineFunctionPass {
@@ -59,7 +78,7 @@ public:
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesCFG();
-    if (ShareSlots)
+    if (ShareSlots || EdgeFlight)
       AU.addRequired<LiveIntervalsWrapperPass>();
     MachineFunctionPass::getAnalysisUsage(AU);
   }
@@ -143,8 +162,9 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   MachineFrameInfo &MFI = MF.getFrameInfo();
   const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
   auto *FuncInfo = MF.getInfo<ScryFunctionInfo>();
-  LiveIntervals *LIS =
-      ShareSlots ? &getAnalysis<LiveIntervalsWrapperPass>().getLIS() : nullptr;
+  LiveIntervals *LIS = ShareSlots || EdgeFlight
+                           ? &getAnalysis<LiveIntervalsWrapperPass>().getLIS()
+                           : nullptr;
 
   // Position of every instruction within its block, to tell whether a use
   // follows the definition.
@@ -189,6 +209,93 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
     return &LIS->createAndComputeVirtRegInterval(Reg);
   };
 
+  // Values live across blocks may travel in flight instead of through a
+  // slot: every predecessor aims them at fixed positions of the successor,
+  // whose landing pad (one echo per position) carries them on.  A register
+  // qualifies when it is live into at most FlightBlocks blocks; registers
+  // that always arrive together are paired in one position, and positions
+  // are coloured so that registers arriving at the same block differ.
+  DenseMap<Register, SmallVector<MachineBasicBlock *, 4>> LiveInBlocks;
+  if (EdgeFlight && LIS) {
+    for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
+      Register Reg = Register::index2VirtReg(i);
+      if (MRI.reg_nodbg_empty(Reg) || StaysInFlight(Reg))
+        continue;
+      const LiveInterval *LI = IntervalOf(Reg);
+      if (!LI || LI->empty())
+        continue;
+      SmallVector<MachineBasicBlock *, 4> In;
+      for (MachineBasicBlock &MBB : MF)
+        if (LIS->isLiveInToMBB(*LI, &MBB))
+          In.push_back(&MBB);
+      if (In.empty() || In.size() > FlightBlocks)
+        continue;
+      // Compare the cost of one pad per block entered (plus a share of the
+      // delivery hops) with that of a store per definition and a load per
+      // use not already served in flight after a definition in its block.
+      unsigned SlotCost = 0;
+      for (const MachineInstr &Def : MRI.def_instructions(Reg))
+        SlotCost += 1 + (Def.isCopy() ? 0 : 0);
+      for (const MachineInstr &Use : MRI.use_nodbg_instructions(Reg)) {
+        bool Served = false;
+        for (const MachineInstr &Def : MRI.def_instructions(Reg))
+          if (Def.getParent() == Use.getParent() && Index[&Def] < Index[&Use])
+            Served = true;
+        if (!Served)
+          ++SlotCost;
+      }
+      unsigned FlightCost10 = 0; // in tenths
+      for (MachineBasicBlock *MBB : In)
+        FlightCost10 += 10 + 3 * MBB->pred_size();
+      if (FlightCost10 * FlightCostPercent > SlotCost * 1000)
+        continue;
+      LiveInBlocks[Reg] = std::move(In);
+    }
+  }
+  // Arrivals per block: the union over predecessors of what they deliver,
+  // where a block delivers the live-ins of all its successors.
+  auto ComputeArrivals = [&](DenseMap<MachineBasicBlock *, SmallVector<Register, 8>> &Arrive) {
+    Arrive.clear();
+    DenseMap<MachineBasicBlock *, SmallVector<Register, 8>> LiveIn;
+    for (auto &KV : LiveInBlocks)
+      for (MachineBasicBlock *MBB : KV.second)
+        LiveIn[MBB].push_back(KV.first);
+    for (MachineBasicBlock &P : MF) {
+      SmallVector<Register, 8> Deliver;
+      for (MachineBasicBlock *S : P.successors())
+        for (Register R : LiveIn[S])
+          if (!llvm::is_contained(Deliver, R))
+            Deliver.push_back(R);
+      for (MachineBasicBlock *S : P.successors())
+        for (Register R : Deliver)
+          if (!llvm::is_contained(Arrive[S], R))
+            Arrive[S].push_back(R);
+    }
+  };
+  DenseMap<MachineBasicBlock *, SmallVector<Register, 8>> Arrive;
+  ComputeArrivals(Arrive);
+  // Enforce the per-block cap by demoting the registers live into the most
+  // blocks (they cost the most pads) until every block fits.
+  for (;;) {
+    MachineBasicBlock *Worst = nullptr;
+    for (auto &KV : Arrive)
+      if (KV.second.size() > MaxEdgeValues && (!Worst || KV.second.size() > Arrive[Worst].size()))
+        Worst = KV.first;
+    if (!Worst)
+      break;
+    Register Demote;
+    unsigned Most = 0;
+    for (Register R : Arrive[Worst])
+      if (LiveInBlocks[R].size() >= Most) {
+        Most = LiveInBlocks[R].size();
+        Demote = R;
+      }
+    LiveInBlocks.erase(Demote);
+    ComputeArrivals(Arrive);
+  }
+  for (auto &KV : LiveInBlocks)
+    FuncInfo->setEdgeFlight(KV.first);
+
   // Collect the registers needing a slot with their sizes.  A register kept
   // in flight that is a copy of a slot register reads that slot at its uses
   // (ScryTemporalLowering aliases the copy), so the slot stays busy for the
@@ -203,7 +310,7 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   SmallVector<Register, 32> InFlightCopies;
   for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
     Register Reg = Register::index2VirtReg(i);
-    if (MRI.reg_nodbg_empty(Reg))
+    if (MRI.reg_nodbg_empty(Reg) || LiveInBlocks.count(Reg))
       continue;
     if (StaysInFlight(Reg)) {
       if (MRI.getVRegDef(Reg)->isCopy())

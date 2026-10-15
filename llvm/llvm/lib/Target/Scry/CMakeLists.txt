@@ -18,6 +18,7 @@ add_llvm_target(ScryCodeGen
   ScryISelDAGToDAG.cpp
   ScryISelLowering.cpp
   ScryMachineFunctionInfo.cpp
+  ScryMachineScheduler.cpp
   ScryRegisterInfo.cpp
   ScrySlotAllocation.cpp
   ScrySubtarget.cpp

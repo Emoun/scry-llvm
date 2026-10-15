@@ -8,7 +8,16 @@
 
 #include "ScrySubtarget.h"
 
+#include "llvm/Support/CommandLine.h"
+
 using namespace llvm;
+
+static cl::opt<bool> ScrySched(
+    "scry-sched", cl::Hidden, cl::init(false),
+    cl::desc("Reorder instructions with the Scry scheduling strategy"));
+
+bool ScrySubtarget::enableMachineScheduler() const { return ScrySched; }
+
 
 #define DEBUG_TYPE "scry-subtarget"
 

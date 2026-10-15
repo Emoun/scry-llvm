@@ -36,6 +36,10 @@ public:
   void ParseSubtargetFeatures(StringRef CPU, StringRef TuneCPU, StringRef FS);
 
   const ScryInstrInfo *getInstrInfo() const override { return &InstrInfo; }
+
+  // Run the machine scheduler with the Scry strategy (ScryMachineScheduler)
+  // when -scry-sched is set.
+  bool enableMachineScheduler() const override;
   const TargetFrameLowering *getFrameLowering() const override {
     return &FrameLowering;
   }

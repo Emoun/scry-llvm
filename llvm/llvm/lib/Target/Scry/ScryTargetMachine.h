@@ -9,6 +9,7 @@
 #ifndef LLVM_LIB_TARGET_SCRY_SCRYTARGETMACHINE_H
 #define LLVM_LIB_TARGET_SCRY_SCRYTARGETMACHINE_H
 
+#include "llvm/CodeGen/MachineScheduler.h"
 #include "ScrySubtarget.h"
 #include "llvm/CodeGen/CodeGenTargetMachineImpl.h"
 #include <optional>
@@ -31,6 +32,9 @@ public:
   }
 
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
+
+  ScheduleDAGInstrs *
+  createMachineScheduler(MachineSchedContext *C) const override;
 
   TargetLoweringObjectFile *getObjFileLowering() const override {
     return TLOF.get();

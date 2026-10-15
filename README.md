@@ -122,7 +122,7 @@ backend as the reference for the optimisation work.
 
 With llvm-project 22.1.8 and scryer revision `6fc6ac9d`:
 
-* the four lit tests and the 13 C programs in `tests/c/` (at `-O0` and
+* the four lit tests and the 14 C programs in `tests/c/` (at `-O0` and
   `-O2`) pass;
 * 17 of the 19 Embench-IoT benchmarks build at `-O2` and verify on the
   simulator (aha-mont64, crc32, depthconv, edn, matmult-int, md5sum,

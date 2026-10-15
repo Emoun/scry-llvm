@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "ScryTargetMachine.h"
+#include "ScryMachineScheduler.h"
 #include "Scry.h"
 #include "ScryMachineFunctionInfo.h"
 #include "TargetInfo/ScryTargetInfo.h"
@@ -78,6 +79,11 @@ public:
 };
 
 } // end anonymous namespace
+
+ScheduleDAGInstrs *
+ScryTargetMachine::createMachineScheduler(MachineSchedContext *C) const {
+  return createScryMachineScheduler(C);
+}
 
 TargetPassConfig *ScryTargetMachine::createPassConfig(PassManagerBase &PM) {
   return new ScryPassConfig(*this, PM);
