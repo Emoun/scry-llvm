@@ -41,6 +41,11 @@ public:
   eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I) const override;
 
+  /// The most accessed objects come first, where the short slot and frame
+  /// address forms reach them.
+  void orderFrameObjects(const MachineFunction &MF,
+                         SmallVectorImpl<int> &ObjectsToAllocate) const override;
+
   bool hasReservedCallFrame(const MachineFunction &MF) const override {
     return false;
   }

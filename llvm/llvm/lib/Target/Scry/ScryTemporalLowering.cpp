@@ -67,6 +67,7 @@
 #include "ScrySubtarget.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
@@ -263,6 +264,7 @@ private:
   std::vector<ValueState> Values;
   DenseMap<Register, unsigned> RegValue;   // register -> value in flight
   DenseMap<Register, Register> SlotAlias;  // copy of a slot value -> its slot
+  const MachineInstr *CurExpandMI = nullptr; // virtual instruction being expanded
   DenseMap<Register, const MachineInstr *> Remat; // constants built at use
   unsigned FnHops = 0, FnDups = 0, FnSlotLoads = 0, FnSlotStores = 0;
 
@@ -1130,8 +1132,29 @@ Operand ScryTemporalLowering::operandFor(const MachineOperand &MO) {
   auto AI = SlotAlias.find(R);
   if (AI != SlotAlias.end())
     return Operand::slot(AI->second);
-  if (hasSlot(R))
+  if (hasSlot(R)) {
+    // A slot value the block uses again (before redefining it) is loaded
+    // once and kept in flight: a load plus a dup instead of a load per use.
+    if (CurExpandMI) {
+      unsigned Uses = 0;
+      for (const MachineOperand &O : CurExpandMI->operands())
+        if (O.isReg() && O.getReg() == R && O.isUse())
+          ++Uses;
+      Uses += countUsesAfter(R, *CurExpandMI);
+      if (Uses >= 2) {
+        Operand Src = Operand::slot(R);
+        expire(chainLength(Src) + 3);
+        int Last;
+        emitChain(Src, Last);
+        unsigned V = newValue(Uses);
+        RegValue[R] = V;
+        int RefOp = chainRefOp(Src);
+        produce(V, Last, RefOp, RefOp >= 0 ? 31 : 0);
+        return Operand::flight(V);
+      }
+    }
     return Operand::slot(R);
+  }
   // A constant without a slot is rebuilt wherever it is used.
   if (const MachineInstr *Def = MRI->hasOneDef(R) ? MRI->getVRegDef(R) : nullptr) {
     switch (Def->getOpcode()) {
@@ -1688,9 +1711,9 @@ void ScryTemporalLowering::expandCopy(MachineInstr &MI) {
   SlotAlias.erase(D);
   Remat.erase(D);
 
-  auto It = RegValue.find(S);
-  if (It != RegValue.end()) {
-    unsigned V = It->second;
+  Operand Src = operandFor(SMO);
+  if (Src.K == Operand::Flight) {
+    unsigned V = Src.V;
     // The copy's own use is replaced by the uses of D.
     Values[V].RemainingUses += countUsesAfter(D, MI) + extraUses(D, &MI);
     --Values[V].RemainingUses;
@@ -1699,7 +1722,6 @@ void ScryTemporalLowering::expandCopy(MachineInstr &MI) {
       storeToSlot(D, V);
     return;
   }
-  Operand Src = operandFor(SMO);
   auto RI = Remat.find(S);
   if (RI != Remat.end()) {
     Remat[D] = RI->second;
@@ -2098,6 +2120,8 @@ void ScryTemporalLowering::expandInstr(MachineInstr &MI,
                                        MachineBasicBlock &MBB) {
   unsigned Before = curIndex();
   unsigned Opc = MI.getOpcode();
+  CurExpandMI = &MI;
+  auto ClearCur = llvm::make_scope_exit([&] { CurExpandMI = nullptr; });
 
   switch (Opc) {
   // Already handled in the prologue / no code.

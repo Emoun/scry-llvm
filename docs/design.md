@@ -50,7 +50,12 @@ register file for Scry, so the backend keeps values in memory instead.
    overlap share a slot (greedy interval colouring, `-mllvm
    -scry-share-slots=false` disables it); an in-flight copy of a slot
    register extends that slot's lifetime, because the lowering reads the
-   source slot at the copy's uses.
+   source slot at the copy's uses.  The frame is laid out with the most
+   accessed objects first (`orderFrameObjects`, by definition and use
+   counts weighted by loop depth), where the short `ld.s`/`st.s` forms
+   (31 scaled indices) and the single `saddr` reach them; when the slot
+   candidates would not fit that window anyway, the cost model charges
+   slot accesses extra.
    The `ARG_*` pseudos are first moved to the top of the entry block,
    because the arguments are delivered there whatever the scheduler did
    with the pseudos.  The generic frame-layout code then assigns final
@@ -79,7 +84,9 @@ register file for Scry, so the backend keeps values in memory instead.
    instruction order.  A value in flight is an unbound output reference of
    the instruction that produced it; the reference is filled in when the
    consumer is emitted.  Slot values are stored right after their
-   definition and loaded right before each use:
+   definition and loaded right before each use (once per block, kept in
+   flight with a `dup`, when the block uses the value again before
+   redefining it):
 
    ```
    ; %d = ADD_GR32 %a, %b   (a in flight, b loaded from its slot)

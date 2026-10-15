@@ -8,6 +8,7 @@
 
 #include "ScryFrameLowering.h"
 #include "ScryInstrInfo.h"
+#include "ScryMachineFunctionInfo.h"
 #include "ScrySubtarget.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
@@ -41,6 +42,18 @@ MachineBasicBlock::iterator ScryFrameLowering::eliminateCallFramePseudoInstr(
   }
   MBB.erase(I);
   return Next;
+}
+
+void ScryFrameLowering::orderFrameObjects(
+    const MachineFunction &MF, SmallVectorImpl<int> &ObjectsToAllocate) const {
+  const auto *FuncInfo = MF.getInfo<ScryFunctionInfo>();
+  const MachineFrameInfo &MFI = MF.getFrameInfo();
+  llvm::stable_sort(ObjectsToAllocate, [&](int A, int B) {
+    unsigned HA = FuncInfo->getSlotHotness(A), HB = FuncInfo->getSlotHotness(B);
+    if (HA != HB)
+      return HA > HB;
+    return MFI.getObjectSize(A) > MFI.getObjectSize(B);
+  });
 }
 
 void ScryFrameLowering::determineCalleeSaves(MachineFunction &MF,

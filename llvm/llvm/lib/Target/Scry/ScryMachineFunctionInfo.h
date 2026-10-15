@@ -34,6 +34,7 @@ class ScryFunctionInfo final : public MachineFunctionInfo {
   /// Spill slot (frame index) of every virtual register, assigned by
   /// ScrySlotAllocation before prologue/epilogue insertion.
   DenseMap<Register, int> SpillSlots;
+  DenseMap<int, unsigned> SlotHotness;
 
 public:
   ScryFunctionInfo(const Function &F, const TargetSubtargetInfo *STI) {}
@@ -58,6 +59,15 @@ public:
     return It == SpillSlots.end() ? -1 : It->second;
   }
   const DenseMap<Register, int> &getSpillSlots() const { return SpillSlots; }
+
+  /// Estimated dynamic access count of each frame object (spill slots and
+  /// local objects), by which ScryFrameLowering orders the frame so that
+  /// the most accessed ones get the short access forms.
+  void addSlotHotness(int FI, unsigned W) { SlotHotness[FI] += W; }
+  unsigned getSlotHotness(int FI) const {
+    auto It = SlotHotness.find(FI);
+    return It == SlotHotness.end() ? 0 : It->second;
+  }
 
   /// Registers carried in flight across block edges (decided before the
   /// frame is laid out; ScryTemporalLowering works out the positions on the

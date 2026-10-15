@@ -190,8 +190,35 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
       return std::min(scryConstBytesLen(Imm, Scale, false),
                       scryConstBytesLen(Imm, Scale, true));
     }
-    case Scry::ADDR_SYM:
-      return 4;
+    case Scry::ADDR_SYM: {
+      // Three instructions when every use is the address of a load, store
+      // or call (PC-relative), four otherwise.
+      Register R = Def->getOperand(0).getReg();
+      for (const MachineOperand &MO : MRI.use_nodbg_operands(R)) {
+        const MachineInstr &Use = *MO.getParent();
+        unsigned Idx = MO.getOperandNo();
+        switch (Use.getOpcode()) {
+        case Scry::LD_8: case Scry::LD_16: case Scry::LD_32: case Scry::LD_64:
+        case Scry::LDX_8: case Scry::LDX_16: case Scry::LDX_32: case Scry::LDX_64:
+        case Scry::ST_8: case Scry::ST_16: case Scry::ST_32: case Scry::ST_64:
+        case Scry::STX_8: case Scry::STX_16: case Scry::STX_32: case Scry::STX_64:
+          if (Idx != 1)
+            return 4;
+          break;
+        case Scry::CALLI_V:
+          if (Idx != 0)
+            return 4;
+          break;
+        case Scry::CALLI_8: case Scry::CALLI_16: case Scry::CALLI_32: case Scry::CALLI_64:
+          if (Idx != 1)
+            return 4;
+          break;
+        default:
+          return 4;
+        }
+      }
+      return 3;
+    }
     case Scry::ADDR_FI:
       return 1;
     case Scry::ADDR_OUT:
@@ -199,6 +226,13 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
     default:
       return 0;
     }
+  };
+  // Dynamic weight of every definition and use of a register.
+  auto Hotness = [&](Register Reg) {
+    unsigned H = 0;
+    for (const MachineInstr &MI : MRI.reg_nodbg_instructions(Reg))
+      H += Weight(MI.getParent());
+    return H;
   };
 
   // Position of every instruction within its block, to tell whether a use
@@ -255,6 +289,16 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   // rebuilding, slot and flight wins.
   DenseSet<Register> RematRegs;
   DenseMap<Register, SmallVector<MachineBasicBlock *, 4>> LiveInBlocks;
+  // Slots beyond the reach of the short forms (31 scaled indices) cost an
+  // extra frame-address instruction per access; estimate from how much the
+  // candidates would occupy whether that is to be expected.
+  unsigned CandidateBytes = 0;
+  for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
+    Register Reg = Register::index2VirtReg(i);
+    if (!MRI.reg_nodbg_empty(Reg) && !StaysInFlight(Reg))
+      CandidateBytes += TRI.getRegSizeInBits(*MRI.getRegClass(Reg)) / 8;
+  }
+  unsigned SlotAccess10 = CandidateBytes > 512 ? 20 : CandidateBytes > 256 ? 15 : 10;
   if (LIS) {
     for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
       Register Reg = Register::index2VirtReg(i);
@@ -271,9 +315,9 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
       // its block, weighted by loop depth; that of rebuilding at every use;
       // and that of one pad per block entered (plus a share of the delivery
       // hops).
-      unsigned SlotCost = 0, RematCost = 0;
+      unsigned SlotCost10 = 0, RematCost10 = 0; // in tenths
       for (const MachineInstr &Def : MRI.def_instructions(Reg))
-        SlotCost += (1 + Len) * Weight(Def.getParent());
+        SlotCost10 += (SlotAccess10 + 10 * Len) * Weight(Def.getParent());
       for (const MachineInstr &Use : MRI.use_nodbg_instructions(Reg)) {
         bool Served = false;
         for (const MachineInstr &Def : MRI.def_instructions(Reg))
@@ -281,8 +325,8 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
             Served = true;
         unsigned W = Weight(Use.getParent());
         if (!Served)
-          SlotCost += W;
-        RematCost += Len * W;
+          SlotCost10 += SlotAccess10 * W;
+        RematCost10 += 10 * Len * W;
       }
       SmallVector<MachineBasicBlock *, 4> In;
       for (MachineBasicBlock &MBB : MF)
@@ -292,14 +336,14 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
       unsigned FlightCost10 = 0; // in tenths
       for (MachineBasicBlock *MBB : In)
         FlightCost10 += (10 + 3 * MBB->pred_size()) * Weight(MBB);
-      // The flight cost as scaled by the slot cost comparison below.
+      // Flight cost weighted by -scry-flight-cost percent, in tenths * 100.
       uint64_t FlightScaled = (uint64_t)FlightCost10 * FlightCostPercent;
-      if (Len && RematCost * 1000ull <= SlotCost * 1000ull &&
-          (!FlightOK || RematCost * 1000ull <= FlightScaled)) {
+      if (Len && RematCost10 <= SlotCost10 &&
+          (!FlightOK || RematCost10 * 100ull <= FlightScaled)) {
         RematRegs.insert(Reg);
         continue;
       }
-      if (!FlightOK || FlightScaled > SlotCost * 1000ull)
+      if (!FlightOK || FlightScaled > SlotCost10 * 100ull)
         continue;
       LiveInBlocks[Reg] = std::move(In);
     }
@@ -441,6 +485,13 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
       Slots.back().Occupants.append(E.LIs.begin(), E.LIs.end());
     }
     FuncInfo->setSpillSlot(E.Reg, FI);
+    FuncInfo->addSlotHotness(FI, Hotness(E.Reg));
   }
+  // Local objects are accessed through their ADDR_FI; count those too.
+  for (MachineBasicBlock &MBB : MF)
+    for (MachineInstr &MI : MBB)
+      if (MI.getOpcode() == Scry::ADDR_FI && MI.getOperand(1).isFI())
+        FuncInfo->addSlotHotness(MI.getOperand(1).getIndex(),
+                                 Hotness(MI.getOperand(0).getReg()));
   return true;
 }
