@@ -16,6 +16,9 @@ metrics in addition to scryer's own:
   (`--window-start start_trigger --window-stop stop_trigger`), reported
   separately from the whole run;
 * `--json <file>` writes everything as JSON for `scripts/compare_metrics.py`.
+* `--trace` prints every executed instruction with its address, the nearest
+  symbol, and the ready operands it receives (`--trace-limit N` stops after N
+  instructions); invaluable for debugging generated code.
 
 Build with `python3 scripts/build_scryer.py` (which builds stock scryer and
 this crate) or `cargo build --release` in this directory. Usage is the same

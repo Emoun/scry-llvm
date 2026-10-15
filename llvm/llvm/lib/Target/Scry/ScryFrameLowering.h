@@ -31,6 +31,12 @@ public:
   void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
   void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
 
+  /// Call frame pseudos must be lowered even when the function has no stack
+  /// objects of its own.
+  bool needsFrameIndexResolution(const MachineFunction &MF) const override {
+    return true;
+  }
+
   MachineBasicBlock::iterator
   eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I) const override;

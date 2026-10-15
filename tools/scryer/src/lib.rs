@@ -97,6 +97,25 @@ pub struct Cli {
     /// Write all metrics as JSON to this file.
     #[clap(long)]
     json: Option<std::path::PathBuf>,
+
+    /// Print every executed instruction with its ready operands (to stderr).
+    #[clap(long)]
+    trace: bool,
+
+    /// Stop tracing after this many instructions (0 = unlimited).
+    #[clap(long)]
+    #[arg(default_value_t = 0)]
+    trace_limit: u64,
+}
+
+fn format_value(v: &Value) -> String {
+    match v.get_first() {
+        Scalar::Val(_) => match v.get_first().i128_value() {
+            Some(x) => format!("{}:{:?}", x, v.typ),
+            None => format!("?:{:?}", v.typ),
+        },
+        other => format!("{:?}", other),
+    }
 }
 
 fn parse_input(input: &String, labels: HashMap<&str, usize>) -> Value {
@@ -238,7 +257,11 @@ struct Stats {
 
 impl Stats {
     fn count(&mut self, instr: &Instruction, ready_len: usize) {
-        let m = instr.mnemonic();
+        let m = match instr {
+            Instruction::LoadStack(_, _) => "ld.s",
+            Instruction::StoreStack(_) => "st.s",
+            _ => instr.mnemonic(),
+        };
         self.instructions += 1;
         if is_dataflow(m) {
             self.dataflow += 1;
@@ -623,6 +646,21 @@ pub fn run(args: Cli, mut stdout: impl Write, _stderr: impl Write) -> i32 {
             total.count(&instr, ready);
             if in_window {
                 window.count(&instr, ready);
+            }
+            if args.trace && (args.trace_limit == 0 || total.instructions < args.trace_limit) {
+                let ops: Vec<String> = state
+                    .frame
+                    .op_queue
+                    .get(&0)
+                    .map(|l| l.iter().map(format_value).collect())
+                    .unwrap_or_default();
+                let sym = symbols
+                    .iter()
+                    .filter(|(_, &v)| v <= a)
+                    .max_by_key(|(_, &v)| v)
+                    .map(|(n, &v)| format!("{}+{}", n, (a - v) / 2))
+                    .unwrap_or_default();
+                eprintln!("{:#x} {:<24} {:<32} [{}]", a, sym, format!("{:?}", instr), ops.join(", "));
             }
         }
         total.inflight(frame_inflight, all_inflight);

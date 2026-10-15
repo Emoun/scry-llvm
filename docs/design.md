@@ -37,29 +37,61 @@ register file for Scry, so the backend keeps values in memory instead.
    elimination and the register coalescer still run.
 
 3. **Slot allocation** (`ScryArgHoisting` + `ScrySlotAllocation`, before
-   prologue/epilogue insertion) gives every virtual register a spill slot in
-   the function's private stack frame.  Registers of the same size whose
-   live intervals do not overlap share a slot (greedy interval colouring,
-   `-mllvm -scry-share-slots=false` disables it).  The `ARG_*` pseudos are
-   first moved to the top of the entry block, because the prologue stores
-   the arguments there whatever the scheduler did with the pseudos.  The
-   generic frame-layout code then assigns final offsets to allocas, incoming
-   stack arguments and these slots.
+   prologue/epilogue insertion) decides which virtual registers need a slot
+   in the function's private stack frame.  A register with a single
+   definition whose uses all follow it in the same block stays *in flight*
+   and gets no slot (`-mllvm -scry-in-flight=false` gives every register a
+   slot); the others, i.e. values live across blocks (PHI copies,
+   loop-carried values, values used in several blocks), get one.
+   Registers of the same size whose live intervals do not overlap share a
+   slot (greedy interval colouring, `-mllvm -scry-share-slots=false`
+   disables it); an in-flight copy of a slot register extends that slot's
+   lifetime, because the lowering reads the source slot at the copy's uses.
+   The `ARG_*` pseudos are first moved to the top of the entry block,
+   because the arguments are delivered there whatever the scheduler did
+   with the pseudos.  The generic frame-layout code then assigns final
+   offsets to allocas, incoming stack arguments and these slots.
 
 4. **Temporal lowering** (`ScryTemporalLowering`, the very last pass) rewrites
-   every pseudo instruction into real Scry instructions.  Every operand is
-   loaded from its slot right before use and every result is stored into its
-   slot right after it is produced, so values are in flight for only a few
-   instructions and all references are resolved locally:
+   every pseudo instruction into real Scry instructions, block by block in
+   instruction order.  A value in flight is an unbound output reference of
+   the instruction that produced it; the reference is filled in when the
+   consumer is emitted.  Slot values are stored right after their
+   definition and loaded right before each use:
 
    ```
-   ; %d = ADD_GR32 %a, %b
-   ld u32 [a]          ; -> next instruction
-   echo =>1, =>1       ; forward a past the next load, to the add
+   ; %d = ADD_GR32 %a, %b   (a in flight, b loaded from its slot)
    ld u32 [b]          ; -> next instruction (the add)
-   add Low =>0         ; inputs [a, b]; result -> next
-   st [d]
+   add Low =>3         ; inputs [a, b]; result -> the consumer 3 later
    ```
+
+   The emitter keeps, per value, its pending outputs and the number of
+   consumers still to come, and makes the operands of every consumer arrive
+   in order with as few extra instructions as possible:
+
+   * A value with several consumers is copied with `dup =>r1, =>r2` right
+     after it is produced (one dup per two further consumers).
+   * A reference is at most 31 (1023 for the long `echo`): an output whose
+     consumer is not emitted in time is carried on by an `echo` hop.
+   * A consumer's inputs are ordered by the execution time of their last
+     emitters.  Operands already in order are aimed at the consumer
+     directly; the remaining ones are re-emitted in operand order right
+     before it (one long `echo` per run of values arriving in order, one
+     two-reference `echo`, which swaps its two inputs, for a reversed pair).
+   * Constants and addresses are next-only producers (`const`/`grow`,
+     `saddr`, `ld.s`) built right in front of their consumer.  `const` and
+     `grow` forward their ready inputs *behind* their own value, so values
+     that must follow a constant are aimed at the constant chain; several
+     constants are built in reverse order; a constant that cannot be glued
+     (e.g. a call argument, since the call sits between) is captured by an
+     `echo`.
+   * Dead results are discarded by a `nop`.
+
+   A call shifts the caller's pending operand lists by one position (the
+   list meant for the trigger slot becomes the callee's arguments and, on
+   return, the following list is merged in front of the return values), so
+   references that cross a call are one larger than the instruction
+   distance.
 
    Because every Scry instruction is exactly two bytes and the pass sees the
    final block layout, jump targets are computed directly; the only
@@ -80,8 +112,9 @@ the type, so slots within 31 scaled units of the frame base use one
 instruction.  Farther slots use the address of the frame base (`saddr`)
 plus a constant and an absolute `ld`/`st`.  Slot allocation places 8-byte
 slots first, then 4, 2 and 1, so most slots are reachable with the short
-form.  Slot sharing is safe because every expansion loads all of its
-inputs before it stores its result.
+form.  Slot sharing is safe because a slot is written right after its
+definition and read at each use, and the live intervals used for sharing
+cover every read.
 
 ### 2.2 Constants and addresses
 
@@ -151,28 +184,34 @@ The function's private frame starts with the incoming stack-argument area
 (reserved by the caller), followed by locals and spill slots.  The prologue
 reserves the remainder with `rsrv N, Private` (powers of two) after
 forwarding the incoming argument list over the reserves with a long `echo`,
-then spreads the up-to-four operand-passed arguments to their slots:
+then spreads the up-to-four operand-passed arguments with `echo`; the
+references of the spread are bound to the arguments' consumers (or slot
+stores) like any other value in flight, and unused arguments go to a `nop`:
 
 ```
 echo =>R                 ; echo.l: forward all args past the R reserves
 rsrv 32, Private
-echo =>D0, =>D1, =>      ; arg0 -> D0, arg1 -> D1, rest -> next
-echo =>D2, =>D3          ; arg2 -> D2, arg3 -> D3
-st [s0]  st [s1]  st [s2]  st [s3]
+echo =>C0, =>C1, =>      ; arg0 -> its consumer, arg1 -> its consumer, rest -> next
+echo =>C2, =>C3          ; arg2, arg3 likewise
 ```
 
-A return loads the return values, aims them at the slot after `ret 0`,
-frees the private reservation with the *shared* form of `free` (the
-simulator only returns shared bytes to its free pool) and executes `ret 0`.
+A single argument without reserves lands on the first instruction, which is
+a long `echo` that carries it to its consumer.  A return aims the return
+values past the `ret 0` trigger, frees the private reservation with the
+*shared* form of `free` (the simulator only returns shared bytes to its
+free pool) and executes `ret 0`.
 
 ### 2.5 Calls
 
 Operand-passed arguments are aimed at the instruction after the call (the
-trigger slot).  The callee address is the call's own first input.  The
-return value arrives at the trigger slot, where it is stored (or discarded
-with `nop`).  Stack-passed arguments are written to the outgoing area, which
-is reserved in the shared frame before the call (`rsrv N`) and freed after
-it (`free N`); its address is the frame base plus the private frame size.
+trigger slot), past the callee address chain and the call.  The callee
+address is the call's own first input (a glued `const`/`grow` chain for a
+symbol, or a value in flight for an indirect call).  The return value
+arrives at the trigger slot, where a long `echo` (or `dup`) captures it for
+its consumers, or a `nop` discards it.  Stack-passed arguments are written
+to the outgoing area, which is reserved in the shared frame before the call
+(`rsrv N`) and freed after it (`free N`); its address is the frame base
+plus the private frame size.
 
 ## 3. C ABI
 

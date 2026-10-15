@@ -12,10 +12,13 @@
 // code assigns the slots their final offsets; ScryTemporalLowering then
 // rewrites all register traffic into stack loads and stores.
 //
-// Registers whose live intervals do not overlap share a slot (greedy interval
+// Registers with a single definition whose uses all follow it in the same
+// block get no slot: ScryTemporalLowering keeps them in flight between their
+// producer and their consumers.  The remaining ("cross-block") registers
+// share slots when their live intervals do not overlap (greedy interval
 // colouring per slot size), which keeps frames small: the scryer simulator
-// only has a few kilobytes of stack.  Sharing is safe because every expansion
-// in ScryTemporalLowering loads all of its inputs before storing its outputs.
+// only has a few kilobytes of stack.  Sharing is safe because a slot is
+// written right after its definition and read at each use.
 //
 //===----------------------------------------------------------------------===//
 
@@ -38,6 +41,10 @@ using namespace llvm;
 static cl::opt<bool> ShareSlots(
     "scry-share-slots", cl::Hidden, cl::init(true),
     cl::desc("Let virtual registers with disjoint live ranges share a slot"));
+
+static cl::opt<bool> InFlightValues(
+    "scry-in-flight", cl::Hidden, cl::init(true),
+    cl::desc("Keep single-block values in flight instead of in frame slots"));
 
 namespace {
 
@@ -139,24 +146,97 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   LiveIntervals *LIS =
       ShareSlots ? &getAnalysis<LiveIntervalsWrapperPass>().getLIS() : nullptr;
 
-  // Collect the live registers with their sizes.
+  // Position of every instruction within its block, to tell whether a use
+  // follows the definition.
+  DenseMap<const MachineInstr *, unsigned> Index;
+  for (MachineBasicBlock &MBB : MF) {
+    unsigned N = 0;
+    for (MachineInstr &MI : MBB)
+      Index[&MI] = N++;
+  }
+  // One-byte constants are cheaper to rebuild than to load.
+  auto IsByteConstant = [&](const MachineInstr *Def) {
+    switch (Def->getOpcode()) {
+    case Scry::CONST_8:
+      return true;
+    case Scry::CONST_16:
+      return ((uint64_t)Def->getOperand(1).getImm() & 0xff00) == 0;
+    case Scry::CONST_32:
+      return ((uint64_t)Def->getOperand(1).getImm() & 0xffffff00) == 0;
+    case Scry::CONST_64:
+      return ((uint64_t)Def->getOperand(1).getImm() & ~0xffull) == 0;
+    default:
+      return false;
+    }
+  };
+  auto StaysInFlight = [&](Register Reg) {
+    if (!InFlightValues || !MRI.hasOneDef(Reg))
+      return false;
+    const MachineInstr *Def = MRI.getVRegDef(Reg);
+    if (IsByteConstant(Def))
+      return true;
+    for (const MachineInstr &Use : MRI.use_nodbg_instructions(Reg))
+      if (Use.getParent() != Def->getParent() || Index[&Use] <= Index[Def])
+        return false;
+    return true;
+  };
+
+  auto IntervalOf = [&](Register Reg) -> const LiveInterval * {
+    if (!LIS)
+      return nullptr;
+    if (LIS->hasInterval(Reg))
+      return &LIS->getInterval(Reg);
+    return &LIS->createAndComputeVirtRegInterval(Reg);
+  };
+
+  // Collect the registers needing a slot with their sizes.  A register kept
+  // in flight that is a copy of a slot register reads that slot at its uses
+  // (ScryTemporalLowering aliases the copy), so the slot stays busy for the
+  // copy's live range as well.
   struct Entry {
     Register Reg;
     unsigned Size;
-    const LiveInterval *LI;
+    SmallVector<const LiveInterval *, 2> LIs;
   };
   SmallVector<Entry, 64> Entries;
+  DenseMap<Register, unsigned> EntryOf;
+  SmallVector<Register, 32> InFlightCopies;
   for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
     Register Reg = Register::index2VirtReg(i);
     if (MRI.reg_nodbg_empty(Reg))
       continue;
+    if (StaysInFlight(Reg)) {
+      if (MRI.getVRegDef(Reg)->isCopy())
+        InFlightCopies.push_back(Reg);
+      continue;
+    }
     unsigned Size = TRI.getRegSizeInBits(*MRI.getRegClass(Reg)) / 8;
-    const LiveInterval *LI = nullptr;
-    if (LIS && LIS->hasInterval(Reg))
-      LI = &LIS->getInterval(Reg);
-    else if (LIS)
-      LI = &LIS->createAndComputeVirtRegInterval(Reg);
-    Entries.push_back({Reg, Size, LI});
+    const LiveInterval *LI = IntervalOf(Reg);
+    EntryOf[Reg] = Entries.size();
+    Entries.push_back({Reg, Size, {}});
+    if (LI && !LI->empty())
+      Entries.back().LIs.push_back(LI);
+  }
+  // Follow copy chains to the slot register they read.
+  llvm::sort(InFlightCopies, [&](Register A, Register B) {
+    const MachineInstr *DA = MRI.getVRegDef(A), *DB = MRI.getVRegDef(B);
+    if (DA->getParent() != DB->getParent())
+      return DA->getParent()->getNumber() < DB->getParent()->getNumber();
+    return Index[DA] < Index[DB];
+  });
+  DenseMap<Register, Register> AliasRoot;
+  for (Register Reg : InFlightCopies) {
+    Register Src = MRI.getVRegDef(Reg)->getOperand(1).getReg();
+    auto RI = AliasRoot.find(Src);
+    if (RI != AliasRoot.end())
+      Src = RI->second;
+    auto EI = EntryOf.find(Src);
+    if (EI == EntryOf.end())
+      continue;
+    AliasRoot[Reg] = Src;
+    const LiveInterval *LI = IntervalOf(Reg);
+    if (LI && !LI->empty())
+      Entries[EI->second].LIs.push_back(LI);
   }
 
   // Allocate the widest slots first so that as many as possible are
@@ -165,8 +245,8 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   llvm::sort(Entries, [](const Entry &A, const Entry &B) {
     if (A.Size != B.Size)
       return A.Size > B.Size;
-    if (A.LI && B.LI && !A.LI->empty() && !B.LI->empty())
-      return *A.LI < *B.LI;
+    if (!A.LIs.empty() && !B.LIs.empty())
+      return *A.LIs.front() < *B.LIs.front();
     return A.Reg < B.Reg;
   });
 
@@ -179,17 +259,18 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
       SizeStart = Slots.size();
     }
     int FI = -1;
-    if (LIS && E.LI && !E.LI->empty()) {
+    if (LIS && !E.LIs.empty()) {
       for (size_t s = SizeStart; s != Slots.size(); ++s) {
         bool Free = true;
         for (const LiveInterval *Other : Slots[s].Occupants)
-          if (Other->overlaps(*E.LI)) {
-            Free = false;
-            break;
-          }
+          for (const LiveInterval *Mine : E.LIs)
+            if (Other->overlaps(*Mine)) {
+              Free = false;
+              break;
+            }
         if (Free) {
           FI = Slots[s].FI;
-          Slots[s].Occupants.push_back(E.LI);
+          Slots[s].Occupants.append(E.LIs.begin(), E.LIs.end());
           break;
         }
       }
@@ -197,8 +278,7 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
     if (FI < 0) {
       FI = MFI.CreateSpillStackObject(E.Size, Align(E.Size));
       Slots.push_back({FI, {}});
-      if (E.LI && !E.LI->empty())
-        Slots.back().Occupants.push_back(E.LI);
+      Slots.back().Occupants.append(E.LIs.begin(), E.LIs.end());
     }
     FuncInfo->setSpillSlot(E.Reg, FI);
   }

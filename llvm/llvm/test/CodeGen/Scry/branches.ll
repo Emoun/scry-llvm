@@ -11,13 +11,10 @@ declare void @g()
 ; A forward conditional jump over the fall-through block.  The branch is
 ; taken on a non-zero condition towards a forward target, which needs the
 ; negated condition: the negating eq of the compare (icmp ne after
-; canonicalisation) is folded away instead, so a single eq remains, the
-; result is stored, loaded again and the near jmp follows immediately; the
-; block ends there (trigger 0).
+; canonicalisation) is folded away instead, so a single eq delivers straight
+; to the near jmp; the block ends there (trigger 0).
 ; CHECK-LABEL: diamond:
 ; CHECK: eq =>0
-; CHECK-NEXT: st [[[C:[0-9]+]]]
-; CHECK-NEXT: ld u8 [[[C]]]
 ; CHECK-NEXT: jmp {{[1-9][0-9]*}}, 0
 ; CHECK-NOT: jmp
 ; CHECK: call 0
@@ -35,16 +32,13 @@ x:
   ret void
 }
 
-; A loop whose body is too long for the near form: the target becomes an
-; i16 operand (const + grow) and the trigger offset uses both immediates.
+; A loop with eight volatile loads: the compare delivers straight to the
+; near backward jump, which triggers after the two PHI copies.
 ; CHECK-LABEL: far:
 ; CHECK: lt =>0
-; CHECK-NEXT: st [[[C:[0-9]+]]]
-; CHECK-NEXT: ld u8 [[[C]]]
-; CHECK-NEXT: echo =>2, =>2
-; CHECK-NEXT: const i16, 255
-; CHECK-NEXT: grow {{[0-9]+}}
-; CHECK-NEXT: jmp 0, {{[0-9]+}}
+; CHECK-NEXT: jmp -{{[0-9]+}}, 2
+; CHECK-NEXT: st [{{[0-9]+}}]
+; CHECK-NEXT: st [{{[0-9]+}}]
 define i32 @far(ptr %p, i32 %n) {
 entry:
   br label %loop
@@ -87,11 +81,8 @@ done:
 ; one, sharing the trigger, overrides it when taken.  The conditional jump
 ; goes to the forward target whose polarity needs no negation.
 ; O0-LABEL: pair:
-; O0: rsrv
 ; O0: jmp {{[1-9][0-9]*}}, [[T:[1-9][0-9]*]]
 ; O0: lt =>0
-; O0-NOT: eq
-; O0: ld u8 [{{[0-9]+}}]
 ; O0-NEXT: jmp {{[1-9][0-9]*}}, 0
 ; O0: ret 0
 define void @pair(i32 %a, i32 %b) {

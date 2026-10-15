@@ -1,12 +1,11 @@
 ; RUN: llc -mtriple=scry32-unknown-none-elf -O2 < %s | FileCheck %s
 
 ; CHECK-LABEL: loop:
-; The loop-closing branch: a near backward jump issued right after the
-; compare is stored, triggering after the block's last instruction.
+; The loop-closing branch: the compare delivers straight to a near backward
+; jump that triggers after the block's last instruction (the PHI copies).
 ; CHECK: lt =>0
-; CHECK-NEXT: st [[[C:[0-9]+]]]
-; CHECK-NEXT: ld u8 [[[C]]]
 ; CHECK-NEXT: jmp -{{[0-9]+}}, {{[1-9][0-9]*}}
+; CHECK-NEXT: st [{{[0-9]+}}]
 ; CHECK-NOT: jmp
 ; CHECK: ret 0
 define i32 @loop(i32 %n) {
@@ -24,17 +23,24 @@ done:
 }
 
 ; CHECK-LABEL: select:
-; CHECK: pick =>0
+; CHECK: pick =>1
+; CHECK-NEXT: ret 0
 define i32 @select(i1 %c, i32 %a, i32 %b) {
   %r = select i1 %c, i32 %a, i32 %b
   ret i32 %r
 }
 
 ; CHECK-LABEL: call_many:
-; Five arguments: four as trigger operands, one on the stack via the
-; outgoing area reserved in the shared frame.
+; Five arguments: four as trigger operands (the three constants built in
+; reverse and carried by one echo), one on the stack via the outgoing area
+; reserved in the shared frame.
 ; CHECK: rsrv 16
-; CHECK: st
+; CHECK: const u32, 5
+; CHECK-NEXT: st
+; CHECK-NEXT: const u32, 4
+; CHECK-NEXT: const u32, 3
+; CHECK-NEXT: const u32, 2
+; CHECK-NEXT: echo =>5
 ; CHECK: call 0
 ; CHECK: free 16
 declare i32 @callee(i32, i32, i32, i32, i32)
@@ -44,7 +50,8 @@ define i32 @call_many(i32 %a) {
 }
 
 ; CHECK-LABEL: indirect:
-; CHECK: ld u32 [{{[0-9]+}}]
+; The function pointer argument is delivered to the call itself.
+; CHECK: echo =>0
 ; CHECK-NEXT: call 0
 define void @indirect(ptr %f) {
   call void %f()
@@ -52,11 +59,13 @@ define void @indirect(ptr %f) {
 }
 
 ; CHECK-LABEL: global_store:
-; CHECK: const u32, %b3(g)
-; CHECK: grow %b2(g)
-; CHECK: grow %b1(g)
-; CHECK: grow %b0(g)
-; CHECK: st
+; The value is aimed past the address chain at the store: [value, address].
+; CHECK: echo =>4
+; CHECK-NEXT: const u32, %b3(g)
+; CHECK-NEXT: grow %b2(g)
+; CHECK-NEXT: grow %b1(g)
+; CHECK-NEXT: grow %b0(g)
+; CHECK-NEXT: st
 @g = global i32 0
 define void @global_store(i32 %v) {
   store i32 %v, ptr @g
