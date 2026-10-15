@@ -30,9 +30,20 @@
 //
 // Values therefore never stay in flight for more than a handful of
 // instructions, every reference is resolved locally, and control flow needs no
-// in-flight values at all.  Branches are emitted as position-independent
-// "far" jumps whose relative targets are computed here from the final layout
-// (all Scry instructions are exactly two bytes, so the layout is exact).
+// in-flight values at all.
+//
+// Branches: a Scry jmp is issued ahead of time and only takes effect after the
+// instruction at its trigger address.  The jumps of a block are issued as early
+// as the block allows (right after the condition is computed, or at the block
+// start for unconditional jumps) and trigger after the block's last
+// instruction, so the processor learns the direction well in advance.  A near
+// jump (target within 64 instructions, trigger within 63) is a single
+// instruction; otherwise the target is an immediate operand produced by a
+// glued const/grow chain and the trigger offset is 13 bits.  The form of each
+// jump is chosen by relaxation once the layout is known (all Scry
+// instructions are exactly two bytes, so the layout is exact).  When both
+// successors need a jump, an unconditional jump is issued first and a
+// conditional one with the same trigger overrides it when taken.
 //
 // Function entry: the arguments delivered to the first instruction are spread
 // to their slots with echo/dup, after the private frame has been reserved:
@@ -61,7 +72,9 @@
 #include "ScryMachineFunctionInfo.h"
 #include "ScrySubtarget.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
@@ -76,6 +89,11 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "scry-temporal"
+
+STATISTIC(NumNearJumps, "Number of single-instruction (near) jumps");
+STATISTIC(NumFarJumps, "Number of two-operand (far) jumps");
+STATISTIC(NumJumpNegations, "Number of jump conditions negated with eq");
+STATISTIC(JumpTrigDistance, "Sum of jump issue-to-trigger distances");
 
 namespace {
 
@@ -98,12 +116,21 @@ struct Item {
   int64_t SymOffset = 0;
   unsigned SymByte = 0;
 
-  // Deferred far-jump pieces, resolved once the block layout is known.
+  // Late-bound trigger of a jmp: Imms := trigger offset TrigTarget - index,
+  // split into the two immediates for the far form.
+  int TrigTarget = -1;
+
+  // Jump pieces, resolved once the block layout is known.  The jmp item has
+  // JumpTarget set; the const/grow items producing its operands refer to it
+  // through JumpItem.
   enum DeferredKind { None, JumpPolarity, JumpByte };
   DeferredKind Deferred = None;
   MachineBasicBlock *JumpTarget = nullptr;
+  const MachineInstr *JumpKey = nullptr; // terminator this jmp implements
+  bool FarJump = false;                  // two-operand form
+  int64_t TargetValue = 0;               // relative target once laid out
+  int JumpItem = -1;
   unsigned JumpByteIdx = 0;
-  int JumpDelta = 0; // distance from this item to the jmp instruction
 
   std::string Comment;
 };
@@ -137,10 +164,41 @@ private:
   unsigned IncomingSize = 0; // incoming stack-argument area (bytes)
   unsigned ReserveSize = 0;  // bytes reserved by the prologue
   unsigned PrivSize = 0;     // total private frame size
-  unsigned JumpWidth = 2;    // bytes of relative jump immediates
 
   std::vector<BlockSeq> Blocks;
   BlockSeq *Cur = nullptr;
+
+  // --- jumps ---------------------------------------------------------------
+  // Forms a jump can take, from cheapest to most general; the layout
+  // relaxation only ever moves a jump towards the more general forms.
+  enum JumpForm { JF_Near, JF_Far8, JF_Far16, JF_Far32 };
+  DenseMap<const MachineInstr *, JumpForm> JumpForms;
+  DenseMap<const MachineBasicBlock *, unsigned> LayoutIndex;
+  unsigned FnNearJumps = 0, FnFarJumps = 0, FnNegations = 0; // this round
+
+  struct PlannedJump {
+    const MachineInstr *Key;
+    MachineBasicBlock *Target;
+    Register Cond;             // invalid: unconditional
+    bool TakenOnNonZero;       // with Cond: polarity of the branch
+    unsigned EarliestBoundary; // first boundary at which it may be issued
+  };
+  bool isBackward(const MachineBasicBlock *From,
+                  const MachineBasicBlock *To) const {
+    return LayoutIndex.lookup(To) <= LayoutIndex.lookup(From);
+  }
+  void planJumps(MachineBasicBlock &MBB, SmallVectorImpl<PlannedJump> &Jumps);
+  // Negating compares whose final eq is folded into the jump they feed.
+  DenseSet<const MachineInstr *> FoldedNegations;
+  bool jumpNeedsNegation(const MachineBasicBlock &MBB, const PlannedJump &J) const {
+    return J.TakenOnNonZero != isBackward(&MBB, J.Target);
+  }
+  void planNegationFolds(MachineBasicBlock &MBB, ArrayRef<PlannedJump> Jumps);
+  void buildJumpSeq(MachineBasicBlock &MBB, const PlannedJump &J, JumpForm Form,
+                    std::vector<Item> &Seq);
+  void insertItems(unsigned Pos, std::vector<Item> &Seq, const PlannedJump &J);
+  void insertJumps(MachineBasicBlock &MBB, ArrayRef<unsigned> Boundaries,
+                   ArrayRef<PlannedJump> Jumps);
 
   // --- slot helpers -------------------------------------------------------
   unsigned slotOffset(Register R) const;
@@ -160,8 +218,6 @@ private:
   void emitLoadSlot(Register R);
   unsigned storeHelperLen(Register R) const;
   void emitStoreSlot(Register R);
-  void emitFarJump(MachineBasicBlock *Target);
-  unsigned farJumpLen() const { return 3 + JumpWidth; }
   void emitFrees();
   void emitReserves(unsigned Bytes, bool Private);
 
@@ -175,7 +231,6 @@ private:
   void expandCasts(MachineInstr &MI, ArrayRef<unsigned> TypeCodes);
   void expandCall(MachineInstr &MI);
   void expandReturn(MachineInstr &MI);
-  void expandBranch(MachineInstr &MI, MachineBasicBlock &MBB);
 
   bool expandFunction();
   void resolveAndMaterialise();
@@ -331,29 +386,6 @@ void ScryTemporalLowering::emitStoreSlot(Register R) {
   emit(Scry::ST);
 }
 
-/// Emit an unconditional jump to Target whose relative displacement is filled
-/// in after layout.  Sequence (JumpWidth = 2):
-///   const u8, c ; echo =>2, =>2 ; const i16, b1 ; grow b0 ; jmp 0, 0
-void ScryTemporalLowering::emitFarJump(MachineBasicBlock *Target) {
-  int Pol = emit(Scry::CONST, {(int64_t)Scry::T_U8, 0});
-  Cur->Items[Pol].Deferred = Item::JumpPolarity;
-  Cur->Items[Pol].JumpTarget = Target;
-  Cur->Items[Pol].JumpDelta = (int)JumpWidth + 2;
-
-  emit(Scry::ECHO, {(int64_t)JumpWidth, (int64_t)JumpWidth});
-
-  unsigned TypeCode = JumpWidth == 2 ? Scry::T_I16 : Scry::T_I32;
-  for (int B = (int)JumpWidth - 1; B >= 0; --B) {
-    int Idx = B == (int)JumpWidth - 1 ? emit(Scry::CONST, {(int64_t)TypeCode, 0})
-                                      : emit(Scry::GROW, {0});
-    Cur->Items[Idx].Deferred = Item::JumpByte;
-    Cur->Items[Idx].JumpTarget = Target;
-    Cur->Items[Idx].JumpByteIdx = B;
-    Cur->Items[Idx].JumpDelta = B + 1;
-  }
-  emit(Scry::JMP, {0, 0});
-}
-
 void ScryTemporalLowering::emitReserves(unsigned Bytes, bool Private) {
   for (unsigned K = 0; K < 16; ++K)
     if (Bytes & (1u << K))
@@ -437,7 +469,7 @@ void ScryTemporalLowering::expandCompare(MachineInstr &MI, unsigned First,
     setRef(RouteA, Cmp);
     setRef(RouteA, Cmp, true);
   }
-  if (Negate)
+  if (Negate && !FoldedNegations.count(&MI))
     emit(Scry::EQ, {0});
   emitStoreSlot(D);
 }
@@ -517,37 +549,6 @@ void ScryTemporalLowering::expandReturn(MachineInstr &MI) {
   }
 }
 
-void ScryTemporalLowering::expandBranch(MachineInstr &MI,
-                                        MachineBasicBlock &MBB) {
-  if (MI.getOpcode() == Scry::BR) {
-    MachineBasicBlock *T = MI.getOperand(0).getMBB();
-    if (!MBB.isLayoutSuccessor(T))
-      emitFarJump(T);
-    return;
-  }
-
-  // BRCOND $cond, T: branch if cond != 0.
-  Register C = MI.getOperand(0).getReg();
-  MachineBasicBlock *T = MI.getOperand(1).getMBB();
-  if (MBB.isLayoutSuccessor(T)) {
-    // "if (c) goto next; else <BR F follows>": skip the following
-    // unconditional jump when c != 0.  A forward jmp is taken when its
-    // operand is zero, so negate c with eq.
-    MachineBasicBlock::iterator Next = std::next(MI.getIterator());
-    if (Next == MBB.end() || Next->getOpcode() != Scry::BR ||
-        Next->getOperand(0).getMBB() == T)
-      return; // redundant: falls through anyway
-    emitLoadSlot(C);
-    emit(Scry::EQ, {0});
-    emit(Scry::JMP, {(int64_t)farJumpLen(), 0});
-    return;
-  }
-  emitLoadSlot(C);
-  emit(Scry::ECHO, {0, 0});
-  emit(Scry::JMP, {(int64_t)farJumpLen(), 0}); // skip far jump when c == 0
-  emitFarJump(T);
-}
-
 void ScryTemporalLowering::expandPrologue(MachineBasicBlock &Entry) {
   unsigned NumArgs = FuncInfo->getNumArgOperands();
   unsigned NumReserves = llvm::popcount(ReserveSize);
@@ -614,6 +615,278 @@ static std::string describe(const MachineInstr &MI) {
   MI.print(OS, /*IsStandalone=*/true, /*SkipOpers=*/false,
            /*SkipDebugLoc=*/true, /*AddNewLine=*/false);
   return S;
+}
+
+//===----------------------------------------------------------------------===//
+// Jumps
+//===----------------------------------------------------------------------===//
+
+/// Decide which jumps the terminators of MBB need.  At most two: an
+/// unconditional one (listed first, issued first) and a conditional one that
+/// shares its trigger and overrides it when taken.
+void ScryTemporalLowering::planJumps(MachineBasicBlock &MBB,
+                                     SmallVectorImpl<PlannedJump> &Jumps) {
+  MachineInstr *CondBr = nullptr, *UncondBr = nullptr;
+  for (MachineInstr &MI : MBB.terminators()) {
+    if (MI.getOpcode() == Scry::BR)
+      UncondBr = &MI;
+    else if (MI.getOpcode() == Scry::BRCOND)
+      CondBr = &MI;
+  }
+
+  // Boundary index just after the instruction defining R, if it is in MBB.
+  auto boundaryAfterDef = [&](Register R) -> unsigned {
+    MachineInstr *Def = MRI->getVRegDef(R);
+    if (!Def || Def->getParent() != &MBB)
+      return 0;
+    unsigned N = 0;
+    for (MachineInstr &MI : MBB) {
+      if (MI.isTerminator())
+        break;
+      ++N;
+      if (&MI == Def)
+        return N;
+    }
+    return 0;
+  };
+  auto cond = [&](MachineBasicBlock *Tgt, bool Pol) {
+    Register C = CondBr->getOperand(0).getReg();
+    Jumps.push_back({CondBr, Tgt, C, Pol, boundaryAfterDef(C)});
+  };
+  auto uncond = [&](MachineBasicBlock *Tgt) {
+    Jumps.push_back({UncondBr, Tgt, Register(), false, 0});
+  };
+
+  MachineBasicBlock *F = UncondBr ? UncondBr->getOperand(0).getMBB() : nullptr;
+  if (!CondBr) {
+    if (F && !MBB.isLayoutSuccessor(F))
+      uncond(F);
+    return;
+  }
+  MachineBasicBlock *T = CondBr->getOperand(2).getMBB();
+  bool Pol = CondBr->getOperand(1).getImm() != 0;
+  if (!F) {
+    if (!MBB.isLayoutSuccessor(T))
+      cond(T, Pol);
+    return;
+  }
+  if (T == F) {
+    if (!MBB.isLayoutSuccessor(T))
+      uncond(T);
+    return;
+  }
+  if (MBB.isLayoutSuccessor(T)) {
+    cond(F, !Pol);
+    return;
+  }
+  if (MBB.isLayoutSuccessor(F)) {
+    cond(T, Pol);
+    return;
+  }
+  // Both successors need a jump.  A jump is taken on a non-zero condition
+  // when its target is backward and on zero when forward; make the
+  // conditional jump the one whose direction matches its polarity so that no
+  // negation is needed.
+  bool NegT = Pol != isBackward(&MBB, T);
+  bool NegF = !Pol != isBackward(&MBB, F);
+  if (!NegT || NegF) {
+    uncond(F);
+    cond(T, Pol);
+  } else {
+    uncond(T);
+    cond(F, !Pol);
+  }
+}
+
+static bool isNegatingCompare(unsigned Opc) {
+  switch (Opc) {
+  case Scry::CMP_NE_GR8: case Scry::CMP_NE_GR16: case Scry::CMP_NE_GR32: case Scry::CMP_NE_GR64:
+  case Scry::CMP_ULE_GR8: case Scry::CMP_ULE_GR16: case Scry::CMP_ULE_GR32: case Scry::CMP_ULE_GR64:
+  case Scry::CMP_UGE_GR8: case Scry::CMP_UGE_GR16: case Scry::CMP_UGE_GR32: case Scry::CMP_UGE_GR64:
+  case Scry::CMP_SLE_GR8: case Scry::CMP_SLE_GR16: case Scry::CMP_SLE_GR32: case Scry::CMP_SLE_GR64:
+  case Scry::CMP_SGE_GR8: case Scry::CMP_SGE_GR16: case Scry::CMP_SGE_GR32: case Scry::CMP_SGE_GR64:
+    return true;
+  default:
+    return false;
+  }
+}
+
+/// A jump that must negate its condition and is the only user of a compare
+/// ending in a negating eq simply takes the un-negated compare result.
+void ScryTemporalLowering::planNegationFolds(MachineBasicBlock &MBB,
+                                             ArrayRef<PlannedJump> Jumps) {
+  for (const PlannedJump &J : Jumps) {
+    if (!J.Cond.isValid() || !jumpNeedsNegation(MBB, J))
+      continue;
+    MachineInstr *Def = MRI->getVRegDef(J.Cond);
+    if (Def && Def->getParent() == &MBB && isNegatingCompare(Def->getOpcode()) &&
+        MRI->hasOneNonDBGUse(J.Cond))
+      FoldedNegations.insert(Def);
+  }
+}
+
+/// Build the instruction sequence of jump J in the given form:
+///   near, unconditional:  jmp t, trig
+///   near, conditional:    ld.s c ; [eq =>0] ; jmp t, trig
+///   far, unconditional:   const i8/i16/i32 t (grow ...) ; const u8 pol ; jmp
+///   far, conditional:     ld.s c ; eq/echo =>n ; const ... ; jmp
+/// The condition is delivered to the jmp as its first operand; the far forms
+/// deliver the target as the second operand (const forwards the condition
+/// behind its own value, so the polarity constant goes last).
+void ScryTemporalLowering::buildJumpSeq(MachineBasicBlock &MBB,
+                                        const PlannedJump &J, JumpForm Form,
+                                        std::vector<Item> &Seq) {
+  BlockSeq Tmp{&MBB, {}, 0};
+  BlockSeq *Saved = Cur;
+  Cur = &Tmp;
+
+  bool Backward = isBackward(&MBB, J.Target);
+  unsigned ChainLen =
+      Form == JF_Near ? 0 : Form == JF_Far8 ? 1 : Form == JF_Far16 ? 2 : 4;
+
+  if (J.Cond.isValid()) {
+    bool Neg = jumpNeedsNegation(MBB, J) &&
+               !FoldedNegations.count(MRI->getVRegDef(J.Cond));
+    if (Neg)
+      ++FnNegations;
+    unsigned Off = slotOffset(J.Cond);
+    unsigned TC = utype(J.Cond);
+    if (Off / scaleOf(J.Cond) <= 31) {
+      emit(Scry::LDS, {(int64_t)TC, (int64_t)(Off / scaleOf(J.Cond))});
+      if (Neg)
+        emit(Scry::EQ, {(int64_t)ChainLen});
+      else if (ChainLen)
+        emit(Scry::ECHO, {(int64_t)ChainLen, (int64_t)ChainLen});
+    } else {
+      emitFrameAddr(Off);
+      if (Neg) {
+        emit(Scry::LD, {(int64_t)TC, 0});
+        emit(Scry::EQ, {(int64_t)ChainLen});
+      } else {
+        emit(Scry::LD, {(int64_t)TC, (int64_t)ChainLen});
+      }
+    }
+  }
+
+  SmallVector<int, 5> Pieces;
+  if (ChainLen) {
+    unsigned TC = ChainLen == 1 ? Scry::T_I8
+                  : ChainLen == 2 ? Scry::T_I16
+                                  : Scry::T_I32;
+    for (int B = (int)ChainLen - 1; B >= 0; --B) {
+      int Idx = B == (int)ChainLen - 1 ? emit(Scry::CONST, {(int64_t)TC, 0})
+                                       : emit(Scry::GROW, {0});
+      Cur->Items[Idx].Deferred = Item::JumpByte;
+      Cur->Items[Idx].JumpByteIdx = B;
+      Pieces.push_back(Idx);
+    }
+    if (!J.Cond.isValid()) {
+      int P = emit(Scry::CONST, {(int64_t)Scry::T_U8, 0});
+      Cur->Items[P].Deferred = Item::JumpPolarity;
+      Pieces.push_back(P);
+    }
+    ++FnFarJumps;
+  } else {
+    ++FnNearJumps;
+  }
+  int Jmp = emit(Scry::JMP, {0, 0});
+  Cur->Items[Jmp].JumpTarget = J.Target;
+  Cur->Items[Jmp].JumpKey = J.Key;
+  Cur->Items[Jmp].FarJump = ChainLen > 0;
+  for (int P : Pieces)
+    Cur->Items[P].JumpItem = Jmp;
+
+  Seq = std::move(Tmp.Items);
+  Cur = Saved;
+}
+
+/// Insert Seq (whose references are relative to its own start) before item
+/// Pos of the current block, shifting the references of everything after.
+void ScryTemporalLowering::insertItems(unsigned Pos, std::vector<Item> &Seq,
+                                       const PlannedJump &J) {
+  int N = (int)Seq.size();
+  auto Shift = [&](int &T) {
+    if (T >= (int)Pos)
+      T += N;
+  };
+  for (Item &I : Cur->Items) {
+    if (I.RefOp >= 0)
+      Shift(I.RefTarget);
+    if (I.Ref2Op >= 0)
+      Shift(I.Ref2Target);
+    if (I.JumpItem >= 0)
+      Shift(I.JumpItem);
+    assert(I.TrigTarget < 0 && "triggers are bound after insertion");
+  }
+  for (Item &I : Seq) {
+    if (I.RefOp >= 0)
+      I.RefTarget += Pos;
+    if (I.Ref2Op >= 0)
+      I.Ref2Target += Pos;
+    if (I.JumpItem >= 0)
+      I.JumpItem += Pos;
+  }
+  if (!Seq.empty()) {
+    raw_string_ostream OS(Seq.front().Comment);
+    OS << "jump" << (J.Cond.isValid() ? (J.TakenOnNonZero ? " if non-zero" : " if zero") : "")
+       << " -> " << printMBBReference(*J.Target);
+  }
+  Cur->Items.insert(Cur->Items.begin() + Pos,
+                    std::make_move_iterator(Seq.begin()),
+                    std::make_move_iterator(Seq.end()));
+}
+
+/// Issue the jumps of MBB into the already expanded block body.  Boundaries
+/// lists the item indices at which a jump may be inserted (after the prologue
+/// and after each non-terminator instruction).  Every jump triggers after the
+/// block's last instruction and is issued at the earliest boundary that its
+/// trigger field can express and at which its condition is available.
+void ScryTemporalLowering::insertJumps(MachineBasicBlock &MBB,
+                                       ArrayRef<unsigned> Boundaries,
+                                       ArrayRef<PlannedJump> Jumps) {
+  if (Jumps.empty())
+    return;
+
+  unsigned BodySize = Cur->Items.size();
+  assert(Boundaries.back() == BodySize);
+  auto BoundaryAtLeast = [&](unsigned Min) {
+    for (unsigned B : Boundaries)
+      if (B >= Min)
+        return B;
+    return BodySize;
+  };
+  auto TrigLimit = [](JumpForm F) { return F == JF_Near ? 63u : 8191u; };
+
+  std::vector<Item> Seqs[2];
+  JumpForm Forms[2];
+  unsigned Pos[2] = {0, 0};
+  for (unsigned i = 0, e = Jumps.size(); i != e; ++i) {
+    Forms[i] = JumpForms.lookup(Jumps[i].Key);
+    buildJumpSeq(MBB, Jumps[i], Forms[i], Seqs[i]);
+  }
+  unsigned Earliest[2] = {Boundaries[Jumps[0].EarliestBoundary], 0};
+  if (Jumps.size() == 1) {
+    unsigned L = TrigLimit(Forms[0]);
+    Pos[0] = BoundaryAtLeast(std::max(Earliest[0], BodySize > L ? BodySize - L : 0));
+  } else {
+    Earliest[1] = Boundaries[Jumps[1].EarliestBoundary];
+    // The first (unconditional) jump also sees the second sequence between
+    // its jmp and the trigger.
+    unsigned L0 = TrigLimit(Forms[0]), N1 = Seqs[1].size();
+    Pos[0] = BoundaryAtLeast(
+        std::max(Earliest[0], BodySize + N1 > L0 ? BodySize + N1 - L0 : 0));
+    unsigned L1 = TrigLimit(Forms[1]);
+    Pos[1] = BoundaryAtLeast(
+        std::max({Earliest[1], Pos[0], BodySize > L1 ? BodySize - L1 : 0}));
+    insertItems(Pos[1], Seqs[1], Jumps[1]);
+  }
+  insertItems(Pos[0], Seqs[0], Jumps[0]);
+
+  // Everything triggers after the block's last instruction.
+  int End = (int)Cur->Items.size() - 1;
+  for (Item &I : Cur->Items)
+    if (I.JumpTarget)
+      I.TrigTarget = End;
 }
 
 void ScryTemporalLowering::expandInstr(MachineInstr &MI,
@@ -814,8 +1087,7 @@ void ScryTemporalLowering::expandInstr(MachineInstr &MI,
 
   case Scry::BR:
   case Scry::BRCOND:
-    expandBranch(MI, MBB);
-    break;
+    return; // issued by insertJumps once the block body is known
 
   case Scry::RETURN:
     expandReturn(MI);
@@ -863,17 +1135,32 @@ void ScryTemporalLowering::expandInstr(MachineInstr &MI,
 
 bool ScryTemporalLowering::expandFunction() {
   Blocks.clear();
+  FoldedNegations.clear();
+  FnNearJumps = FnFarJumps = FnNegations = 0;
   Blocks.reserve(MF->size());
   for (MachineBasicBlock &MBB : *MF) {
     Blocks.push_back(BlockSeq{&MBB, {}, 0});
     Cur = &Blocks.back();
     if (&MBB == &MF->front())
       expandPrologue(MBB);
-    for (MachineInstr &MI : MBB)
+    SmallVector<PlannedJump, 2> Jumps;
+    planJumps(MBB, Jumps);
+    planNegationFolds(MBB, Jumps);
+    SmallVector<unsigned, 64> Boundaries;
+    Boundaries.push_back(curIndex());
+    for (MachineInstr &MI : MBB) {
       expandInstr(MI, MBB);
+      if (!MI.isTerminator())
+        Boundaries.push_back(curIndex());
+    }
+    insertJumps(MBB, Boundaries, Jumps);
+    // Every block occupies at least one instruction so that a forward jump
+    // never targets the instruction right after its own trigger.
+    if (Cur->Items.empty())
+      emit(Scry::NOP);
   }
 
-  // Resolve local references and lay out the blocks.
+  // Resolve local references and triggers, and lay out the blocks.
   unsigned Abs = 0;
   for (BlockSeq &B : Blocks) {
     B.Start = Abs;
@@ -898,44 +1185,84 @@ bool ScryTemporalLowering::expandFunction() {
         assert(Ref >= 0 && Ref <= 31 && "bad second reference");
         I.Imms[I.Ref2Op] = Ref;
       }
+      if (I.TrigTarget >= 0) {
+        int Loc = I.TrigTarget - (int)i;
+        assert(Loc >= 0 && "trigger before the jump");
+        if (!I.FarJump) {
+          if (Loc > 63)
+            report_fatal_error("Scry: near jump trigger out of range");
+          I.Imms[1] = Loc;
+        } else {
+          if (Loc > 8191)
+            report_fatal_error("Scry: jump trigger out of range");
+          // The two immediates hold the 13-bit trigger offset.
+          I.Imms[0] = SignExtend64<7>((uint64_t)Loc >> 6);
+          I.Imms[1] = Loc & 63;
+        }
+      }
     }
     Abs += B.Items.size();
   }
-
-  // Far jumps need 32-bit displacements in very large functions.
-  if (JumpWidth == 2 && Abs >= 32000)
-    return false;
 
   DenseMap<MachineBasicBlock *, unsigned> Starts;
   for (BlockSeq &B : Blocks)
     Starts[B.MBB] = B.Start;
 
+  // Relative targets: a backward jump targets jmp + t (t <= 0) and is taken
+  // on a non-zero condition; a forward jump targets trigger + t + 1 (t >= 1)
+  // and is taken on zero.  A jump whose form cannot express its target moves
+  // to the next form and the function is expanded again.
+  bool Changed = false;
   for (BlockSeq &B : Blocks) {
     for (unsigned i = 0, e = B.Items.size(); i != e; ++i) {
       Item &I = B.Items[i];
-      if (I.Deferred == Item::None)
+      if (!I.JumpTarget)
         continue;
-      int64_t JmpAbs = (int64_t)B.Start + i + I.JumpDelta;
-      int64_t Dist = (int64_t)Starts[I.JumpTarget] - JmpAbs;
-      // Backward (or self) jumps are taken when the condition is non-zero
-      // and target jmp + 2*t; forward jumps are taken when the condition is
-      // zero and target jmp + 2*(t + 1).
-      int64_t TargetVal;
-      int64_t Polarity;
-      if (Dist <= 0) {
-        TargetVal = Dist;
-        Polarity = 1;
-      } else {
-        TargetVal = Dist - 1;
-        Polarity = 0;
+      int64_t JmpAbs = (int64_t)B.Start + i;
+      int64_t TrigAbs = JmpAbs + (I.TrigTarget - (int)i);
+      int64_t TargetStart = Starts[I.JumpTarget];
+      int64_t TV = isBackward(B.MBB, I.JumpTarget) ? TargetStart - JmpAbs
+                                                   : TargetStart - TrigAbs - 1;
+      assert((isBackward(B.MBB, I.JumpTarget) ? TV <= 0 : TV >= 1) &&
+             "jump direction mismatch");
+      JumpForm Form = JumpForms.lookup(I.JumpKey);
+      bool Fits = Form == JF_Near    ? (TV >= -64 && TV <= 63)
+                  : Form == JF_Far8  ? (TV >= -128 && TV <= 127)
+                  : Form == JF_Far16 ? (TV >= -32768 && TV <= 32767)
+                                     : true;
+      if (!Fits) {
+        JumpForms[I.JumpKey] = (JumpForm)(Form + 1);
+        Changed = true;
+        continue;
       }
-      if (I.Deferred == Item::JumpPolarity)
-        I.Imms[1] = Polarity;
-      else
-        I.Imms[I.Opc == Scry::CONST ? 1 : 0] =
-            (TargetVal >> (8 * I.JumpByteIdx)) & 0xff;
+      I.TargetValue = TV;
+      if (!I.FarJump)
+        I.Imms[0] = TV;
     }
   }
+  if (Changed)
+    return false;
+
+  // Fill in the operand-producing pieces of the far jumps.
+  for (BlockSeq &B : Blocks) {
+    for (Item &I : B.Items) {
+      if (I.Deferred == Item::None)
+        continue;
+      const Item &J = B.Items[I.JumpItem];
+      if (I.Deferred == Item::JumpPolarity)
+        I.Imms[1] = isBackward(B.MBB, J.JumpTarget) ? 1 : 0;
+      else
+        I.Imms[I.Opc == Scry::CONST ? 1 : 0] =
+            (J.TargetValue >> (8 * I.JumpByteIdx)) & 0xff;
+    }
+  }
+  for (BlockSeq &B : Blocks)
+    for (unsigned i = 0, e = B.Items.size(); i != e; ++i)
+      if (B.Items[i].JumpTarget)
+        JumpTrigDistance += B.Items[i].TrigTarget - (int)i;
+  NumNearJumps += FnNearJumps;
+  NumFarJumps += FnFarJumps;
+  NumJumpNegations += FnNegations;
   return true;
 }
 
@@ -987,11 +1314,18 @@ bool ScryTemporalLowering::runOnMachineFunction(MachineFunction &Fn) {
     PrivSize = IncomingSize;
   ReserveSize = PrivSize - IncomingSize;
 
-  JumpWidth = 2;
-  if (!expandFunction()) {
-    JumpWidth = 4;
-    if (!expandFunction())
-      report_fatal_error("Scry: function too large");
+  LayoutIndex.clear();
+  unsigned Idx = 0;
+  for (MachineBasicBlock &MBB : *MF)
+    LayoutIndex[&MBB] = Idx++;
+
+  // Relax the jump forms until every target fits; each round moves at least
+  // one jump to a more general form.
+  JumpForms.clear();
+  unsigned Rounds = 0;
+  while (!expandFunction()) {
+    if (++Rounds > 4 * MF->size() + 16)
+      report_fatal_error("Scry: jump relaxation did not converge");
   }
   resolveAndMaterialise();
 

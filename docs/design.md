@@ -62,8 +62,9 @@ register file for Scry, so the backend keeps values in memory instead.
    ```
 
    Because every Scry instruction is exactly two bytes and the pass sees the
-   final block layout, branch displacements are computed directly; no
-   relaxation or label fixups are needed inside functions.
+   final block layout, jump targets are computed directly; the only
+   relaxation is the choice between the near and far jump forms described
+   in section 2.3.
 
 5. **MC layer**: real instructions are printed in the syntax of the reference
    `scry_asm` assembler and encoded to ELF objects (`e_machine` 0x264).  The
@@ -91,24 +92,58 @@ Symbol addresses use the same sequence with relocations
 
 ### 2.3 Control flow
 
-`jmp` takes a 7-bit relative target immediate and a 6-bit trigger offset,
-and its condition polarity depends on the direction: forward jumps are taken
-when the condition is zero, backward jumps when it is non-zero.  To keep
-things uniform the backend always emits a *far jump* sequence with a
-computed 16-bit (or 32-bit for huge functions) displacement in an operand:
+A Scry jump is *issued* ahead of time and only takes effect after the
+instruction at its trigger address has executed, so the processor can learn
+the direction of a branch long before the point where it diverges.  The
+backend uses this: every jump of a block triggers after the block's last
+instruction, and is issued as early as the block allows, at the block start
+for an unconditional jump and right after the instruction that defines the
+condition for a conditional one (at this stage the condition is loaded back
+from its slot; the jump cannot be issued before the slot is written).
+
+`jmp t, trig` takes a 7-bit signed target immediate and a 6-bit trigger
+offset.  A target `t <= 0` is relative to the jmp itself (backward) and the
+jump is taken when its condition operand is non-zero; `t > 0` is relative to
+the trigger (target = trigger + t + 1) and taken when the condition is zero.
+Without an operand the jump is unconditional.  This is the *near* form, one
+instruction, usable when the target is within 64 instructions and the
+trigger within 63:
 
 ```
-const u8, c        ; c = 0 for forward, 1 for backward (polarity)
-echo =>2, =>2      ; forward c to the jmp
+ld u8 [c]          ; condition -> jmp
+eq =>0             ; only when the polarity does not match the direction
+jmp -22, 4         ; backward 22 instructions, triggers 4 instructions later
+```
+
+When the target or the trigger is out of range the two-operand form is
+used: the target is an `i8`, `i16` or `i32` operand produced by a
+`const`/`grow` chain glued before the jmp, and the two immediates together
+hold a 13-bit trigger offset:
+
+```
+ld u8 [c]          ; condition
+echo =>2, =>2      ; past the chain, to the jmp
 const i16, hi
-grow lo            ; displacement in instructions
-jmp 0, 0           ; two-operand form: [condition, target]; triggers at once
+grow lo            ; target, relative as above
+jmp 0, 9           ; [condition, target]; triggers 9 instructions later
 ```
 
-A conditional branch `BRCOND %c, T` becomes "load c; echo to J; J: jmp
-S, 0 (skip S instructions when c == 0); far jump to T".  When T is the
-layout successor and an unconditional branch follows, the condition is
-negated with `eq` and the following far jump is skipped instead.
+An unconditional far jump has no condition to load; a `const u8` with the
+polarity value (1 backward, 0 forward) is emitted *after* the target chain
+(a `const` forwards its ready inputs behind its own value, which puts the
+polarity first).  The form of each jump starts as near and is widened by a
+relaxation loop over the function layout until every target fits.
+
+`BRCOND %c, pol, T` branches to T when `c != 0` (`pol = 1`) or `c == 0`
+(`pol = 0`); `reverseBranchCondition` flips `pol`, so branch folding and
+block placement can pick either layout.  A jump whose polarity does not
+match its direction negates the condition with one `eq`.  When both
+successors of a block need a jump, an unconditional jump to one of them is
+issued first and a conditional jump to the other, with the same trigger,
+overrides it when taken (the last jump issued for a trigger address wins);
+the conditional jump is given the target whose direction matches its
+polarity so that no `eq` is needed.  Triggers are per call frame in the
+simulator, so a jump window may span calls, including recursive ones.
 
 ### 2.4 Function entry and exit
 
@@ -213,6 +248,9 @@ running the generated code (revision 6fc6ac9d of scryer):
 * The two-operand `jmp` is treated as relative, like the one-operand form,
   although the specification calls it absolute; the backend emits relative
   displacements.
+* Pending jump triggers are kept per call frame and a jump that would skip
+  over another pending trigger is an exception; the backend only ever has
+  the jumps of one block pending, all with the same trigger.
 * `pick` with an immediate (`PickI`) is unimplemented; the backend only
   uses the register form.
 * `--target=scry32-unknown-none-elf` must be given explicitly; target

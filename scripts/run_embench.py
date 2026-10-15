@@ -14,12 +14,13 @@ mean ld output reference and the in-flight operand count (mean/max).
 Usage:
     run_embench.py [--embench <dir>] [--clang <clang>] [--scryer <scryer>]
                    [-O 2] [--gsf 1] [--timeout 600] [--metrics] [--json out.json]
-                   [benchmarks...]
+                   [-j N] [benchmarks...]
 
 The Embench sources are cloned from https://github.com/embench/embench-iot
 into third_party/embench-iot when --embench is not given.
 """
 import argparse
+import concurrent.futures
 import json
 import os
 import pathlib
@@ -72,6 +73,8 @@ def main():
     ap.add_argument("--metrics-bin", help="path to scryer-metrics (default: next to scryer)")
     ap.add_argument("--json", help="write all per-benchmark metrics to this JSON file")
     ap.add_argument("--keep", action="store_true")
+    ap.add_argument("-j", "--jobs", type=int, default=1,
+                    help="benchmarks to build and run in parallel (default 1)")
     ap.add_argument("--strict", action="store_true",
                     help="count the known simulator-limited benchmarks (XFAIL) as failures")
     ap.add_argument("benchmarks", nargs="*")
@@ -113,7 +116,8 @@ def main():
     if args.metrics:
         print(f"{'':14} {'benchmark':18} {'instr':>11} {'non-DF':>11} {'DF%':>5} "
               f"{'jmp':>5} {'ld':>5} {'flight':>7}")
-    for name in names:
+    def run_one(name):
+        """Compile and run one benchmark; returns (status, size, instrs, metrics, lines)."""
         srcdir = embench / "src" / name
         sources = sorted(srcdir.glob("*.c")) + [support / "main.c", support / "beebsc.c",
                                                 config / "boardsupport.c"]
@@ -127,9 +131,8 @@ def main():
         t0 = time.time()
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
-            print(f"FAIL {name}: compile error\n{r.stderr[-3000:]}")
-            results.append((name, "compile-error", 0, 0))
-            continue
+            return ("compile-error", 0, 0, None,
+                    [f"FAIL {name}: compile error\n{r.stderr[-3000:]}"])
         size = elf.stat().st_size
         run = subprocess.run([str(scryer), str(elf), "--target=" + TRIPLE,
                               "--machine-mode", f"--timeout={args.timeout}"],
@@ -139,6 +142,7 @@ def main():
         if run.returncode != 0 and name in XFAIL and not args.strict:
             status = f"XFAIL(exit {run.returncode})"
         instrs = 0
+        metrics = None
         metrics_text = ""
         if args.metrics and run.returncode == 0:
             jpath = outdir / (name + ".metrics.json")
@@ -148,9 +152,8 @@ def main():
                            capture_output=True, text=True)
             if jpath.exists():
                 with open(jpath) as f:
-                    data = json.load(f)
-                all_metrics[name] = data
-                w = data["window"]
+                    metrics = json.load(f)
+                w = metrics["window"]
                 instrs = w["instructions"]
                 metrics_text = (f" {instrs:11,d} {instrs - w['dataflow']:11,d} "
                                 f"{100.0 * w['dataflow'] / max(instrs, 1):5.1f} "
@@ -158,17 +161,27 @@ def main():
                                 f"{w['inflight_frame_mean']:4.1f}/{w['inflight_frame_max']:<3d}")
                 if not args.keep:
                     jpath.unlink()
+        lines = []
         if args.metrics:
-            print(f"{status:14} {name:18}{metrics_text}", flush=True)
+            lines.append(f"{status:14} {name:18}{metrics_text}")
         else:
-            print(f"{status:14} {name:18} elf={size:8d}B  {elapsed:6.1f}s", flush=True)
+            lines.append(f"{status:14} {name:18} elf={size:8d}B  {elapsed:6.1f}s")
         if status.startswith("XFAIL"):
-            print(f"               (expected: {XFAIL[name]})")
+            lines.append(f"               (expected: {XFAIL[name]})")
         elif run.returncode != 0 and run.stderr.strip():
-            print(run.stderr[-2000:])
-        results.append((name, status, size, instrs))
+            lines.append(run.stderr[-2000:])
         if not args.keep and elf.exists():
             elf.unlink()
+        return (status, size, instrs, metrics, lines)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
+        futures = [(name, pool.submit(run_one, name)) for name in names]
+        for name, fut in futures:
+            status, size, instrs, metrics, lines = fut.result()
+            print("\n".join(lines), flush=True)
+            if metrics is not None:
+                all_metrics[name] = metrics
+            results.append((name, status, size, instrs))
 
     if args.json:
         with open(args.json, "w") as f:

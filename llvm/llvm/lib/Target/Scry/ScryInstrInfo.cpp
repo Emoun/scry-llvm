@@ -90,11 +90,11 @@ bool ScryInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
     if (Cond.empty()) {
       FBB = TBB;
-      TBB = I->getOperand(1).getMBB();
+      TBB = I->getOperand(2).getMBB();
       // Cond[0]: the i8 condition register, Cond[1]: 1 = branch if non-zero,
       // 0 = branch if zero.
       Cond.push_back(I->getOperand(0));
-      Cond.push_back(MachineOperand::CreateImm(1));
+      Cond.push_back(I->getOperand(1));
       continue;
     }
     // Multiple conditional branches: not handled.
@@ -136,12 +136,10 @@ unsigned ScryInstrInfo::insertBranch(MachineBasicBlock &MBB,
   }
 
   assert(Cond.size() == 2 && "Scry branch conditions have two components");
-  if (Cond[1].getImm() == 0) {
-    // "Branch if zero" is not directly expressible with the BRCOND pseudo;
-    // reverseBranchCondition therefore refuses to produce it.
-    llvm_unreachable("inverted Scry branch condition");
-  }
-  BuildMI(&MBB, DL, get(Scry::BRCOND)).add(Cond[0]).addMBB(TBB);
+  BuildMI(&MBB, DL, get(Scry::BRCOND))
+      .add(Cond[0])
+      .addImm(Cond[1].getImm())
+      .addMBB(TBB);
   if (!FBB)
     return 1;
   BuildMI(&MBB, DL, get(Scry::BR)).addMBB(FBB);
@@ -150,9 +148,9 @@ unsigned ScryInstrInfo::insertBranch(MachineBasicBlock &MBB,
 
 bool ScryInstrInfo::reverseBranchCondition(
     SmallVectorImpl<MachineOperand> &Cond) const {
-  // Inverting would require a new virtual register and an instruction;
-  // report that the condition cannot be reversed.
-  return true;
+  assert(Cond.size() == 2 && "Scry branch conditions have two components");
+  Cond[1].setImm(Cond[1].getImm() ^ 1);
+  return false;
 }
 
 unsigned ScryInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {

@@ -474,10 +474,12 @@ def : Pat<(truncstorei32 GR64:$v, GR32:$a), (ST_32 (TRUNC_64_32 GR64:$v), GR32:$
 let isBranch = 1, isTerminator = 1 in {
 let isBarrier = 1 in
 def BR : ScryPseudo<(outs), (ins brtarget:$dst), [(br bb:$dst)]>;
-// Branch to $dst if $cond is non-zero.
-def BRCOND : ScryPseudo<(outs), (ins GR8:$cond, brtarget:$dst),
-                        [(brcond GR8:$cond, bb:$dst)]>;
+// Branch to $dst if $cond is non-zero ($pol = 1) or zero ($pol = 0).
+def BRCOND : ScryPseudo<(outs), (ins GR8:$cond, i32imm:$pol, brtarget:$dst),
+                        []>;
 }
+def : Pat<(brcond GR8:$cond, bb:$dst), (BRCOND GR8:$cond, 1, bb:$dst)>;
+def : Pat<(brcond (xor GR8:$cond, 1), bb:$dst), (BRCOND GR8:$cond, 0, bb:$dst)>;
 
 let isReturn = 1, isTerminator = 1, isBarrier = 1 in
 def RETURN : ScryPseudo<(outs), (ins variable_ops), [(ScryRet)]>;

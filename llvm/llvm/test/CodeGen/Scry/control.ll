@@ -1,12 +1,14 @@
 ; RUN: llc -mtriple=scry32-unknown-none-elf -O2 < %s | FileCheck %s
 
 ; CHECK-LABEL: loop:
-; A backward far jump: polarity 1, two-operand jmp.
-; CHECK: const u8, 1
-; CHECK-NEXT: echo =>2, =>2
-; CHECK-NEXT: const i16, 255
-; CHECK-NEXT: grow {{[0-9]+}}
-; CHECK-NEXT: jmp 0, 0
+; The loop-closing branch: a near backward jump issued right after the
+; compare is stored, triggering after the block's last instruction.
+; CHECK: lt =>0
+; CHECK-NEXT: st [[[C:[0-9]+]]]
+; CHECK-NEXT: ld u8 [[[C]]]
+; CHECK-NEXT: jmp -{{[0-9]+}}, {{[1-9][0-9]*}}
+; CHECK-NOT: jmp
+; CHECK: ret 0
 define i32 @loop(i32 %n) {
 entry:
   br label %body
