@@ -56,7 +56,25 @@ register file for Scry, so the backend keeps values in memory instead.
    with the pseudos.  The generic frame-layout code then assigns final
    offsets to allocas, incoming stack arguments and these slots.
 
-4. **Temporal lowering** (`ScryTemporalLowering`, the very last pass) rewrites
+4. **Scheduling** (`ScryMachineScheduler`, at -O1 and above) reorders the
+   pseudos of each block before the lowering.  Scry has no registers, so
+   the usual goals of a scheduler do not apply; the order instead decides
+   how early jumps and loads are issued and how far values travel in
+   flight.  The strategy picks, among the ready instructions, first those
+   that compute the block's branch condition (so the jump is issued as
+   early as possible, far before its trigger), then the loads and the
+   instructions computing their addresses (so the loads are issued long
+   before their results are used), then the instruction whose inputs were
+   produced most recently (short references, few values in flight); above
+   a soft target of `-scry-inflight-target` (32) values in flight,
+   consumers are preferred over producers.
+   Constants and addresses are scheduled last, since the lowering rebuilds
+   them in front of their consumer anyway.  The call pseudos are not
+   scheduling barriers: a condition or a load is happily moved above a
+   call.  `-mllvm -scry-sched=false` keeps the instruction-selection
+   order.
+
+5. **Temporal lowering** (`ScryTemporalLowering`, the very last pass) rewrites
    every pseudo instruction into real Scry instructions, block by block in
    instruction order.  A value in flight is an unbound output reference of
    the instruction that produced it; the reference is filled in when the
@@ -102,7 +120,7 @@ register file for Scry, so the backend keeps values in memory instead.
    relaxation is the choice between the near and far jump forms described
    in section 2.3.
 
-5. **MC layer**: real instructions are printed in the syntax of the reference
+6. **MC layer**: real instructions are printed in the syntax of the reference
    `scry_asm` assembler and encoded to ELF objects (`e_machine` 0x264).  The
    only relocations in code are byte-wise absolute addresses in `const`/`grow`
    immediates (`R_SCRY_IMM8_B0..B3`); data uses `R_SCRY_8/16/32/64`.  lld

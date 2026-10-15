@@ -25,7 +25,8 @@ static cl::opt<unsigned> InFlightTarget(
 
 static cl::opt<bool> LoadsEarly(
     "scry-sched-loads-early", cl::Hidden, cl::init(true),
-    cl::desc("Schedule loads as early as their inputs allow"));
+    cl::desc("Schedule loads, and the instructions computing their "
+             "addresses, before the rest of the block"));
 
 namespace {
 
@@ -50,6 +51,7 @@ class ScrySchedStrategy final : public MachineSchedStrategy {
   ScheduleDAGMI *DAG = nullptr;
   SmallVector<SUnit *, 32> Ready;
   DenseSet<const SUnit *> CondSlice;
+  DenseSet<const SUnit *> LoadSlice;
   DenseMap<const SUnit *, unsigned> SchedPos;
   unsigned Clock = 0;
   unsigned InFlight = 0;
@@ -102,14 +104,12 @@ class ScrySchedStrategy final : public MachineSchedStrategy {
     bool CA = CondSlice.count(A), CB = CondSlice.count(B);
     if (CA != CB)
       return CA;
+    bool LA = LoadSlice.count(A), LB = LoadSlice.count(B);
+    if (LA != LB)
+      return LA;
     bool RA = isRematerialised(MA), RB = isRematerialised(MB);
     if (RA != RB)
       return RB; // constants last: their position does not matter
-    if (LoadsEarly) {
-      bool LA = MA.mayLoad(), LB = MB.mayLoad();
-      if (LA != LB)
-        return LA;
-    }
     if (InFlight > InFlightTarget) {
       int FA = (int)valuesFreed(A) - (int)producesValue(A);
       int FB = (int)valuesFreed(B) - (int)producesValue(B);
@@ -133,17 +133,31 @@ public:
   }
   bool shouldTrackPressure() const override { return false; }
 
+  /// Add Root and everything it depends on through data edges to Slice.
+  static void addSlice(DenseSet<const SUnit *> &Slice, const SUnit *Root) {
+    SmallVector<const SUnit *, 16> Work{Root};
+    while (!Work.empty()) {
+      const SUnit *SU = Work.pop_back_val();
+      if (!Slice.insert(SU).second)
+        continue;
+      for (const SDep &D : SU->Preds)
+        if (isDataPred(D))
+          Work.push_back(D.getSUnit());
+    }
+  }
+
   void initialize(ScheduleDAGMI *dag) override {
     DAG = dag;
     Ready.clear();
     CondSlice.clear();
+    LoadSlice.clear();
     SchedPos.clear();
     Clock = 0;
     InFlight = 0;
-
-    // The instructions feeding the block's branch condition.
     if (DAG->SUnits.empty())
       return;
+
+    // The instructions feeding the block's branch condition.
     MachineBasicBlock *MBB = DAG->SUnits.front().getInstr()->getParent();
     Register Cond;
     for (MachineInstr &MI : MBB->terminators())
@@ -152,20 +166,16 @@ public:
     if (Cond.isValid()) {
       const MachineRegisterInfo &MRI = DAG->MRI;
       MachineInstr *Def = MRI.hasOneDef(Cond) ? MRI.getVRegDef(Cond) : nullptr;
-      if (Def && Def->getParent() == MBB) {
-        if (SUnit *Root = DAG->getSUnit(Def)) {
-          SmallVector<const SUnit *, 16> Work{Root};
-          while (!Work.empty()) {
-            const SUnit *SU = Work.pop_back_val();
-            if (!CondSlice.insert(SU).second)
-              continue;
-            for (const SDep &D : SU->Preds)
-              if (isDataPred(D))
-                Work.push_back(D.getSUnit());
-          }
-        }
-      }
+      if (Def && Def->getParent() == MBB)
+        if (SUnit *Root = DAG->getSUnit(Def))
+          addSlice(CondSlice, Root);
     }
+
+    // The loads and the instructions computing their addresses.
+    if (LoadsEarly)
+      for (const SUnit &SU : DAG->SUnits)
+        if (SU.getInstr()->mayLoad())
+          addSlice(LoadSlice, &SU);
   }
 
   void releaseTopNode(SUnit *SU) override { Ready.push_back(SU); }

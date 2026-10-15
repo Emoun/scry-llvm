@@ -13,7 +13,7 @@
 using namespace llvm;
 
 static cl::opt<bool> ScrySched(
-    "scry-sched", cl::Hidden, cl::init(false),
+    "scry-sched", cl::Hidden, cl::init(true),
     cl::desc("Reorder instructions with the Scry scheduling strategy"));
 
 bool ScrySubtarget::enableMachineScheduler() const { return ScrySched; }

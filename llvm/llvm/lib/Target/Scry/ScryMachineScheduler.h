@@ -13,7 +13,8 @@
 //
 //  1. the instructions computing a block's branch condition come first, so
 //     that the jump is issued as early as possible;
-//  2. loads come early, so that their results are known long before use;
+//  2. loads, and the instructions computing their addresses, come next, so
+//     that the loads are issued long before their results are used;
 //  3. otherwise an instruction whose inputs were produced most recently is
 //     preferred (short references, no hops, few values in flight), with a
 //     soft limit on the number of values in flight;

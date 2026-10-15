@@ -486,8 +486,12 @@ def RETURN : ScryPseudo<(outs), (ins variable_ops), [(ScryRet)]>;
 
 // Calls.  $callee is a symbol (CALL_*) or an address in a register (CALLI_*).
 // Arguments follow as variable operands.  ADJCALLSTACKDOWN/UP bracket the
-// call and carry the outgoing stack-argument area size.
-let isCall = 1, hasSideEffects = 1 in {
+// call and carry the outgoing stack-argument area size.  The pseudos are
+// deliberately not flagged isCall: the generic machine scheduler never moves
+// anything across a call, but on Scry nothing is clobbered by one, and
+// issuing the branch condition or a load before a call is exactly what the
+// scheduler is for.  hasSideEffects keeps memory accesses ordered with them.
+let hasSideEffects = 1 in {
 def CALL_V   : ScryPseudo<(outs), (ins symop:$callee, variable_ops), []>;
 def CALL_8   : ScryPseudo<(outs GR8:$dst),  (ins symop:$callee, variable_ops), []>;
 def CALL_16  : ScryPseudo<(outs GR16:$dst), (ins symop:$callee, variable_ops), []>;

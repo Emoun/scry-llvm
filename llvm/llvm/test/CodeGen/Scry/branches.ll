@@ -37,7 +37,7 @@ x:
 ; CHECK-LABEL: far:
 ; CHECK: lt =>0
 ; CHECK-NEXT: jmp -{{[0-9]+}}, {{[0-9]+}}
-; CHECK-NOT: st
+; CHECK-NOT: {{^[ \t]+st(\.s)?([ \t]|$)}}
 ; CHECK: ret 0
 define i32 @far(ptr %p, i32 %n) {
 entry:
