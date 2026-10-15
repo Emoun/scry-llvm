@@ -28,6 +28,15 @@ def find_default(candidates):
     return None
 
 
+def warn_if_runtime_stale(clang):
+    """The runtime is compiled by the Scry clang; a clang newer than the
+    installed crt0.o means the runtime (and every link) carries old code."""
+    crt0 = clang.parent.parent / "lib" / "clang-runtimes" / TRIPLE / "lib" / "crt0.o"
+    if crt0.exists() and crt0.stat().st_mtime < clang.resolve().stat().st_mtime:
+        print(f"warning: {crt0} is older than {clang}; rerun scripts/build_runtime.py",
+              file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -52,6 +61,7 @@ def main():
         sys.exit("clang not found; pass --clang")
     if not scryer or not scryer.exists():
         sys.exit("scryer not found; pass --scryer (see scripts/build_scryer.py)")
+    warn_if_runtime_stale(clang)
 
     tests = [pathlib.Path(t) if "/" in t or t.endswith(".c") else ROOT / "tests" / "c" / (t + ".c")
              for t in args.tests] or sorted((ROOT / "tests" / "c").glob("*.c"))

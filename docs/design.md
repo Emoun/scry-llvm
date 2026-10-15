@@ -251,9 +251,14 @@ block) or when nothing arrives at the position.
 A block with several successors has one in-flight set at its trigger, so
 it delivers the union of its successors' live-ins, and a block receives
 the union of what its predecessors deliver.  Landing positions are
-assigned function-wide on the final layout: two registers arriving at
+assigned function-wide on the final layout: two registers delivered by
 the same block get different positions (greedy colouring in register
-order).  At the end of a block the emitter aims each delivered value at
+order).  Registers arriving at a block from different predecessors may
+share a position, because the block needs at most one of them (a register
+it needs comes from every predecessor, together with everything else
+those predecessors deliver) and its pad at that position echoes the
+needed one or discards whatever arrives.  At the end of a block the
+emitter aims each delivered value at
 its position past the block's last instruction, with the usual hops and
 ordering fixups; the jump trigger is that last instruction, so the values
 are in flight when the jump takes effect, and a loop-carried value never

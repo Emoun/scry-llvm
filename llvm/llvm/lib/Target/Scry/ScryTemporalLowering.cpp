@@ -1411,6 +1411,28 @@ void ScryTemporalLowering::expandBinary(MachineInstr &MI, unsigned RealOpc) {
       return false;
     }
   };
+  // x + (-1) is the single-input sub, x - (-1) the single-input add.
+  auto IsAllOnes = [&](const Operand &C) {
+    if (C.K != Operand::Const)
+      return false;
+    uint64_t Mask = C.Scale == 8 ? ~0ull : ((1ull << (8 * C.Scale)) - 1);
+    return (C.Imm & Mask) == Mask;
+  };
+  if (RealOpc == Scry::ADD_L || RealOpc == Scry::SUB_L) {
+    unsigned Flipped = RealOpc == Scry::ADD_L ? Scry::SUB_L : Scry::ADD_L;
+    if (IsAllOnes(B)) {
+      int Op = consume(Flipped, {A}, {0});
+      produce(V, Op, 0, 31);
+      defineResult(MI, V);
+      return;
+    }
+    if (Commutative && IsAllOnes(A)) {
+      int Op = consume(Flipped, {B}, {0});
+      produce(V, Op, 0, 31);
+      defineResult(MI, V);
+      return;
+    }
+  }
   if (IsImplicit(B)) {
     int Op = consume(RealOpc, {A}, {0});
     produce(V, Op, 0, 31);
@@ -1676,8 +1698,11 @@ void ScryTemporalLowering::expandCopy(MachineInstr &MI) {
     return;
   }
   if (Src.K == Operand::Slot) {
-    // Alias the source slot unless its register is redefined later in this
-    // block.
+    // Alias the source slot unless it is written again later in this block
+    // (by its register or by another register sharing the slot: the slot
+    // allocator keeps a slot free only for the uses of an in-block copy,
+    // not for a copy delivered to the successors at the block end).
+    int FI = FuncInfo->getSpillSlot(Src.Reg);
     bool Redefined = false;
     bool After = false;
     for (const MachineInstr &O : *CurMBB) {
@@ -1685,8 +1710,12 @@ void ScryTemporalLowering::expandCopy(MachineInstr &MI) {
         After = true;
         continue;
       }
-      if (After && O.definesRegister(Src.Reg, /*TRI=*/nullptr))
-        Redefined = true;
+      if (!After)
+        continue;
+      for (const MachineOperand &MO : O.defs())
+        if (MO.isReg() && MO.getReg().isVirtual() &&
+            FuncInfo->getSpillSlot(MO.getReg()) == FI)
+          Redefined = true;
     }
     if (!Redefined) {
       SlotAlias[D] = Src.Reg;
@@ -1891,24 +1920,24 @@ void ScryTemporalLowering::planEdgeFlight() {
     for (unsigned i : LiveIn[&MBB].set_bits())
       EdgeLiveIn[&MBB].push_back(Regs[i]);
 
-  // Arrivals: every predecessor delivers the live-ins of all its successors.
-  DenseMap<const MachineBasicBlock *, BitVector> Arrive;
+  // Deliveries: every block delivers the live-ins of all its successors.
+  DenseMap<const MachineBasicBlock *, BitVector> Deliver;
   for (MachineBasicBlock &P : *MF) {
-    BitVector Deliver(N);
+    BitVector D(N);
     for (MachineBasicBlock *S : P.successors())
-      Deliver |= LiveIn[S];
-    for (MachineBasicBlock *S : P.successors()) {
-      auto It = Arrive.find(S);
-      if (It == Arrive.end())
-        It = Arrive.insert({S, BitVector(N)}).first;
-      It->second |= Deliver;
-    }
+      D |= LiveIn[S];
+    if (D.any())
+      Deliver[&P] = std::move(D);
   }
-  // Colour: registers arriving at the same block need different positions.
+  // Colour: registers delivered by the same block need different positions.
+  // Two registers arriving at a block from different predecessors may share
+  // one: the block needs at most one of them (a register it needs comes
+  // from every predecessor, together with everything else they deliver),
+  // and its pad at that position echoes the needed one or discards both.
   SmallVector<unsigned, 16> PositionOf(N, ~0u);
   for (unsigned i = 0; i != N; ++i) {
     BitVector Used;
-    for (auto &KV : Arrive) {
+    for (auto &KV : Deliver) {
       if (!KV.second[i])
         continue;
       for (unsigned j : KV.second.set_bits()) {
@@ -1943,33 +1972,32 @@ void ScryTemporalLowering::computeDeliverSet(MachineBasicBlock &MBB) {
 /// consumers, a nop for a position nothing arrives at, and a nop sink for
 /// values this block does not need.
 void ScryTemporalLowering::emitLandingPads(MachineBasicBlock &MBB) {
-  // Arrivals: what any predecessor delivers.
-  DenseSet<Register> Needed;
-  for (Register R : edgeLiveIns(&MBB))
-    Needed.insert(R);
+  // The positions the block needs (every predecessor delivers those
+  // registers), and the last position anything arrives at: whatever a
+  // predecessor delivers for another successor is discarded here.
   std::map<unsigned, Register> Positions;
+  for (Register R : edgeLiveIns(&MBB)) {
+    unsigned Pos = EdgePos.lookup(R).first;
+    assert(!Positions.count(Pos) && "position clash");
+    Positions[Pos] = R;
+  }
+  int Last = -1;
   for (MachineBasicBlock *P : MBB.predecessors())
     for (MachineBasicBlock *S : P->successors())
-      for (Register R : edgeLiveIns(S)) {
-        unsigned Pos = EdgePos.lookup(R).first;
-        assert((!Positions.count(Pos) || Positions[Pos] == R) && "position clash");
-        Positions[Pos] = R;
-      }
-  if (Positions.empty())
-    return;
+      for (Register R : edgeLiveIns(S))
+        Last = std::max(Last, (int)EdgePos.lookup(R).first);
 
-  unsigned Last = Positions.rbegin()->first;
-  for (unsigned Pos = 0; Pos <= Last; ++Pos) {
+  for (int Pos = 0; Pos <= Last; ++Pos) {
     auto It = Positions.find(Pos);
     if (It == Positions.end()) {
-      emit(Scry::NOP);
+      int Pad = emit(Scry::NOP);
+      Cur->Items[Pad].Comment = "landing pad " + std::to_string(Pos);
       continue;
     }
     Register R = It->second;
-    unsigned Uses = 0;
-    if (Needed.count(R))
-      Uses = countUsesFromStart(R) +
-             (DeliverSet.count(R) && !definedLaterInBlock(R, nullptr) ? 1 : 0);
+    unsigned Uses =
+        countUsesFromStart(R) +
+        (DeliverSet.count(R) && !definedLaterInBlock(R, nullptr) ? 1 : 0);
     int Pad;
     if (Uses == 0) {
       // Not needed here: discard it.

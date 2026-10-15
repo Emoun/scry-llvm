@@ -50,7 +50,9 @@ python3 scripts/setup_llvm.py
 python3 scripts/build_llvm.py
 
 # 3. Build crt0, libc, libm and the compiler-rt builtins for Scry and install
-#    them next to clang.
+#    them next to clang.  Repeat this after every rebuild of clang: the
+#    runtime is Scry code, and the test and benchmark scripts warn when it is
+#    older than the compiler.
 python3 scripts/build_runtime.py --clang install/bin/clang
 
 # 4. Build the scryer simulator (needs cargo); result: build/scryer/release/scryer
