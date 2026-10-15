@@ -5,18 +5,22 @@ the scryer simulator.
 Each benchmark is compiled from its sources plus the Embench support files
 and the Scry board support in embench/config/scry, then executed with
 "scryer --machine-mode".  A benchmark passes when the exit code is 0, i.e.
-verify_benchmark() accepted the result.  The simulator's instruction count
-is reported as a crude performance figure (a second run without
---machine-mode is used to read the metrics).
+verify_benchmark() accepted the result.  With --metrics each benchmark is
+also run under scryer-metrics (tools/scryer), which reports, for the window
+between start_trigger and stop_trigger: executed instructions, non-dataflow
+instructions, the dataflow share, the mean jmp issue-to-trigger distance, the
+mean ld output reference and the in-flight operand count (mean/max).
 
 Usage:
     run_embench.py [--embench <dir>] [--clang <clang>] [--scryer <scryer>]
-                   [-O 2] [--gsf 1] [--timeout 600] [--metrics] [benchmarks...]
+                   [-O 2] [--gsf 1] [--timeout 600] [--metrics] [--json out.json]
+                   [benchmarks...]
 
 The Embench sources are cloned from https://github.com/embench/embench-iot
 into third_party/embench-iot when --embench is not given.
 """
 import argparse
+import json
 import os
 import pathlib
 import re
@@ -39,6 +43,12 @@ XFAIL = {
 }
 
 
+def hist_mean(h):
+    """Mean of a {value: count} histogram."""
+    n = sum(h.values())
+    return sum(int(k) * v for k, v in h.items()) / n if n else 0.0
+
+
 def find_default(candidates):
     for c in candidates:
         if c.exists():
@@ -57,7 +67,10 @@ def main():
     ap.add_argument("--warmup", default="1", help="warm-up heat")
     ap.add_argument("--timeout", type=int, default=1800, help="seconds per run")
     ap.add_argument("--metrics", action="store_true",
-                    help="also run without --machine-mode to print simulator metrics")
+                    help="also run under scryer-metrics (tools/scryer) and print the code "
+                         "metrics of the benchmark() window")
+    ap.add_argument("--metrics-bin", help="path to scryer-metrics (default: next to scryer)")
+    ap.add_argument("--json", help="write all per-benchmark metrics to this JSON file")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--strict", action="store_true",
                     help="count the known simulator-limited benchmarks (XFAIL) as failures")
@@ -75,6 +88,14 @@ def main():
     if not scryer or not scryer.exists():
         sys.exit("scryer not found; pass --scryer")
 
+    metrics_bin = None
+    if args.metrics:
+        metrics_bin = pathlib.Path(args.metrics_bin) if args.metrics_bin else find_default([
+            ROOT / "build" / "scryer-metrics" / "release" / ("scryer-metrics" + EXE),
+            ROOT / "install" / "bin" / ("scryer-metrics" + EXE)])
+        if not metrics_bin or not metrics_bin.exists():
+            sys.exit("scryer-metrics not found; run scripts/build_scryer.py or pass --metrics-bin")
+
     embench = pathlib.Path(args.embench)
     if not (embench / "src").exists():
         embench.parent.mkdir(parents=True, exist_ok=True)
@@ -88,6 +109,10 @@ def main():
 
     names = args.benchmarks or sorted(p.name for p in (embench / "src").iterdir() if p.is_dir())
     results = []
+    all_metrics = {}
+    if args.metrics:
+        print(f"{'':14} {'benchmark':18} {'instr':>11} {'non-DF':>11} {'DF%':>5} "
+              f"{'jmp':>5} {'ld':>5} {'flight':>7}")
     for name in names:
         srcdir = embench / "src" / name
         sources = sorted(srcdir.glob("*.c")) + [support / "main.c", support / "beebsc.c",
@@ -114,13 +139,29 @@ def main():
         if run.returncode != 0 and name in XFAIL and not args.strict:
             status = f"XFAIL(exit {run.returncode})"
         instrs = 0
+        metrics_text = ""
         if args.metrics and run.returncode == 0:
-            m = subprocess.run([str(scryer), str(elf), "--target=" + TRIPLE,
-                                f"--timeout={args.timeout}"], capture_output=True, text=True)
-            mm = re.search(r"InstructionReads:\s*(\d+)", m.stdout)
-            instrs = int(mm.group(1)) if mm else 0
-        print(f"{status:14} {name:18} elf={size:8d}B  {elapsed:6.1f}s"
-              + (f"  instructions={instrs}" if instrs else ""), flush=True)
+            jpath = outdir / (name + ".metrics.json")
+            subprocess.run([str(metrics_bin), str(elf), "--target=" + TRIPLE,
+                            f"--timeout={args.timeout}", "--window-start", "start_trigger",
+                            "--window-stop", "stop_trigger", "--json", str(jpath)],
+                           capture_output=True, text=True)
+            if jpath.exists():
+                with open(jpath) as f:
+                    data = json.load(f)
+                all_metrics[name] = data
+                w = data["window"]
+                instrs = w["instructions"]
+                metrics_text = (f" {instrs:11,d} {instrs - w['dataflow']:11,d} "
+                                f"{100.0 * w['dataflow'] / max(instrs, 1):5.1f} "
+                                f"{hist_mean(w['jmp_trigger']):5.1f} {hist_mean(w['load_ref']):5.1f} "
+                                f"{w['inflight_frame_mean']:4.1f}/{w['inflight_frame_max']:<3d}")
+                if not args.keep:
+                    jpath.unlink()
+        if args.metrics:
+            print(f"{status:14} {name:18}{metrics_text}", flush=True)
+        else:
+            print(f"{status:14} {name:18} elf={size:8d}B  {elapsed:6.1f}s", flush=True)
         if status.startswith("XFAIL"):
             print(f"               (expected: {XFAIL[name]})")
         elif run.returncode != 0 and run.stderr.strip():
@@ -128,6 +169,15 @@ def main():
         results.append((name, status, size, instrs))
         if not args.keep and elf.exists():
             elf.unlink()
+
+    if args.json:
+        with open(args.json, "w") as f:
+            json.dump(all_metrics, f, indent=1, sort_keys=True)
+        print(f"metrics written to {args.json}")
+    if args.metrics and all_metrics:
+        tot = sum(m["window"]["instructions"] for m in all_metrics.values())
+        df = sum(m["window"]["dataflow"] for m in all_metrics.values())
+        print(f"{'':14} {'total':18} {tot:11,d} {tot - df:11,d} {100.0 * df / max(tot, 1):5.1f}")
 
     passed = sum(1 for r in results if r[1] == "PASS")
     xfailed = sum(1 for r in results if r[1].startswith("XFAIL"))

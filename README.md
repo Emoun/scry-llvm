@@ -93,17 +93,36 @@ python3 scripts/run_tests.py
 # Embench-IoT (cloned into third_party/embench-iot on first use):
 python3 scripts/run_embench.py             # all benchmarks
 python3 scripts/run_embench.py crc32 edn   # a selection
-python3 scripts/run_embench.py --metrics   # also print simulator instruction counts
+python3 scripts/run_embench.py --metrics   # also print code metrics (see below)
 ```
 
 `scripts/run_tests.py` and `scripts/run_embench.py` accept `--clang` and
 `--scryer` to point at other binaries.
 
+### Code metrics
+
+`tools/scryer` is a small fork of the scryer driver (`scryer-metrics`, built
+by `scripts/build_scryer.py` into `build/scryer-metrics`) that reports how
+the generated code behaves: executed instructions, how many of them are
+dataflow instructions (`echo`, `dup`, `nop`), per-opcode counts, how far
+ahead jumps, calls and returns are issued before they trigger, how far ahead
+loads deliver their result, and how many operands are in flight.  It counts
+the whole run and the window between the `start_trigger` and `stop_trigger`
+symbols (the Embench benchmark body).
+
+```sh
+python3 scripts/run_embench.py --metrics --json new.json
+python3 scripts/compare_metrics.py docs/perf-baseline.json new.json
+```
+
+`docs/perf-baseline.md` records the numbers of the correctness-first
+backend as the reference for the optimisation work.
+
 ### Status
 
 With llvm-project 22.1.8 and scryer revision `6fc6ac9d`:
 
-* the three lit tests and the 12 C programs in `tests/c/` (at `-O0` and
+* the four lit tests and the 12 C programs in `tests/c/` (at `-O0` and
   `-O2`) pass;
 * 17 of the 19 Embench-IoT benchmarks build at `-O2` and verify on the
   simulator (aha-mont64, crc32, depthconv, edn, matmult-int, md5sum,

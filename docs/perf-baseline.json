@@ -1,0 +1,2068 @@
+{
+ "aha-mont64": {
+  "metrics": {
+   "ConsumedBytes": 87054732,
+   "ConsumedOperands": 15424579,
+   "DataReadBytes": 47967376,
+   "DataReads": 7013802,
+   "DataWriteBytes": 30347478,
+   "InstructionReads": 24409090,
+   "IssuedBranches": 262044,
+   "IssuedCalls": 11,
+   "IssuedReturns": 12,
+   "QueuedValueBytes": 88553272,
+   "QueuedValues": 15611898,
+   "ReorderedOperands": 4563182,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 624,
+   "StackFreeTotal": 17,
+   "StackFreeTotalBytes": 624,
+   "StackReadBytes": 43857365,
+   "StackReads": 5482189,
+   "StackReserveBase": 17,
+   "StackReserveBaseBytes": 624,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 624,
+   "StackWriteBytes": 29689919,
+   "StackWrites": 3711256,
+   "TriggeredBranches": 262044,
+   "TriggeredCalls": 11,
+   "TriggeredReturns": 12,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 11
+   },
+   "dataflow": 3911379,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.229,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.229,
+   "instructions": 24409090,
+   "jmp_trigger": {
+    "0": 454084
+   },
+   "load_ref": {
+    "0": 7013802
+   },
+   "opcodes": {
+    "add": 679719,
+    "and": 56770,
+    "call": 11,
+    "cast": 867496,
+    "const": 1498077,
+    "echo": 3911364,
+    "eq": 642336,
+    "free": 17,
+    "grow": 516670,
+    "gt": 1419,
+    "jmp": 454084,
+    "ld": 7013802,
+    "lt": 184470,
+    "mul": 17036,
+    "nop": 15,
+    "or": 562399,
+    "pick": 187316,
+    "ret": 12,
+    "rsrv": 17,
+    "saddr": 2062808,
+    "sh": 839589,
+    "st": 4244356,
+    "sub": 655117,
+    "xor": 14190
+   },
+   "ret_trigger": {
+    "0": 12
+   },
+   "steps": 24409089
+  },
+  "window": {
+   "call_trigger": {
+    "0": 3
+   },
+   "dataflow": 3903027,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.229,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.229,
+   "instructions": 24356988,
+   "jmp_trigger": {
+    "0": 453122
+   },
+   "load_ref": {
+    "0": 6998885
+   },
+   "opcodes": {
+    "add": 678273,
+    "and": 56645,
+    "call": 3,
+    "cast": 865654,
+    "const": 1494860,
+    "echo": 3903024,
+    "eq": 640976,
+    "free": 6,
+    "grow": 515488,
+    "gt": 1416,
+    "jmp": 453122,
+    "ld": 6998885,
+    "lt": 184080,
+    "mul": 16996,
+    "nop": 3,
+    "or": 561209,
+    "pick": 186916,
+    "ret": 3,
+    "rsrv": 6,
+    "saddr": 2058420,
+    "sh": 837807,
+    "st": 4235310,
+    "sub": 653726,
+    "xor": 14160
+   },
+   "ret_trigger": {
+    "0": 3
+   },
+   "steps": 24356988
+  }
+ },
+ "crc32": {
+  "metrics": {
+   "ConsumedBytes": 58174489,
+   "ConsumedOperands": 15244946,
+   "DataReadBytes": 24708783,
+   "DataReads": 6308910,
+   "DataWriteBytes": 20503575,
+   "InstructionReads": 25059119,
+   "IssuedBranches": 175790,
+   "IssuedCalls": 175286,
+   "IssuedReturns": 175287,
+   "QueuedValueBytes": 58174501,
+   "QueuedValues": 15244949,
+   "ReorderedOperands": 3329410,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 2804656,
+   "StackFreeTotal": 175285,
+   "StackFreeTotalBytes": 2804656,
+   "StackReadBytes": 23132330,
+   "StackReads": 5783084,
+   "StackReserveBase": 175285,
+   "StackReserveBaseBytes": 2804656,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 2804656,
+   "StackWriteBytes": 19626842,
+   "StackWrites": 4906712,
+   "TriggeredBranches": 175790,
+   "TriggeredCalls": 175286,
+   "TriggeredReturns": 175287,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 175286
+   },
+   "dataflow": 3504694,
+   "inflight_all_max": 3,
+   "inflight_all_mean": 0.951,
+   "inflight_frame_max": 3,
+   "inflight_frame_mean": 0.951,
+   "instructions": 25059119,
+   "jmp_trigger": {
+    "0": 350725
+   },
+   "load_ref": {
+    "0": 6308910
+   },
+   "opcodes": {
+    "add": 525654,
+    "and": 350210,
+    "call": 175286,
+    "cast": 350210,
+    "const": 2627793,
+    "echo": 3329404,
+    "eq": 350894,
+    "free": 175285,
+    "grow": 2979040,
+    "jmp": 350725,
+    "ld": 6308910,
+    "mul": 175104,
+    "nop": 175290,
+    "ret": 175287,
+    "rsrv": 175285,
+    "saddr": 351235,
+    "sh": 525312,
+    "st": 5257608,
+    "sub": 350208,
+    "xor": 350379
+   },
+   "ret_trigger": {
+    "0": 175287
+   },
+   "steps": 25059118
+  },
+  "window": {
+   "call_trigger": {
+    "0": 174253
+   },
+   "dataflow": 3484164,
+   "inflight_all_max": 3,
+   "inflight_all_mean": 0.951,
+   "inflight_frame_max": 3,
+   "inflight_frame_mean": 0.951,
+   "instructions": 24912394,
+   "jmp_trigger": {
+    "0": 348672
+   },
+   "load_ref": {
+    "0": 6271991
+   },
+   "opcodes": {
+    "add": 522580,
+    "and": 348161,
+    "call": 174253,
+    "cast": 348160,
+    "const": 2612403,
+    "echo": 3309911,
+    "eq": 348840,
+    "free": 174253,
+    "grow": 2961585,
+    "jmp": 348672,
+    "ld": 6271991,
+    "mul": 174080,
+    "nop": 174253,
+    "ret": 174253,
+    "rsrv": 174253,
+    "saddr": 349181,
+    "sh": 522240,
+    "st": 5226835,
+    "sub": 348160,
+    "xor": 348330
+   },
+   "ret_trigger": {
+    "0": 174253
+   },
+   "steps": 24912394
+  }
+ },
+ "depthconv": {
+  "metrics": {
+   "ConsumedBytes": 57599343,
+   "ConsumedOperands": 12855661,
+   "DataReadBytes": 26092739,
+   "DataReads": 5789841,
+   "DataWriteBytes": 20273575,
+   "InstructionReads": 19975757,
+   "IssuedBranches": 54186,
+   "IssuedCalls": 1651,
+   "IssuedReturns": 1652,
+   "QueuedValueBytes": 58019199,
+   "QueuedValues": 12960625,
+   "ReorderedOperands": 2681616,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 105136,
+   "StackFreeTotal": 1650,
+   "StackFreeTotalBytes": 105136,
+   "StackReadBytes": 24623231,
+   "StackReads": 4635216,
+   "StackReserveBase": 1650,
+   "StackReserveBaseBytes": 105136,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 105136,
+   "StackWriteBytes": 19591319,
+   "StackWrites": 3534678,
+   "TriggeredBranches": 54186,
+   "TriggeredCalls": 1651,
+   "TriggeredReturns": 1652,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 1651
+   },
+   "dataflow": 2579952,
+   "inflight_all_max": 3,
+   "inflight_all_mean": 0.949,
+   "inflight_frame_max": 3,
+   "inflight_frame_mean": 0.949,
+   "instructions": 19975757,
+   "jmp_trigger": {
+    "0": 106695
+   },
+   "load_ref": {
+    "0": 5789841
+   },
+   "opcodes": {
+    "add": 1051336,
+    "call": 1651,
+    "cast": 1364481,
+    "const": 1110491,
+    "echo": 2576654,
+    "eq": 108371,
+    "free": 1650,
+    "grow": 1646824,
+    "gt": 52480,
+    "jmp": 106695,
+    "ld": 5789841,
+    "lt": 52480,
+    "mul": 262400,
+    "nop": 3298,
+    "pick": 104960,
+    "ret": 1652,
+    "rsrv": 1650,
+    "saddr": 1259521,
+    "sh": 104960,
+    "st": 4216922,
+    "sub": 157440
+   },
+   "ret_trigger": {
+    "0": 1652
+   },
+   "steps": 19975756
+  },
+  "window": {
+   "call_trigger": {
+    "0": 1642
+   },
+   "dataflow": 2578157,
+   "inflight_all_max": 3,
+   "inflight_all_mean": 0.949,
+   "inflight_frame_max": 3,
+   "inflight_frame_mean": 0.949,
+   "instructions": 19961445,
+   "jmp_trigger": {
+    "0": 106535
+   },
+   "load_ref": {
+    "0": 5785680
+   },
+   "opcodes": {
+    "add": 1050599,
+    "call": 1642,
+    "cast": 1363648,
+    "const": 1109609,
+    "echo": 2574875,
+    "eq": 108175,
+    "free": 1642,
+    "grow": 1645568,
+    "gt": 52448,
+    "jmp": 106535,
+    "ld": 5785680,
+    "lt": 52448,
+    "mul": 262240,
+    "nop": 3282,
+    "pick": 104896,
+    "ret": 1642,
+    "rsrv": 1642,
+    "saddr": 1258753,
+    "sh": 104896,
+    "st": 4213881,
+    "sub": 157344
+   },
+   "ret_trigger": {
+    "0": 1642
+   },
+   "steps": 19961445
+  }
+ },
+ "edn": {
+  "metrics": {
+   "ConsumedBytes": 81517895,
+   "ConsumedOperands": 23366693,
+   "DataReadBytes": 39736255,
+   "DataReads": 11277306,
+   "DataWriteBytes": 26754393,
+   "InstructionReads": 36955292,
+   "IssuedBranches": 384707,
+   "IssuedCalls": 258,
+   "IssuedReturns": 259,
+   "QueuedValueBytes": 81517911,
+   "QueuedValues": 23366697,
+   "ReorderedOperands": 6151800,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 22736,
+   "StackFreeTotal": 421,
+   "StackFreeTotalBytes": 22736,
+   "StackReadBytes": 35135589,
+   "StackReads": 8884828,
+   "StackReserveBase": 421,
+   "StackReserveBaseBytes": 22736,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 22736,
+   "StackWriteBytes": 23907829,
+   "StackWrites": 6077888,
+   "TriggeredBranches": 384707,
+   "TriggeredCalls": 258,
+   "TriggeredReturns": 259,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 258
+   },
+   "dataflow": 5221928,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 0.976,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 0.976,
+   "instructions": 36955292,
+   "jmp_trigger": {
+    "0": 759182
+   },
+   "load_ref": {
+    "0": 11277306
+   },
+   "opcodes": {
+    "add": 2815656,
+    "and": 3,
+    "call": 258,
+    "cast": 1823846,
+    "const": 2342519,
+    "echo": 5221828,
+    "eq": 629276,
+    "free": 421,
+    "grow": 763736,
+    "jmp": 759182,
+    "ld": 11277306,
+    "lt": 69864,
+    "mul": 552762,
+    "nop": 100,
+    "ret": 259,
+    "rsrv": 421,
+    "saddr": 2942899,
+    "sh": 71914,
+    "st": 7606126,
+    "sub": 76916
+   },
+   "ret_trigger": {
+    "0": 259
+   },
+   "steps": 36955291
+  },
+  "window": {
+   "call_trigger": {
+    "0": 246
+   },
+   "dataflow": 5152666,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 0.976,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 0.976,
+   "instructions": 36452182,
+   "jmp_trigger": {
+    "0": 747551
+   },
+   "load_ref": {
+    "0": 11121551
+   },
+   "opcodes": {
+    "add": 2778948,
+    "call": 246,
+    "cast": 1801602,
+    "const": 2309971,
+    "echo": 5152581,
+    "eq": 618435,
+    "free": 408,
+    "grow": 751208,
+    "jmp": 747551,
+    "ld": 11121551,
+    "lt": 69012,
+    "mul": 546021,
+    "nop": 85,
+    "ret": 246,
+    "rsrv": 408,
+    "saddr": 2907010,
+    "sh": 71037,
+    "st": 7499884,
+    "sub": 75978
+   },
+   "ret_trigger": {
+    "0": 246
+   },
+   "steps": 36452182
+  }
+ },
+ "matmult-int": {
+  "metrics": {
+   "ConsumedBytes": 61332387,
+   "ConsumedOperands": 16113953,
+   "DataReadBytes": 19865871,
+   "DataReads": 5271850,
+   "DataWriteBytes": 13077919,
+   "InstructionReads": 23628691,
+   "IssuedBranches": 149043,
+   "IssuedCalls": 92,
+   "IssuedReturns": 93,
+   "QueuedValueBytes": 61332403,
+   "QueuedValues": 16113957,
+   "ReorderedOperands": 5184287,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 3184,
+   "StackFreeTotal": 95,
+   "StackFreeTotalBytes": 3184,
+   "StackReadBytes": 10369707,
+   "StackReads": 2786089,
+   "StackReserveBase": 95,
+   "StackReserveBaseBytes": 3184,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 3184,
+   "StackWriteBytes": 6266539,
+   "StackWrites": 1760697,
+   "TriggeredBranches": 149043,
+   "TriggeredCalls": 92,
+   "TriggeredReturns": 93,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 92
+   },
+   "dataflow": 3646135,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.184,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.184,
+   "instructions": 23628691,
+   "jmp_trigger": {
+    "0": 295362
+   },
+   "load_ref": {
+    "0": 5271850
+   },
+   "opcodes": {
+    "add": 2602800,
+    "call": 92,
+    "cast": 2402,
+    "const": 2432239,
+    "echo": 3646117,
+    "eq": 297883,
+    "free": 95,
+    "grow": 1495262,
+    "jmp": 295362,
+    "ld": 5271850,
+    "mul": 323200,
+    "nop": 18,
+    "ret": 93,
+    "rsrv": 95,
+    "saddr": 3685921,
+    "sh": 800,
+    "st": 3572862,
+    "sub": 1600
+   },
+   "ret_trigger": {
+    "0": 93
+   },
+   "steps": 23628690
+  },
+  "window": {
+   "call_trigger": {
+    "0": 81
+   },
+   "dataflow": 3532906,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.186,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.186,
+   "instructions": 22864569,
+   "jmp_trigger": {
+    "0": 281699
+   },
+   "load_ref": {
+    "0": 5082488
+   },
+   "opcodes": {
+    "add": 2530632,
+    "call": 81,
+    "const": 2358499,
+    "echo": 3532902,
+    "eq": 282555,
+    "free": 82,
+    "grow": 1449254,
+    "jmp": 281699,
+    "ld": 5082488,
+    "mul": 312780,
+    "nop": 4,
+    "ret": 81,
+    "rsrv": 82,
+    "saddr": 3592135,
+    "st": 3441295
+   },
+   "ret_trigger": {
+    "0": 81
+   },
+   "steps": 22864569
+  }
+ },
+ "md5sum": {
+  "metrics": {
+   "ConsumedBytes": 55092514,
+   "ConsumedOperands": 15811982,
+   "DataReadBytes": 31770026,
+   "DataReads": 8672138,
+   "DataWriteBytes": 22838055,
+   "InstructionReads": 26797067,
+   "IssuedBranches": 483809,
+   "IssuedCalls": 547,
+   "IssuedReturns": 548,
+   "QueuedValueBytes": 55093598,
+   "QueuedValues": 15812253,
+   "ReorderedOperands": 4052003,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 21664,
+   "StackFreeTotal": 548,
+   "StackFreeTotalBytes": 21664,
+   "StackReadBytes": 30250095,
+   "StackReads": 7771716,
+   "StackReserveBase": 548,
+   "StackReserveBaseBytes": 21664,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 21664,
+   "StackWriteBytes": 22067338,
+   "StackWrites": 5671807,
+   "TriggeredBranches": 483809,
+   "TriggeredCalls": 547,
+   "TriggeredReturns": 548,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 547
+   },
+   "dataflow": 3783342,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 0.914,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 0.914,
+   "instructions": 26797067,
+   "jmp_trigger": {
+    "0": 759851
+   },
+   "load_ref": {
+    "0": 8672138
+   },
+   "opcodes": {
+    "add": 1645453,
+    "and": 86028,
+    "call": 547,
+    "cast": 70955,
+    "const": 1998183,
+    "echo": 3782925,
+    "eq": 688963,
+    "free": 548,
+    "grow": 810237,
+    "gt": 154502,
+    "jmp": 759851,
+    "ld": 8672138,
+    "lt": 1139,
+    "mul": 67,
+    "nop": 417,
+    "or": 17219,
+    "pick": 134,
+    "ret": 548,
+    "rsrv": 548,
+    "saddr": 1186906,
+    "sh": 205891,
+    "st": 6439296,
+    "sub": 137350,
+    "xor": 137222
+   },
+   "ret_trigger": {
+    "0": 548
+   },
+   "steps": 26797066
+  },
+  "window": {
+   "call_trigger": {
+    "0": 531
+   },
+   "dataflow": 3726838,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 0.914,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 0.914,
+   "instructions": 26396891,
+   "jmp_trigger": {
+    "0": 748508
+   },
+   "load_ref": {
+    "0": 8542667
+   },
+   "opcodes": {
+    "add": 1620894,
+    "and": 84744,
+    "call": 531,
+    "cast": 69894,
+    "const": 1968334,
+    "echo": 3726439,
+    "eq": 678678,
+    "free": 532,
+    "grow": 798098,
+    "gt": 152196,
+    "jmp": 748508,
+    "ld": 8542667,
+    "lt": 1122,
+    "mul": 66,
+    "nop": 399,
+    "or": 16962,
+    "pick": 132,
+    "ret": 531,
+    "rsrv": 532,
+    "saddr": 1169191,
+    "sh": 202818,
+    "st": 6343152,
+    "sub": 135300,
+    "xor": 135171
+   },
+   "ret_trigger": {
+    "0": 531
+   },
+   "steps": 26396891
+  }
+ },
+ "nettle-aes": {
+  "metrics": {
+   "ConsumedBytes": 85967024,
+   "ConsumedOperands": 21844555,
+   "DataReadBytes": 30264645,
+   "DataReads": 7703754,
+   "DataWriteBytes": 17070641,
+   "InstructionReads": 31926937,
+   "IssuedBranches": 83726,
+   "IssuedCalls": 396,
+   "IssuedReturns": 397,
+   "QueuedValueBytes": 86000816,
+   "QueuedValues": 21853387,
+   "ReorderedOperands": 7712036,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 45840,
+   "StackFreeTotal": 1088,
+   "StackFreeTotalBytes": 48304,
+   "StackReadBytes": 16028935,
+   "StackReads": 4009732,
+   "StackReserveBase": 934,
+   "StackReserveBaseBytes": 45840,
+   "StackReserveTotal": 154,
+   "StackReserveTotalBytes": 48304,
+   "StackWriteBytes": 8293395,
+   "StackWrites": 2075655,
+   "TriggeredBranches": 83726,
+   "TriggeredCalls": 396,
+   "TriggeredReturns": 397,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 396
+   },
+   "dataflow": 5567317,
+   "inflight_all_max": 5,
+   "inflight_all_mean": 1.327,
+   "inflight_frame_max": 5,
+   "inflight_frame_mean": 1.327,
+   "instructions": 31926937,
+   "jmp_trigger": {
+    "0": 126641
+   },
+   "load_ref": {
+    "0": 7703754
+   },
+   "opcodes": {
+    "add": 2965626,
+    "and": 564256,
+    "call": 396,
+    "cast": 492494,
+    "const": 2932419,
+    "echo": 5566914,
+    "eq": 154024,
+    "free": 1088,
+    "grow": 164328,
+    "gt": 154,
+    "jmp": 126641,
+    "ld": 7703754,
+    "lt": 10241,
+    "nop": 403,
+    "or": 47586,
+    "pick": 8828,
+    "ret": 397,
+    "rsrv": 1088,
+    "saddr": 5196885,
+    "sh": 624316,
+    "st": 4367795,
+    "sub": 443982,
+    "xor": 553322
+   },
+   "ret_trigger": {
+    "0": 397
+   },
+   "steps": 31926936
+  },
+  "window": {
+   "call_trigger": {
+    "0": 383
+   },
+   "dataflow": 5491697,
+   "inflight_all_max": 5,
+   "inflight_all_mean": 1.327,
+   "inflight_frame_max": 5,
+   "inflight_frame_mean": 1.327,
+   "instructions": 31484596,
+   "jmp_trigger": {
+    "0": 124490
+   },
+   "load_ref": {
+    "0": 7594840
+   },
+   "opcodes": {
+    "add": 2925848,
+    "and": 556928,
+    "call": 383,
+    "cast": 486096,
+    "const": 2892041,
+    "echo": 5491313,
+    "eq": 151012,
+    "free": 1067,
+    "grow": 158626,
+    "gt": 152,
+    "jmp": 124490,
+    "ld": 7594840,
+    "lt": 10108,
+    "nop": 384,
+    "or": 46968,
+    "pick": 8208,
+    "ret": 383,
+    "rsrv": 1067,
+    "saddr": 5129393,
+    "sh": 616208,
+    "st": 4304729,
+    "sub": 438216,
+    "xor": 546136
+   },
+   "ret_trigger": {
+    "0": 383
+   },
+   "steps": 31484596
+  }
+ },
+ "nettle-sha256": {
+  "metrics": {
+   "ConsumedBytes": 214726557,
+   "ConsumedOperands": 54163763,
+   "DataReadBytes": 40372994,
+   "DataReads": 10256836,
+   "DataWriteBytes": 22634573,
+   "InstructionReads": 70029906,
+   "IssuedBranches": 102468,
+   "IssuedCalls": 3389,
+   "IssuedReturns": 3390,
+   "QueuedValueBytes": 214726573,
+   "QueuedValues": 54163767,
+   "ReorderedOperands": 24807565,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 577024,
+   "StackFreeTotal": 6205,
+   "StackFreeTotalBytes": 577024,
+   "StackReadBytes": 9031271,
+   "StackReads": 2342151,
+   "StackReserveBase": 6205,
+   "StackReserveBaseBytes": 577024,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 577024,
+   "StackWriteBytes": 5508572,
+   "StackWrites": 1441349,
+   "TriggeredBranches": 102468,
+   "TriggeredCalls": 3389,
+   "TriggeredReturns": 3390,
+   "UnalignedReads": 4504,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 3389
+   },
+   "dataflow": 9817121,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.654,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.654,
+   "instructions": 70029906,
+   "jmp_trigger": {
+    "0": 193113
+   },
+   "load_ref": {
+    "0": 10256836
+   },
+   "opcodes": {
+    "add": 9966250,
+    "and": 255046,
+    "call": 3389,
+    "cast": 834931,
+    "const": 10269757,
+    "echo": 9815414,
+    "eq": 184673,
+    "free": 6205,
+    "grow": 6590010,
+    "jmp": 193113,
+    "ld": 10256836,
+    "lt": 5067,
+    "nop": 1707,
+    "or": 703187,
+    "ret": 3390,
+    "rsrv": 6205,
+    "saddr": 12015022,
+    "sh": 1487446,
+    "st": 5836716,
+    "sub": 802838,
+    "xor": 792704
+   },
+   "ret_trigger": {
+    "0": 3390
+   },
+   "steps": 70029905
+  },
+  "window": {
+   "call_trigger": {
+    "0": 3375
+   },
+   "dataflow": 9799621,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.654,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.654,
+   "instructions": 69905081,
+   "jmp_trigger": {
+    "0": 192768
+   },
+   "load_ref": {
+    "0": 10238530
+   },
+   "opcodes": {
+    "add": 9948536,
+    "and": 254586,
+    "call": 3375,
+    "cast": 833446,
+    "const": 10251467,
+    "echo": 9797931,
+    "eq": 184336,
+    "free": 6186,
+    "grow": 6578225,
+    "jmp": 192768,
+    "ld": 10238530,
+    "lt": 5058,
+    "nop": 1690,
+    "or": 701938,
+    "ret": 3375,
+    "rsrv": 6186,
+    "saddr": 11993662,
+    "sh": 1484804,
+    "st": 5826274,
+    "sub": 801412,
+    "xor": 791296
+   },
+   "ret_trigger": {
+    "0": 3375
+   },
+   "steps": 69905081
+  }
+ },
+ "nsichneu": {
+  "metrics": {
+   "ConsumedBytes": 38729668,
+   "ConsumedOperands": 11462301,
+   "DataReadBytes": 16856805,
+   "DataReads": 4794033,
+   "DataWriteBytes": 8235633,
+   "InstructionReads": 17049292,
+   "IssuedBranches": 774342,
+   "IssuedCalls": 11,
+   "IssuedReturns": 12,
+   "QueuedValueBytes": 38729684,
+   "QueuedValues": 11462305,
+   "ReorderedOperands": 2017252,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 288,
+   "StackFreeTotal": 12,
+   "StackFreeTotalBytes": 288,
+   "StackReadBytes": 11171370,
+   "StackReads": 2792856,
+   "StackReserveBase": 12,
+   "StackReserveBaseBytes": 288,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 288,
+   "StackWriteBytes": 7447730,
+   "StackWrites": 1861946,
+   "TriggeredBranches": 774342,
+   "TriggeredCalls": 11,
+   "TriggeredReturns": 12,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 11
+   },
+   "dataflow": 2017264,
+   "inflight_all_max": 3,
+   "inflight_all_mean": 0.928,
+   "inflight_frame_max": 3,
+   "inflight_frame_mean": 0.928,
+   "instructions": 17049292,
+   "jmp_trigger": {
+    "0": 930936
+   },
+   "load_ref": {
+    "0": 4794033
+   },
+   "opcodes": {
+    "add": 2466,
+    "call": 11,
+    "cast": 932150,
+    "const": 940850,
+    "echo": 2017246,
+    "eq": 765728,
+    "free": 12,
+    "grow": 2014821,
+    "gt": 303318,
+    "jmp": 930936,
+    "ld": 4794033,
+    "lt": 162756,
+    "nop": 18,
+    "ret": 12,
+    "rsrv": 12,
+    "saddr": 1546183,
+    "st": 2638740
+   },
+   "ret_trigger": {
+    "0": 12
+   },
+   "steps": 17049291
+  },
+  "window": {
+   "call_trigger": {
+    "0": 3
+   },
+   "dataflow": 2015565,
+   "inflight_all_max": 3,
+   "inflight_all_mean": 0.928,
+   "inflight_frame_max": 3,
+   "inflight_frame_mean": 0.928,
+   "instructions": 17034943,
+   "jmp_trigger": {
+    "0": 930162
+   },
+   "load_ref": {
+    "0": 4790024
+   },
+   "opcodes": {
+    "add": 2464,
+    "call": 3,
+    "cast": 931392,
+    "const": 940029,
+    "echo": 2015561,
+    "eq": 765072,
+    "free": 4,
+    "grow": 2013103,
+    "gt": 303072,
+    "jmp": 930162,
+    "ld": 4790024,
+    "lt": 162624,
+    "nop": 4,
+    "ret": 3,
+    "rsrv": 4,
+    "saddr": 1544929,
+    "st": 2636493
+   },
+   "ret_trigger": {
+    "0": 3
+   },
+   "steps": 17034943
+  }
+ },
+ "picojpeg": {
+  "metrics": {
+   "ConsumedBytes": 100584497,
+   "ConsumedOperands": 29894956,
+   "DataReadBytes": 21399349,
+   "DataReads": 8305138,
+   "DataWriteBytes": 13015299,
+   "InstructionReads": 42414735,
+   "IssuedBranches": 330445,
+   "IssuedCalls": 11222,
+   "IssuedReturns": 11223,
+   "QueuedValueBytes": 100763637,
+   "QueuedValues": 30033170,
+   "ReorderedOperands": 11062390,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 542816,
+   "StackFreeTotal": 19503,
+   "StackFreeTotalBytes": 542816,
+   "StackReadBytes": 14445405,
+   "StackReads": 3762240,
+   "StackReserveBase": 19503,
+   "StackReserveBaseBytes": 542816,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 542816,
+   "StackWriteBytes": 8062901,
+   "StackWrites": 2137457,
+   "TriggeredBranches": 330445,
+   "TriggeredCalls": 11222,
+   "TriggeredReturns": 11223,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 11222
+   },
+   "dataflow": 6279964,
+   "inflight_all_max": 5,
+   "inflight_all_mean": 1.336,
+   "inflight_frame_max": 5,
+   "inflight_frame_mean": 1.336,
+   "instructions": 42414735,
+   "jmp_trigger": {
+    "0": 457723
+   },
+   "load_ref": {
+    "0": 8305138
+   },
+   "opcodes": {
+    "add": 5611704,
+    "and": 31458,
+    "call": 11222,
+    "cast": 1006400,
+    "const": 5871448,
+    "echo": 6279574,
+    "eq": 391714,
+    "free": 19503,
+    "grow": 632843,
+    "gt": 153030,
+    "jmp": 457723,
+    "ld": 8305138,
+    "lt": 11154,
+    "mul": 105534,
+    "nop": 390,
+    "or": 105438,
+    "pick": 138192,
+    "ret": 11223,
+    "rsrv": 19503,
+    "saddr": 7058365,
+    "sh": 320832,
+    "st": 5444235,
+    "sub": 338064,
+    "xor": 90048
+   },
+   "ret_trigger": {
+    "0": 11223
+   },
+   "steps": 42414734
+  },
+  "window": {
+   "call_trigger": {
+    "0": 9343
+   },
+   "dataflow": 5232133,
+   "inflight_all_max": 5,
+   "inflight_all_mean": 1.336,
+   "inflight_frame_max": 5,
+   "inflight_frame_mean": 1.336,
+   "instructions": 35334763,
+   "jmp_trigger": {
+    "0": 380952
+   },
+   "load_ref": {
+    "0": 6917208
+   },
+   "opcodes": {
+    "add": 4675940,
+    "and": 26215,
+    "call": 9343,
+    "cast": 838665,
+    "const": 4892048,
+    "echo": 5231819,
+    "eq": 325780,
+    "free": 16244,
+    "grow": 526684,
+    "gt": 127525,
+    "jmp": 380952,
+    "ld": 6917208,
+    "lt": 9295,
+    "mul": 87945,
+    "nop": 314,
+    "or": 87865,
+    "pick": 115160,
+    "ret": 9343,
+    "rsrv": 16244,
+    "saddr": 5881971,
+    "sh": 267360,
+    "st": 4534083,
+    "sub": 281720,
+    "xor": 75040
+   },
+   "ret_trigger": {
+    "0": 9343
+   },
+   "steps": 35334763
+  }
+ },
+ "qrduino": {
+  "metrics": {
+   "ConsumedBytes": 100382854,
+   "ConsumedOperands": 29710455,
+   "DataReadBytes": 23673177,
+   "DataReads": 9048675,
+   "DataWriteBytes": 15007025,
+   "InstructionReads": 42574031,
+   "IssuedBranches": 474852,
+   "IssuedCalls": 2659,
+   "IssuedReturns": 2660,
+   "QueuedValueBytes": 100700900,
+   "QueuedValues": 29839777,
+   "ReorderedOperands": 10590173,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 164624,
+   "StackFreeTotal": 2672,
+   "StackFreeTotalBytes": 164624,
+   "StackReadBytes": 18863163,
+   "StackReads": 4726977,
+   "StackReserveBase": 2672,
+   "StackReserveBaseBytes": 164624,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 164624,
+   "StackWriteBytes": 12142627,
+   "StackWrites": 3046174,
+   "TriggeredBranches": 474852,
+   "TriggeredCalls": 2659,
+   "TriggeredReturns": 2660,
+   "UnalignedReads": 18,
+   "UnalignedWrites": 18
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 2659
+   },
+   "dataflow": 6060601,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.261,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.261,
+   "instructions": 42574031,
+   "jmp_trigger": {
+    "0": 634608
+   },
+   "load_ref": {
+    "0": 9048675
+   },
+   "opcodes": {
+    "add": 5298529,
+    "and": 319788,
+    "call": 2659,
+    "cast": 789339,
+    "const": 5538947,
+    "echo": 6060409,
+    "eq": 698976,
+    "free": 2672,
+    "grow": 693389,
+    "gt": 55813,
+    "jmp": 634608,
+    "ld": 9048675,
+    "lt": 134094,
+    "mul": 98064,
+    "nop": 192,
+    "or": 7128,
+    "pick": 129288,
+    "ret": 2660,
+    "rsrv": 2672,
+    "saddr": 6507055,
+    "sh": 292044,
+    "st": 5899094,
+    "sub": 234510,
+    "xor": 123426
+   },
+   "ret_trigger": {
+    "0": 2660
+   },
+   "steps": 42574030
+  },
+  "window": {
+   "call_trigger": {
+    "0": 2208
+   },
+   "dataflow": 5050333,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.261,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.261,
+   "instructions": 35476913,
+   "jmp_trigger": {
+    "0": 528782
+   },
+   "load_ref": {
+    "0": 7540098
+   },
+   "opcodes": {
+    "add": 4415385,
+    "and": 266490,
+    "call": 2208,
+    "cast": 657780,
+    "const": 4615673,
+    "echo": 5050184,
+    "eq": 582400,
+    "free": 2219,
+    "grow": 577709,
+    "gt": 46510,
+    "jmp": 528782,
+    "ld": 7540098,
+    "lt": 111745,
+    "mul": 81720,
+    "nop": 149,
+    "or": 5940,
+    "pick": 107740,
+    "ret": 2208,
+    "rsrv": 2219,
+    "saddr": 5422546,
+    "sh": 243370,
+    "st": 4915558,
+    "sub": 195425,
+    "xor": 102855
+   },
+   "ret_trigger": {
+    "0": 2208
+   },
+   "steps": 35476913
+  }
+ },
+ "sglib-combined": {
+  "metrics": {
+   "ConsumedBytes": 117054086,
+   "ConsumedOperands": 31253977,
+   "DataReadBytes": 23513192,
+   "DataReads": 6573115,
+   "DataWriteBytes": 14343812,
+   "InstructionReads": 41491369,
+   "IssuedBranches": 623889,
+   "IssuedCalls": 33581,
+   "IssuedReturns": 33582,
+   "QueuedValueBytes": 117261074,
+   "QueuedValues": 31305724,
+   "ReorderedOperands": 14567871,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 2046592,
+   "StackFreeTotal": 46420,
+   "StackFreeTotalBytes": 2046592,
+   "StackReadBytes": 9832443,
+   "StackReads": 2482025,
+   "StackReserveBase": 46420,
+   "StackReserveBaseBytes": 2046592,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 2046592,
+   "StackWriteBytes": 6253907,
+   "StackWrites": 1585495,
+   "TriggeredBranches": 623889,
+   "TriggeredCalls": 33581,
+   "TriggeredReturns": 33582,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 33581
+   },
+   "dataflow": 4920664,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.481,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.481,
+   "instructions": 41491369,
+   "jmp_trigger": {
+    "0": 856840
+   },
+   "load_ref": {
+    "0": 6573115
+   },
+   "opcodes": {
+    "add": 5557856,
+    "and": 9728,
+    "call": 33581,
+    "cast": 548815,
+    "const": 6067544,
+    "echo": 4896745,
+    "eq": 757594,
+    "free": 46420,
+    "grow": 5321448,
+    "gt": 30945,
+    "jmp": 856840,
+    "ld": 6573115,
+    "lt": 211808,
+    "mul": 19400,
+    "nop": 23919,
+    "or": 13248,
+    "pick": 51744,
+    "ret": 33582,
+    "rsrv": 46420,
+    "saddr": 5977339,
+    "sh": 169068,
+    "st": 4196394,
+    "sub": 47816
+   },
+   "ret_trigger": {
+    "0": 33582
+   },
+   "steps": 41491368
+  },
+  "window": {
+   "call_trigger": {
+    "0": 32522
+   },
+   "dataflow": 4759744,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.482,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.482,
+   "instructions": 40141033,
+   "jmp_trigger": {
+    "0": 827544
+   },
+   "load_ref": {
+    "0": 6350280
+   },
+   "opcodes": {
+    "add": 5382292,
+    "and": 9424,
+    "call": 32522,
+    "cast": 531371,
+    "const": 5873896,
+    "echo": 4736584,
+    "eq": 731197,
+    "free": 44957,
+    "grow": 5152157,
+    "gt": 29977,
+    "jmp": 827544,
+    "ld": 6350280,
+    "lt": 205189,
+    "mul": 18600,
+    "nop": 23160,
+    "or": 12834,
+    "pick": 50127,
+    "ret": 32522,
+    "rsrv": 44957,
+    "saddr": 5788760,
+    "sh": 163494,
+    "st": 4053061,
+    "sub": 46128
+   },
+   "ret_trigger": {
+    "0": 32522
+   },
+   "steps": 40141033
+  }
+ },
+ "slre": {
+  "metrics": {
+   "ConsumedBytes": 49885847,
+   "ConsumedOperands": 15171042,
+   "DataReadBytes": 13657314,
+   "DataReads": 4605975,
+   "DataWriteBytes": 9903510,
+   "InstructionReads": 22563947,
+   "IssuedBranches": 618581,
+   "IssuedCalls": 34643,
+   "IssuedReturns": 34644,
+   "QueuedValueBytes": 49959803,
+   "QueuedValues": 15189531,
+   "ReorderedOperands": 5516120,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 4268448,
+   "StackFreeTotal": 77115,
+   "StackFreeTotalBytes": 4494960,
+   "StackReadBytes": 11361762,
+   "StackReads": 3085440,
+   "StackReserveBase": 62958,
+   "StackReserveBaseBytes": 4268448,
+   "StackReserveTotal": 14157,
+   "StackReserveTotalBytes": 4494960,
+   "StackWriteBytes": 8266547,
+   "StackWrites": 2270657,
+   "TriggeredBranches": 618581,
+   "TriggeredCalls": 34643,
+   "TriggeredReturns": 34644,
+   "UnalignedReads": 234,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 34643
+   },
+   "dataflow": 2945639,
+   "inflight_all_max": 6,
+   "inflight_all_mean": 1.253,
+   "inflight_frame_max": 6,
+   "inflight_frame_mean": 1.253,
+   "instructions": 22563947,
+   "jmp_trigger": {
+    "0": 870601
+   },
+   "load_ref": {
+    "0": 4605975
+   },
+   "opcodes": {
+    "add": 2360826,
+    "and": 21177,
+    "call": 34643,
+    "cast": 573887,
+    "const": 3196006,
+    "echo": 2945624,
+    "eq": 634961,
+    "free": 77115,
+    "grow": 1047898,
+    "gt": 155844,
+    "jmp": 870601,
+    "ld": 4605975,
+    "lt": 142272,
+    "nop": 15,
+    "or": 9009,
+    "pick": 18486,
+    "ret": 34644,
+    "rsrv": 77115,
+    "saddr": 2374986,
+    "sh": 18018,
+    "st": 3316173,
+    "sub": 42003,
+    "xor": 6669
+   },
+   "ret_trigger": {
+    "0": 34644
+   },
+   "steps": 22563946
+  },
+  "window": {
+   "call_trigger": {
+    "0": 34339
+   },
+   "dataflow": 2920429,
+   "inflight_all_max": 6,
+   "inflight_all_mean": 1.253,
+   "inflight_frame_max": 6,
+   "inflight_frame_mean": 1.253,
+   "instructions": 22370915,
+   "jmp_trigger": {
+    "0": 863158
+   },
+   "load_ref": {
+    "0": 4566583
+   },
+   "opcodes": {
+    "add": 2340648,
+    "and": 20996,
+    "call": 34339,
+    "cast": 568980,
+    "const": 3168668,
+    "echo": 2920426,
+    "eq": 629532,
+    "free": 76448,
+    "grow": 1038910,
+    "gt": 154512,
+    "jmp": 863158,
+    "ld": 4566583,
+    "lt": 141056,
+    "nop": 3,
+    "or": 8932,
+    "pick": 18328,
+    "ret": 34339,
+    "rsrv": 76448,
+    "saddr": 2354686,
+    "sh": 17864,
+    "st": 3287803,
+    "sub": 41644,
+    "xor": 6612
+   },
+   "ret_trigger": {
+    "0": 34339
+   },
+   "steps": 22370915
+  }
+ },
+ "statemate": {
+  "metrics": {
+   "ConsumedBytes": 56520200,
+   "ConsumedOperands": 16800839,
+   "DataReadBytes": 17854258,
+   "DataReads": 5981282,
+   "DataWriteBytes": 12709263,
+   "InstructionReads": 25544471,
+   "IssuedBranches": 396584,
+   "IssuedCalls": 29991,
+   "IssuedReturns": 29992,
+   "QueuedValueBytes": 56520216,
+   "QueuedValues": 16800843,
+   "ReorderedOperands": 4505259,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 1545936,
+   "StackFreeTotal": 39987,
+   "StackFreeTotalBytes": 1545936,
+   "StackReadBytes": 14682664,
+   "StackReads": 4135438,
+   "StackReserveBase": 39987,
+   "StackReserveBaseBytes": 1545936,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 1545936,
+   "StackWriteBytes": 10253926,
+   "StackWrites": 2835841,
+   "TriggeredBranches": 396584,
+   "TriggeredCalls": 29991,
+   "TriggeredReturns": 29992,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 29991
+   },
+   "dataflow": 3335499,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.026,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.026,
+   "instructions": 25544471,
+   "jmp_trigger": {
+    "0": 719819
+   },
+   "load_ref": {
+    "0": 5981282
+   },
+   "opcodes": {
+    "add": 1649753,
+    "and": 16,
+    "call": 29991,
+    "cast": 3334,
+    "const": 3188925,
+    "echo": 3282185,
+    "eq": 659941,
+    "free": 39987,
+    "grow": 3261666,
+    "jmp": 719819,
+    "ld": 5981282,
+    "nop": 53314,
+    "or": 2,
+    "ret": 29992,
+    "rsrv": 39987,
+    "saddr": 2055924,
+    "st": 4548353
+   },
+   "ret_trigger": {
+    "0": 29992
+   },
+   "steps": 25544470
+  },
+  "window": {
+   "call_trigger": {
+    "0": 29973
+   },
+   "dataflow": 3333343,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.026,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.026,
+   "instructions": 25527859,
+   "jmp_trigger": {
+    "0": 719282
+   },
+   "load_ref": {
+    "0": 5977358
+   },
+   "opcodes": {
+    "add": 1648350,
+    "call": 29973,
+    "cast": 3330,
+    "const": 3186823,
+    "echo": 3280059,
+    "eq": 659340,
+    "free": 39964,
+    "grow": 3260085,
+    "jmp": 719282,
+    "ld": 5977358,
+    "nop": 53284,
+    "ret": 29973,
+    "rsrv": 39964,
+    "saddr": 2054611,
+    "st": 4545463
+   },
+   "ret_trigger": {
+    "0": 29973
+   },
+   "steps": 25527859
+  }
+ },
+ "tarfind": {
+  "metrics": {
+   "ConsumedBytes": 55681456,
+   "ConsumedOperands": 15871863,
+   "DataReadBytes": 26926191,
+   "DataReads": 7344075,
+   "DataWriteBytes": 20139165,
+   "InstructionReads": 26377860,
+   "IssuedBranches": 488516,
+   "IssuedCalls": 37987,
+   "IssuedReturns": 37988,
+   "QueuedValueBytes": 55681844,
+   "QueuedValues": 15871960,
+   "ReorderedOperands": 4028374,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 635760,
+   "StackFreeTotal": 37988,
+   "StackFreeTotalBytes": 635760,
+   "StackReadBytes": 26521864,
+   "StackReads": 7048744,
+   "StackReserveBase": 37988,
+   "StackReserveBaseBytes": 635760,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 635760,
+   "StackWriteBytes": 19314920,
+   "StackWrites": 4967358,
+   "TriggeredBranches": 488516,
+   "TriggeredCalls": 37987,
+   "TriggeredReturns": 37988,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 37987
+   },
+   "dataflow": 3715467,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 0.936,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 0.936,
+   "instructions": 26377860,
+   "jmp_trigger": {
+    "0": 956119
+   },
+   "load_ref": {
+    "0": 7344075
+   },
+   "opcodes": {
+    "add": 1410595,
+    "and": 36284,
+    "call": 37987,
+    "cast": 291169,
+    "const": 2659795,
+    "echo": 3679121,
+    "eq": 966175,
+    "free": 37988,
+    "grow": 2341202,
+    "gt": 47,
+    "jmp": 956119,
+    "ld": 7344075,
+    "mul": 114915,
+    "nop": 36346,
+    "pick": 47,
+    "ret": 37988,
+    "rsrv": 37988,
+    "saddr": 454326,
+    "sh": 108570,
+    "st": 5682316,
+    "sub": 144807
+   },
+   "ret_trigger": {
+    "0": 37988
+   },
+   "steps": 26377859
+  },
+  "window": {
+   "call_trigger": {
+    "0": 37171
+   },
+   "dataflow": 3636393,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 0.936,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 0.936,
+   "instructions": 25816534,
+   "jmp_trigger": {
+    "0": 935777
+   },
+   "load_ref": {
+    "0": 7187813
+   },
+   "opcodes": {
+    "add": 1380590,
+    "and": 35512,
+    "call": 37171,
+    "cast": 284971,
+    "const": 2603190,
+    "echo": 3600832,
+    "eq": 945619,
+    "free": 37172,
+    "grow": 2291362,
+    "gt": 46,
+    "jmp": 935777,
+    "ld": 7187813,
+    "mul": 112470,
+    "nop": 35561,
+    "pick": 46,
+    "ret": 37171,
+    "rsrv": 37172,
+    "saddr": 444671,
+    "sh": 106260,
+    "st": 5561402,
+    "sub": 141726
+   },
+   "ret_trigger": {
+    "0": 37171
+   },
+   "steps": 25816534
+  }
+ },
+ "ud": {
+  "metrics": {
+   "ConsumedBytes": 206155065,
+   "ConsumedOperands": 52267233,
+   "DataReadBytes": 29148458,
+   "DataReads": 7459498,
+   "DataWriteBytes": 19256997,
+   "InstructionReads": 64806970,
+   "IssuedBranches": 318152,
+   "IssuedCalls": 39305,
+   "IssuedReturns": 39306,
+   "QueuedValueBytes": 206162221,
+   "QueuedValues": 52269022,
+   "ReorderedOperands": 27369772,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 2143616,
+   "StackFreeTotal": 41092,
+   "StackFreeTotalBytes": 2143616,
+   "StackReadBytes": 4353247,
+   "StackReads": 1052952,
+   "StackReserveBase": 41092,
+   "StackReserveBaseBytes": 2143616,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 2143616,
+   "StackWriteBytes": 2722096,
+   "StackWrites": 655821,
+   "TriggeredBranches": 318152,
+   "TriggeredCalls": 39305,
+   "TriggeredReturns": 39306,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 1786
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 39305
+   },
+   "dataflow": 6957579,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.65,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.65,
+   "instructions": 64806970,
+   "jmp_trigger": {
+    "0": 459406
+   },
+   "load_ref": {
+    "0": 7459498
+   },
+   "opcodes": {
+    "add": 11077174,
+    "call": 39305,
+    "cast": 246471,
+    "const": 10979302,
+    "div": 37506,
+    "echo": 6955778,
+    "eq": 463058,
+    "free": 41092,
+    "grow": 10873870,
+    "gt": 17860,
+    "jmp": 459406,
+    "ld": 7459498,
+    "lt": 1786,
+    "mul": 208962,
+    "nop": 1801,
+    "or": 1,
+    "ret": 39306,
+    "rsrv": 41092,
+    "saddr": 10208780,
+    "sh": 205390,
+    "st": 4960168,
+    "sub": 339340,
+    "xor": 150024
+   },
+   "ret_trigger": {
+    "0": 39306
+   },
+   "steps": 64806969
+  },
+  "window": {
+   "call_trigger": {
+    "0": 39273
+   },
+   "dataflow": 6952588,
+   "inflight_all_max": 3,
+   "inflight_all_mean": 1.65,
+   "inflight_frame_max": 3,
+   "inflight_frame_mean": 1.65,
+   "instructions": 64761665,
+   "jmp_trigger": {
+    "0": 458747
+   },
+   "load_ref": {
+    "0": 7452386
+   },
+   "opcodes": {
+    "add": 11070570,
+    "call": 39273,
+    "cast": 246330,
+    "const": 10972407,
+    "div": 37485,
+    "echo": 6950800,
+    "eq": 462315,
+    "free": 41058,
+    "grow": 10867095,
+    "gt": 17850,
+    "jmp": 458747,
+    "ld": 7452386,
+    "lt": 1785,
+    "mul": 208845,
+    "nop": 1788,
+    "ret": 39273,
+    "rsrv": 41058,
+    "saddr": 10203061,
+    "sh": 205275,
+    "st": 4955174,
+    "sub": 339150,
+    "xor": 149940
+   },
+   "ret_trigger": {
+    "0": 39273
+   },
+   "steps": 64761665
+  }
+ },
+ "xgboost": {
+  "metrics": {
+   "ConsumedBytes": 141994138,
+   "ConsumedOperands": 42769016,
+   "DataReadBytes": 42203303,
+   "DataReads": 15313929,
+   "DataWriteBytes": 28416699,
+   "InstructionReads": 64059306,
+   "IssuedBranches": 471790,
+   "IssuedCalls": 267,
+   "IssuedReturns": 268,
+   "QueuedValueBytes": 143466550,
+   "QueuedValues": 43139679,
+   "ReorderedOperands": 13047874,
+   "StackFreeBase": 0,
+   "StackFreeBaseBytes": 28896,
+   "StackFreeTotal": 780,
+   "StackFreeTotalBytes": 28896,
+   "StackReadBytes": 35276317,
+   "StackReads": 8818568,
+   "StackReserveBase": 780,
+   "StackReserveBaseBytes": 28896,
+   "StackReserveTotal": 0,
+   "StackReserveTotalBytes": 28896,
+   "StackWriteBytes": 23540889,
+   "StackWrites": 5884967,
+   "TriggeredBranches": 471790,
+   "TriggeredCalls": 267,
+   "TriggeredReturns": 268,
+   "UnalignedReads": 0,
+   "UnalignedWrites": 0
+  },
+  "whole": {
+   "call_trigger": {
+    "0": 267
+   },
+   "dataflow": 9374767,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.109,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.109,
+   "instructions": 64059306,
+   "jmp_trigger": {
+    "0": 838354
+   },
+   "load_ref": {
+    "0": 15313929
+   },
+   "opcodes": {
+    "add": 6172594,
+    "and": 102400,
+    "call": 267,
+    "cast": 1774226,
+    "const": 5763544,
+    "echo": 9374752,
+    "eq": 210181,
+    "free": 780,
+    "grow": 3797101,
+    "gt": 368870,
+    "jmp": 838354,
+    "ld": 15313929,
+    "lt": 366820,
+    "nop": 15,
+    "or": 768,
+    "pick": 370660,
+    "ret": 268,
+    "rsrv": 780,
+    "saddr": 9266427,
+    "sh": 2817,
+    "st": 10333751,
+    "sub": 1,
+    "xor": 1
+   },
+   "ret_trigger": {
+    "0": 268
+   },
+   "steps": 64059305
+  },
+  "window": {
+   "call_trigger": {
+    "0": 131
+   },
+   "dataflow": 4687372,
+   "inflight_all_max": 4,
+   "inflight_all_mean": 1.109,
+   "inflight_frame_max": 4,
+   "inflight_frame_mean": 1.109,
+   "instructions": 32029599,
+   "jmp_trigger": {
+    "0": 419177
+   },
+   "load_ref": {
+    "0": 7656957
+   },
+   "opcodes": {
+    "add": 3086297,
+    "and": 51200,
+    "call": 131,
+    "cast": 887112,
+    "const": 2881766,
+    "echo": 4687369,
+    "eq": 105090,
+    "free": 388,
+    "grow": 1898540,
+    "gt": 184435,
+    "jmp": 419177,
+    "ld": 7656957,
+    "lt": 183410,
+    "nop": 3,
+    "or": 384,
+    "pick": 185330,
+    "ret": 131,
+    "rsrv": 388,
+    "saddr": 4633214,
+    "sh": 1408,
+    "st": 5166869
+   },
+   "ret_trigger": {
+    "0": 131
+   },
+   "steps": 32029599
+  }
+ }
+}

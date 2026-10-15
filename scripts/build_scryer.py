@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Fetch and build the scryer simulator (https://github.com/Scry-arch/scryer)
-with cargo.  The result is build/scryer/release/scryer (scryer.exe on
-Windows).  Requires git and a Rust toolchain (https://rustup.rs).
+with cargo, and the metrics fork in tools/scryer.  The results are
+build/scryer/release/scryer and build/scryer-metrics/release/scryer-metrics
+(.exe on Windows).  Requires git and a Rust toolchain (https://rustup.rs).
 
 Usage:
     build_scryer.py [--rev <git revision>] [--install <dir>]
@@ -44,11 +45,19 @@ def main():
          "--target-dir", str(target_dir)])
     exe = target_dir / "release" / ("scryer.exe" if os.name == "nt" else "scryer")
     print(f"scryer built: {exe}")
+
+    # The metrics fork in tools/scryer (same simulator, extra statistics).
+    metrics_dir = ROOT / "build" / "scryer-metrics"
+    run(["cargo", "build", "--release", "--manifest-path",
+         str(ROOT / "tools" / "scryer" / "Cargo.toml"), "--target-dir", str(metrics_dir)])
+    mexe = metrics_dir / "release" / ("scryer-metrics.exe" if os.name == "nt" else "scryer-metrics")
+    print(f"scryer-metrics built: {mexe}")
     if args.install:
         dst = pathlib.Path(args.install)
         dst.mkdir(parents=True, exist_ok=True)
-        shutil.copy(exe, dst / exe.name)
-        print(f"installed to {dst / exe.name}")
+        for e in (exe, mexe):
+            shutil.copy(e, dst / e.name)
+            print(f"installed to {dst / e.name}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,20 @@
+[package]
+name = "scryer-metrics"
+version = "0.1.0"
+edition = "2021"
+description = "The scryer simulator with code-generation metrics (opcode mix, dataflow share, branch and load earliness, in-flight depth)."
+license = "Apache-2.0"
+
+# The same revisions as third_party/scryer (scripts/build_scryer.py).
+[dependencies]
+scry_sim = { git = "https://github.com/scry-arch/scry_sim.git", rev = "be5e30b59bccd7241b6cdd2fc6949e344f9d2c67" }
+scry_asm = { git = "https://github.com/scry-arch/scry_asm.git", rev = "afb998e7452d37091b851388325e3add1c8addbc" }
+scry_isa = { git = "https://github.com/scry-arch/scry_isa.git", rev = "dc41872555d48b97f9a57f8b9aac9404ec755909" }
+object = { git = "https://github.com/scry-arch/rust-object.git", rev = "1fa2fe74bd018fcb672c6fe5ee01457090f4fa34", features = ["build"] }
+clap = { version = "4.0.8", features = ["derive"] }
+regex = "1.6.0"
+num-bigint = "0.4.3"
+
+[[bin]]
+name = "scryer-metrics"
+path = "src/main.rs"
