@@ -6,13 +6,13 @@
    "DataReadBytes": 1746326,
    "DataReads": 219479,
    "DataWriteBytes": 257523,
-   "InstructionReads": 6838157,
+   "InstructionReads": 6836263,
    "IssuedBranches": 210489,
    "IssuedCalls": 11,
    "IssuedReturns": 12,
    "QueuedValueBytes": 34030222,
    "QueuedValues": 5039675,
-   "ReorderedOperands": 2950678,
+   "ReorderedOperands": 2947371,
    "StackFreeBase": 0,
    "StackFreeBaseBytes": 304,
    "StackFreeTotal": 5,
@@ -35,28 +35,28 @@
    "call_trigger": {
     "0": 11
    },
-   "dataflow": 2801194,
+   "dataflow": 2799300,
    "inflight_all_max": 18,
-   "inflight_all_mean": 4.809,
+   "inflight_all_mean": 4.806,
    "inflight_frame_max": 18,
-   "inflight_frame_mean": 4.809,
-   "instructions": 6838157,
+   "inflight_frame_mean": 4.806,
+   "instructions": 6836263,
    "jmp_trigger": {
     "0": 473,
     "1": 946,
     "12": 473,
     "13": 473,
-    "157": 2,
+    "159": 2,
     "2": 78045,
     "24": 151360,
     "25": 30272
    },
    "load_ref": {
     "0": 218055,
-    "15": 946,
-    "16": 473,
-    "17": 2,
-    "18": 2,
+    "11": 2,
+    "14": 2,
+    "16": 946,
+    "17": 473,
     "4": 1
    },
    "opcodes": {
@@ -66,7 +66,7 @@
     "cast": 395430,
     "const": 668911,
     "dup": 1484775,
-    "echo": 1092197,
+    "echo": 1090309,
     "eq": 186837,
     "free": 5,
     "grow": 4889,
@@ -76,7 +76,7 @@
     "ld.s": 216161,
     "lt": 184470,
     "mul": 17036,
-    "nop": 224222,
+    "nop": 224216,
     "or": 562399,
     "pick": 187316,
     "ret": 12,
@@ -91,34 +91,34 @@
    "ret_trigger": {
     "0": 12
    },
-   "steps": 6838156
+   "steps": 6836262
   },
   "window": {
    "call_trigger": {
     "0": 3
    },
-   "dataflow": 2795220,
+   "dataflow": 2793333,
    "inflight_all_max": 18,
-   "inflight_all_mean": 4.809,
+   "inflight_all_mean": 4.806,
    "inflight_frame_max": 18,
-   "inflight_frame_mean": 4.809,
-   "instructions": 6823432,
+   "inflight_frame_mean": 4.806,
+   "instructions": 6821545,
    "jmp_trigger": {
     "0": 472,
     "1": 944,
     "12": 472,
     "13": 472,
-    "157": 1,
+    "159": 1,
     "2": 77880,
     "24": 151040,
     "25": 30208
    },
    "load_ref": {
     "0": 217593,
-    "15": 944,
-    "16": 472,
-    "17": 1,
-    "18": 1
+    "11": 1,
+    "14": 1,
+    "16": 944,
+    "17": 472
    },
    "opcodes": {
     "add": 33516,
@@ -127,7 +127,7 @@
     "cast": 394592,
     "const": 667445,
     "dup": 1481622,
-    "echo": 1089865,
+    "echo": 1087979,
     "eq": 186440,
     "free": 2,
     "grow": 4791,
@@ -137,7 +137,7 @@
     "ld.s": 215704,
     "lt": 184080,
     "mul": 16996,
-    "nop": 223733,
+    "nop": 223732,
     "or": 561209,
     "pick": 186916,
     "ret": 3,
@@ -152,23 +152,23 @@
    "ret_trigger": {
     "0": 3
    },
-   "steps": 6823432
+   "steps": 6821545
   }
  },
  "crc32": {
   "metrics": {
-   "ConsumedBytes": 24529783,
-   "ConsumedOperands": 6132832,
+   "ConsumedBytes": 24529441,
+   "ConsumedOperands": 6132490,
    "DataReadBytes": 2805772,
    "DataReads": 701443,
    "DataWriteBytes": 702524,
-   "InstructionReads": 8064370,
+   "InstructionReads": 8063851,
    "IssuedBranches": 175108,
    "IssuedCalls": 175286,
    "IssuedReturns": 175287,
-   "QueuedValueBytes": 25232959,
-   "QueuedValues": 6308626,
-   "ReorderedOperands": 1578537,
+   "QueuedValueBytes": 25232617,
+   "QueuedValues": 6308284,
+   "ReorderedOperands": 1578366,
    "StackFreeBase": 0,
    "StackFreeBaseBytes": 80,
    "StackFreeTotal": 3,
@@ -191,12 +191,12 @@
    "call_trigger": {
     "0": 175286
    },
-   "dataflow": 1754673,
+   "dataflow": 1754496,
    "inflight_all_max": 5,
    "inflight_all_mean": 3.324,
    "inflight_frame_max": 4,
    "inflight_frame_mean": 2.195,
-   "instructions": 8064370,
+   "instructions": 8063851,
    "jmp_trigger": {
     "0": 171,
     "1": 513,
@@ -213,7 +213,7 @@
     "and": 350210,
     "call": 175286,
     "cast": 2,
-    "const": 1402065,
+    "const": 1401723,
     "dup": 700929,
     "echo": 702319,
     "eq": 173,
@@ -223,7 +223,7 @@
     "ld": 350209,
     "ld.s": 351234,
     "mul": 175104,
-    "nop": 351425,
+    "nop": 351248,
     "ret": 175287,
     "rsrv": 3,
     "saddr": 2,
@@ -236,18 +236,18 @@
    "ret_trigger": {
     "0": 175287
    },
-   "steps": 8064369
+   "steps": 8063850
   },
   "window": {
    "call_trigger": {
     "0": 174253
    },
-   "dataflow": 1744383,
+   "dataflow": 1744212,
    "inflight_all_max": 5,
    "inflight_all_mean": 3.324,
    "inflight_frame_max": 4,
    "inflight_frame_mean": 2.195,
-   "instructions": 8017092,
+   "instructions": 8016581,
    "jmp_trigger": {
     "0": 170,
     "1": 510,
@@ -263,7 +263,7 @@
     "add": 174420,
     "and": 348161,
     "call": 174253,
-    "const": 1393843,
+    "const": 1393503,
     "dup": 696830,
     "echo": 698198,
     "eq": 170,
@@ -273,7 +273,7 @@
     "ld": 348160,
     "ld.s": 349180,
     "mul": 174080,
-    "nop": 349355,
+    "nop": 349184,
     "ret": 174253,
     "rsrv": 1,
     "saddr": 1,
@@ -286,7 +286,7 @@
    "ret_trigger": {
     "0": 174253
    },
-   "steps": 8017092
+   "steps": 8016581
   }
  },
  "depthconv": {
@@ -296,7 +296,7 @@
    "DataReadBytes": 840004,
    "DataReads": 524929,
    "DataWriteBytes": 52504,
-   "InstructionReads": 9271712,
+   "InstructionReads": 9271704,
    "IssuedBranches": 52509,
    "IssuedCalls": 1651,
    "IssuedReturns": 1652,
@@ -325,12 +325,12 @@
    "call_trigger": {
     "0": 1651
    },
-   "dataflow": 4618508,
+   "dataflow": 4618500,
    "inflight_all_max": 28,
    "inflight_all_mean": 21.4,
    "inflight_frame_max": 26,
    "inflight_frame_mean": 19.403,
-   "instructions": 9271712,
+   "instructions": 9271704,
    "jmp_trigger": {
     "0": 34,
     "154": 52480,
@@ -360,7 +360,7 @@
     "ld.s": 64,
     "lt": 52480,
     "mul": 262400,
-    "nop": 24655,
+    "nop": 24647,
     "pick": 104960,
     "ret": 1652,
     "rsrv": 2,
@@ -374,18 +374,18 @@
    "ret_trigger": {
     "0": 1652
    },
-   "steps": 9271711
+   "steps": 9271703
   },
   "window": {
    "call_trigger": {
     "0": 1642
    },
-   "dataflow": 4615437,
+   "dataflow": 4615435,
    "inflight_all_max": 28,
    "inflight_all_mean": 21.402,
    "inflight_frame_max": 26,
    "inflight_frame_mean": 19.405,
-   "instructions": 9265310,
+   "instructions": 9265308,
    "jmp_trigger": {
     "0": 1,
     "154": 52448,
@@ -411,7 +411,7 @@
     "ld": 524480,
     "lt": 52448,
     "mul": 262240,
-    "nop": 24591,
+    "nop": 24589,
     "pick": 104896,
     "ret": 1642,
     "saddr": 1,
@@ -423,7 +423,7 @@
    "ret_trigger": {
     "0": 1642
    },
-   "steps": 9265310
+   "steps": 9265308
   }
  },
  "edn": {
@@ -433,13 +433,13 @@
    "DataReadBytes": 3218310,
    "DataReads": 1247348,
    "DataWriteBytes": 266724,
-   "InstructionReads": 12918388,
+   "InstructionReads": 12914444,
    "IssuedBranches": 374559,
    "IssuedCalls": 258,
    "IssuedReturns": 259,
    "QueuedValueBytes": 32588792,
    "QueuedValues": 9170186,
-   "ReorderedOperands": 5168361,
+   "ReorderedOperands": 5164425,
    "StackFreeBase": 0,
    "StackFreeBaseBytes": 8144,
    "StackFreeTotal": 249,
@@ -462,12 +462,12 @@
    "call_trigger": {
     "0": 258
    },
-   "dataflow": 5553037,
+   "dataflow": 5549093,
    "inflight_all_max": 37,
-   "inflight_all_mean": 7.389,
+   "inflight_all_mean": 7.318,
    "inflight_frame_max": 36,
-   "inflight_frame_mean": 7.276,
-   "instructions": 12918388,
+   "inflight_frame_mean": 7.205,
+   "instructions": 12914444,
    "jmp_trigger": {
     "0": 1046,
     "1": 82,
@@ -481,7 +481,7 @@
     "30": 8118,
     "36": 164,
     "4": 800,
-    "483": 1312,
+    "480": 1312,
     "53": 65600,
     "6": 65600,
     "64": 4100,
@@ -491,10 +491,11 @@
     "0": 725660,
     "1": 2624,
     "10": 1312,
-    "11": 1313,
+    "11": 66913,
+    "14": 65600,
     "15": 8200,
     "16": 4100,
-    "17": 131200,
+    "17": 65600,
     "18": 1,
     "2": 68224,
     "3": 1312,
@@ -502,7 +503,7 @@
     "5": 205000,
     "6": 4100,
     "7": 13694,
-    "8": 66912,
+    "8": 1312,
     "9": 83
    },
    "opcodes": {
@@ -512,7 +513,7 @@
     "cast": 1774728,
     "const": 973245,
     "dup": 2322059,
-    "echo": 2818308,
+    "echo": 2814372,
     "eq": 969,
     "free": 249,
     "grow": 25680,
@@ -521,7 +522,7 @@
     "ld.s": 387122,
     "lt": 69864,
     "mul": 552762,
-    "nop": 412670,
+    "nop": 412662,
     "ret": 259,
     "rsrv": 249,
     "saddr": 2,
@@ -534,18 +535,18 @@
    "ret_trigger": {
     "0": 259
    },
-   "steps": 12918387
+   "steps": 12914443
   },
   "window": {
    "call_trigger": {
     "0": 246
    },
-   "dataflow": 5473424,
+   "dataflow": 5469534,
    "inflight_all_max": 37,
-   "inflight_all_mean": 7.394,
+   "inflight_all_mean": 7.323,
    "inflight_frame_max": 36,
-   "inflight_frame_mean": 7.28,
-   "instructions": 12741618,
+   "inflight_frame_mean": 7.21,
+   "instructions": 12737728,
    "jmp_trigger": {
     "0": 243,
     "1": 81,
@@ -557,7 +558,7 @@
     "20": 16200,
     "30": 8019,
     "36": 162,
-    "483": 1296,
+    "480": 1296,
     "53": 64800,
     "6": 64800,
     "64": 4050,
@@ -567,17 +568,18 @@
     "0": 715230,
     "1": 2592,
     "10": 1296,
-    "11": 1296,
+    "11": 66096,
+    "14": 64800,
     "15": 8100,
     "16": 4050,
-    "17": 129600,
+    "17": 64800,
     "2": 67392,
     "3": 1296,
     "4": 13446,
     "5": 202500,
     "6": 4050,
     "7": 13527,
-    "8": 66096,
+    "8": 1296,
     "9": 81
    },
    "opcodes": {
@@ -586,7 +588,7 @@
     "cast": 1753083,
     "const": 960533,
     "dup": 2289789,
-    "echo": 2778387,
+    "echo": 2774499,
     "eq": 162,
     "free": 244,
     "grow": 25263,
@@ -595,7 +597,7 @@
     "ld.s": 382401,
     "lt": 69012,
     "mul": 546021,
-    "nop": 405248,
+    "nop": 405246,
     "ret": 246,
     "rsrv": 244,
     "saddr": 1,
@@ -608,7 +610,7 @@
    "ret_trigger": {
     "0": 246
    },
-   "steps": 12741618
+   "steps": 12737728
   }
  },
  "matmult-int": {
@@ -618,7 +620,7 @@
    "DataReadBytes": 2194404,
    "DataReads": 646201,
    "DataWriteBytes": 199532,
-   "InstructionReads": 7677812,
+   "InstructionReads": 7677804,
    "IssuedBranches": 146361,
    "IssuedCalls": 92,
    "IssuedReturns": 93,
@@ -647,12 +649,12 @@
    "call_trigger": {
     "0": 92
    },
-   "dataflow": 5265224,
+   "dataflow": 5265216,
    "inflight_all_max": 54,
    "inflight_all_mean": 37.808,
    "inflight_frame_max": 54,
    "inflight_frame_mean": 35.605,
-   "instructions": 7677812,
+   "instructions": 7677804,
    "jmp_trigger": {
     "0": 1680,
     "1": 80,
@@ -690,7 +692,7 @@
     "ld": 467521,
     "ld.s": 178680,
     "mul": 323200,
-    "nop": 42250,
+    "nop": 42242,
     "ret": 93,
     "rsrv": 86,
     "saddr": 412,
@@ -703,18 +705,18 @@
    "ret_trigger": {
     "0": 93
    },
-   "steps": 7677811
+   "steps": 7677803
   },
   "window": {
    "call_trigger": {
     "0": 81
    },
-   "dataflow": 5100315,
+   "dataflow": 5100313,
    "inflight_all_max": 54,
-   "inflight_all_mean": 38.093,
+   "inflight_all_mean": 38.094,
    "inflight_frame_max": 54,
    "inflight_frame_mean": 35.872,
-   "instructions": 7422274,
+   "instructions": 7422272,
    "jmp_trigger": {
     "0": 78,
     "1": 78,
@@ -747,7 +749,7 @@
     "ld": 452712,
     "ld.s": 172614,
     "mul": 312780,
-    "nop": 35564,
+    "nop": 35562,
     "ret": 81,
     "rsrv": 80,
     "saddr": 396,
@@ -759,7 +761,7 @@
    "ret_trigger": {
     "0": 81
    },
-   "steps": 7422274
+   "steps": 7422272
   }
  },
  "md5sum": {
@@ -769,7 +771,7 @@
    "DataReadBytes": 4008780,
    "DataReads": 1052445,
    "DataWriteBytes": 2159163,
-   "InstructionReads": 11568396,
+   "InstructionReads": 11568189,
    "IssuedBranches": 328706,
    "IssuedCalls": 547,
    "IssuedReturns": 548,
@@ -798,18 +800,19 @@
    "call_trigger": {
     "0": 547
    },
-   "dataflow": 5939385,
+   "dataflow": 5939178,
    "inflight_all_max": 17,
    "inflight_all_mean": 11.17,
    "inflight_frame_max": 15,
    "inflight_frame_mean": 8.222,
-   "instructions": 11568396,
+   "instructions": 11568189,
    "jmp_trigger": {
     "0": 86028,
     "1": 67,
     "10": 17152,
     "11": 17152,
-    "15": 201,
+    "14": 67,
+    "15": 134,
     "2": 134,
     "21": 1072,
     "3": 67,
@@ -817,8 +820,9 @@
     "5": 139360,
     "6": 135675,
     "64": 68608,
+    "8": 67,
     "82": 67,
-    "9": 17219
+    "9": 17152
    },
    "load_ref": {
     "0": 847684,
@@ -852,7 +856,7 @@
     "ld.s": 778942,
     "lt": 1139,
     "mul": 67,
-    "nop": 292473,
+    "nop": 292266,
     "or": 17219,
     "pick": 134,
     "ret": 548,
@@ -867,24 +871,25 @@
    "ret_trigger": {
     "0": 548
    },
-   "steps": 11568395
+   "steps": 11568188
   },
   "window": {
    "call_trigger": {
     "0": 531
    },
-   "dataflow": 5850712,
+   "dataflow": 5850513,
    "inflight_all_max": 17,
    "inflight_all_mean": 11.17,
    "inflight_frame_max": 15,
    "inflight_frame_mean": 8.222,
-   "instructions": 11395586,
+   "instructions": 11395387,
    "jmp_trigger": {
     "0": 84744,
     "1": 66,
     "10": 16896,
     "11": 16896,
-    "15": 198,
+    "14": 66,
+    "15": 132,
     "2": 132,
     "21": 1056,
     "3": 66,
@@ -892,8 +897,9 @@
     "5": 137280,
     "6": 133650,
     "64": 67584,
+    "8": 66,
     "82": 66,
-    "9": 16962
+    "9": 16896
    },
    "load_ref": {
     "0": 835032,
@@ -926,7 +932,7 @@
     "ld.s": 767316,
     "lt": 1122,
     "mul": 66,
-    "nop": 288094,
+    "nop": 287895,
     "or": 16962,
     "pick": 132,
     "ret": 531,
@@ -941,7 +947,7 @@
    "ret_trigger": {
     "0": 531
    },
-   "steps": 11395586
+   "steps": 11395387
   }
  },
  "nettle-aes": {
@@ -951,13 +957,13 @@
    "DataReadBytes": 3306330,
    "DataReads": 863733,
    "DataWriteBytes": 277920,
-   "InstructionReads": 10923810,
+   "InstructionReads": 10923494,
    "IssuedBranches": 52696,
    "IssuedCalls": 396,
    "IssuedReturns": 397,
    "QueuedValueBytes": 23617891,
    "QueuedValues": 6033544,
-   "ReorderedOperands": 6414287,
+   "ReorderedOperands": 6414364,
    "StackFreeBase": 0,
    "StackFreeBaseBytes": 13664,
    "StackFreeTotal": 698,
@@ -980,12 +986,12 @@
    "call_trigger": {
     "0": 396
    },
-   "dataflow": 6543210,
+   "dataflow": 6542894,
    "inflight_all_max": 38,
-   "inflight_all_mean": 27.132,
+   "inflight_all_mean": 27.133,
    "inflight_frame_max": 31,
-   "inflight_frame_mean": 20.115,
-   "instructions": 10923810,
+   "inflight_frame_mean": 20.116,
+   "instructions": 10923494,
    "jmp_trigger": {
     "0": 20790,
     "1": 77,
@@ -1000,8 +1006,8 @@
     "42": 924,
     "55": 154,
     "64": 4004,
-    "68": 77,
-    "73": 77,
+    "65": 77,
+    "70": 77,
     "77": 2,
     "8": 1232,
     "89": 539
@@ -1010,9 +1016,9 @@
     "0": 318472,
     "1": 4876,
     "10": 53438,
-    "11": 42298,
+    "11": 42221,
     "12": 2464,
-    "13": 539,
+    "13": 616,
     "15": 256,
     "17": 4928,
     "19": 2310,
@@ -1034,7 +1040,7 @@
     "cast": 48512,
     "const": 952761,
     "dup": 1817244,
-    "echo": 4574135,
+    "echo": 4574212,
     "eq": 30697,
     "free": 698,
     "grow": 10599,
@@ -1043,7 +1049,7 @@
     "ld": 761862,
     "ld.s": 101871,
     "lt": 10241,
-    "nop": 151831,
+    "nop": 151438,
     "or": 47586,
     "pick": 8828,
     "ret": 397,
@@ -1058,18 +1064,18 @@
    "ret_trigger": {
     "0": 397
    },
-   "steps": 10923809
+   "steps": 10923493
   },
   "window": {
    "call_trigger": {
     "0": 383
    },
-   "dataflow": 6451359,
+   "dataflow": 6451053,
    "inflight_all_max": 38,
    "inflight_all_mean": 27.152,
    "inflight_frame_max": 31,
    "inflight_frame_mean": 20.127,
-   "instructions": 10770617,
+   "instructions": 10770311,
    "jmp_trigger": {
     "0": 20520,
     "1": 76,
@@ -1083,8 +1089,8 @@
     "42": 912,
     "55": 152,
     "64": 3952,
-    "68": 76,
-    "73": 76,
+    "65": 76,
+    "70": 76,
     "77": 1,
     "8": 1216,
     "89": 532
@@ -1093,9 +1099,9 @@
     "0": 314336,
     "1": 4560,
     "10": 52744,
-    "11": 41496,
+    "11": 41420,
     "12": 2432,
-    "13": 532,
+    "13": 608,
     "17": 4864,
     "19": 2280,
     "2": 110048,
@@ -1116,7 +1122,7 @@
     "cast": 47880,
     "const": 939842,
     "dup": 1790864,
-    "echo": 4510916,
+    "echo": 4510992,
     "eq": 29792,
     "free": 686,
     "grow": 10387,
@@ -1125,7 +1131,7 @@
     "ld": 750956,
     "ld.s": 100548,
     "lt": 10108,
-    "nop": 149579,
+    "nop": 149197,
     "or": 46968,
     "pick": 8208,
     "ret": 383,
@@ -1140,7 +1146,7 @@
    "ret_trigger": {
     "0": 383
    },
-   "steps": 10770617
+   "steps": 10770311
   }
  },
  "nettle-sha256": {
@@ -1150,13 +1156,13 @@
    "DataReadBytes": 846772,
    "DataReads": 235914,
    "DataWriteBytes": 396488,
-   "InstructionReads": 18134660,
+   "InstructionReads": 18082856,
    "IssuedBranches": 92336,
    "IssuedCalls": 3389,
    "IssuedReturns": 3390,
    "QueuedValueBytes": 36487417,
    "QueuedValues": 9194086,
-   "ReorderedOperands": 11421721,
+   "ReorderedOperands": 11369925,
    "StackFreeBase": 0,
    "StackFreeBaseBytes": 207552,
    "StackFreeTotal": 4511,
@@ -1179,21 +1185,21 @@
    "call_trigger": {
     "0": 3389
    },
-   "dataflow": 11490891,
-   "inflight_all_max": 59,
-   "inflight_all_mean": 37.425,
-   "inflight_frame_max": 56,
-   "inflight_frame_mean": 34.924,
-   "instructions": 18134660,
+   "dataflow": 11439087,
+   "inflight_all_max": 60,
+   "inflight_all_mean": 37.576,
+   "inflight_frame_max": 57,
+   "inflight_frame_mean": 35.075,
+   "instructions": 18082856,
    "jmp_trigger": {
     "0": 3941,
-    "1010": 2252,
+    "1002": 2252,
     "104": 563,
     "15": 563,
     "2": 563,
     "27": 563,
     "28": 18016,
-    "3976": 3378,
+    "3966": 3378,
     "47": 4504,
     "5": 35469,
     "6": 32091,
@@ -1202,7 +1208,7 @@
     "97": 2
    },
    "load_ref": {
-    "0": 141313,
+    "0": 139061,
     "1": 1127,
     "10": 2252,
     "11": 15204,
@@ -1214,7 +1220,7 @@
     "17": 1691,
     "18": 564,
     "19": 1,
-    "2": 36595,
+    "2": 38847,
     "20": 2,
     "21": 1,
     "3": 2252,
@@ -1232,7 +1238,7 @@
     "cast": 33219,
     "const": 1728496,
     "dup": 2827949,
-    "echo": 8565521,
+    "echo": 8513725,
     "eq": 1698,
     "free": 4511,
     "grow": 13639,
@@ -1240,7 +1246,7 @@
     "ld": 199882,
     "ld.s": 36032,
     "lt": 5067,
-    "nop": 97421,
+    "nop": 97413,
     "or": 703187,
     "ret": 3390,
     "rsrv": 4511,
@@ -1254,27 +1260,27 @@
    "ret_trigger": {
     "0": 3390
    },
-   "steps": 18134659
+   "steps": 18082855
   },
   "window": {
    "call_trigger": {
     "0": 3375
    },
-   "dataflow": 11470436,
-   "inflight_all_max": 59,
-   "inflight_all_mean": 37.426,
-   "inflight_frame_max": 56,
-   "inflight_frame_mean": 34.925,
-   "instructions": 18102163,
+   "dataflow": 11418730,
+   "inflight_all_max": 60,
+   "inflight_all_mean": 37.576,
+   "inflight_frame_max": 57,
+   "inflight_frame_mean": 35.075,
+   "instructions": 18050457,
    "jmp_trigger": {
     "0": 3934,
-    "1010": 2248,
+    "1002": 2248,
     "104": 562,
     "15": 562,
     "2": 562,
     "27": 562,
     "28": 17984,
-    "3976": 3372,
+    "3966": 3372,
     "47": 4496,
     "5": 35406,
     "6": 32034,
@@ -1283,7 +1289,7 @@
     "97": 1
    },
    "load_ref": {
-    "0": 141062,
+    "0": 138814,
     "1": 1124,
     "10": 2248,
     "11": 15174,
@@ -1294,7 +1300,7 @@
     "16": 562,
     "17": 1686,
     "18": 562,
-    "2": 36530,
+    "2": 38778,
     "3": 2248,
     "4": 4496,
     "5": 8992,
@@ -1310,7 +1316,7 @@
     "cast": 33158,
     "const": 1725371,
     "dup": 2822926,
-    "echo": 8550278,
+    "echo": 8498574,
     "eq": 1686,
     "free": 4499,
     "grow": 13530,
@@ -1318,7 +1324,7 @@
     "ld": 199510,
     "ld.s": 35968,
     "lt": 5058,
-    "nop": 97232,
+    "nop": 97230,
     "or": 701938,
     "ret": 3375,
     "rsrv": 4499,
@@ -1332,7 +1338,7 @@
    "ret_trigger": {
     "0": 3375
    },
-   "steps": 18102163
+   "steps": 18050457
   }
  },
  "nsichneu": {
@@ -1342,7 +1348,7 @@
    "DataReadBytes": 9854208,
    "DataReads": 2463552,
    "DataWriteBytes": 24804,
-   "InstructionReads": 6463811,
+   "InstructionReads": 6463803,
    "IssuedBranches": 159062,
    "IssuedCalls": 11,
    "IssuedReturns": 12,
@@ -1371,12 +1377,12 @@
    "call_trigger": {
     "0": 11
    },
-   "dataflow": 630130,
+   "dataflow": 630122,
    "inflight_all_max": 4,
    "inflight_all_mean": 1.528,
    "inflight_frame_max": 4,
    "inflight_frame_mean": 1.528,
-   "instructions": 6463811,
+   "instructions": 6463803,
    "jmp_trigger": {
     "0": 770626,
     "1": 2466,
@@ -1405,7 +1411,7 @@
     "ld": 1228086,
     "ld.s": 1235466,
     "lt": 162756,
-    "nop": 311984,
+    "nop": 311976,
     "ret": 12,
     "rsrv": 5,
     "saddr": 2,
@@ -1417,18 +1423,18 @@
    "ret_trigger": {
     "0": 12
    },
-   "steps": 6463810
+   "steps": 6463802
   },
   "window": {
    "call_trigger": {
     "0": 3
    },
-   "dataflow": 629563,
+   "dataflow": 629561,
    "inflight_all_max": 4,
    "inflight_all_mean": 1.528,
    "inflight_frame_max": 4,
    "inflight_frame_mean": 1.528,
-   "instructions": 6458261,
+   "instructions": 6458259,
    "jmp_trigger": {
     "0": 770000,
     "1": 2464,
@@ -1454,7 +1460,7 @@
     "ld": 1227072,
     "ld.s": 1234464,
     "lt": 162624,
-    "nop": 311701,
+    "nop": 311699,
     "ret": 3,
     "rsrv": 2,
     "saddr": 1,
@@ -1466,7 +1472,7 @@
    "ret_trigger": {
     "0": 3
    },
-   "steps": 6458261
+   "steps": 6458259
   }
  },
  "picojpeg": {
@@ -1476,13 +1482,13 @@
    "DataReadBytes": 1585828,
    "DataReads": 701464,
    "DataWriteBytes": 918732,
-   "InstructionReads": 10679924,
+   "InstructionReads": 10675794,
    "IssuedBranches": 210194,
    "IssuedCalls": 11222,
    "IssuedReturns": 11223,
    "QueuedValueBytes": 18213366,
    "QueuedValues": 6959484,
-   "ReorderedOperands": 4476866,
+   "ReorderedOperands": 4475246,
    "StackFreeBase": 0,
    "StackFreeBaseBytes": 382768,
    "StackFreeTotal": 16127,
@@ -1505,12 +1511,12 @@
    "call_trigger": {
     "0": 11222
    },
-   "dataflow": 4281308,
+   "dataflow": 4277178,
    "inflight_all_max": 27,
-   "inflight_all_mean": 8.953,
+   "inflight_all_mean": 8.96,
    "inflight_frame_max": 27,
-   "inflight_frame_mean": 8.753,
-   "instructions": 10679924,
+   "inflight_frame_mean": 8.76,
+   "instructions": 10675794,
    "jmp_trigger": {
     "0": 53070,
     "1": 102,
@@ -1521,26 +1527,26 @@
     "14": 12,
     "15": 1998,
     "16": 9192,
-    "168": 672,
-    "18": 42,
+    "167": 672,
+    "18": 54,
     "19": 23898,
     "2": 13919,
-    "20": 12,
-    "21": 108,
+    "20": 54,
+    "21": 54,
     "22": 24,
     "23": 66,
     "24": 6,
     "25": 21666,
     "26": 3912,
-    "28": 5136,
-    "29": 2,
+    "28": 6,
+    "29": 5132,
     "3": 10320,
     "30": 384,
     "309": 336,
     "32": 42,
     "33": 24,
     "36": 534,
-    "368": 2496,
+    "365": 2496,
     "4": 3546,
     "43": 1008,
     "45": 18,
@@ -1555,7 +1561,7 @@
     "9": 4092
    },
    "load_ref": {
-    "0": 571554,
+    "0": 571542,
     "1": 1164,
     "10": 1627,
     "11": 6,
@@ -1566,9 +1572,9 @@
     "2": 5166,
     "24": 12,
     "26": 12,
-    "3": 6810,
-    "4": 9733,
-    "5": 5784,
+    "3": 6822,
+    "4": 9745,
+    "5": 5772,
     "6": 4056,
     "7": 4213,
     "8": 1620,
@@ -1581,7 +1587,7 @@
     "cast": 778130,
     "const": 1410514,
     "dup": 1573996,
-    "echo": 2508773,
+    "echo": 2504657,
     "eq": 119768,
     "free": 16127,
     "grow": 370548,
@@ -1591,7 +1597,7 @@
     "ld.s": 271266,
     "lt": 11154,
     "mul": 105534,
-    "nop": 198539,
+    "nop": 198525,
     "or": 105438,
     "pick": 138192,
     "ret": 11223,
@@ -1606,18 +1612,18 @@
    "ret_trigger": {
     "0": 11223
    },
-   "steps": 10679923
+   "steps": 10675793
   },
   "window": {
    "call_trigger": {
     "0": 9343
    },
-   "dataflow": 3565296,
+   "dataflow": 3561859,
    "inflight_all_max": 27,
-   "inflight_all_mean": 8.955,
+   "inflight_all_mean": 8.962,
    "inflight_frame_max": 27,
-   "inflight_frame_mean": 8.755,
-   "instructions": 8895924,
+   "inflight_frame_mean": 8.762,
+   "instructions": 8892487,
    "jmp_trigger": {
     "0": 44065,
     "1": 85,
@@ -1628,26 +1634,26 @@
     "14": 10,
     "15": 1665,
     "16": 7660,
-    "168": 560,
-    "18": 35,
+    "167": 560,
+    "18": 45,
     "19": 19915,
     "2": 11595,
-    "20": 10,
-    "21": 90,
+    "20": 45,
+    "21": 45,
     "22": 20,
     "23": 55,
     "24": 5,
     "25": 18055,
     "26": 3260,
-    "28": 4280,
-    "29": 1,
+    "28": 5,
+    "29": 4276,
     "3": 8600,
     "30": 320,
     "309": 280,
     "32": 35,
     "33": 20,
     "36": 445,
-    "368": 2080,
+    "365": 2080,
     "4": 2795,
     "43": 840,
     "45": 15,
@@ -1662,7 +1668,7 @@
     "9": 3410
    },
    "load_ref": {
-    "0": 475975,
+    "0": 475965,
     "1": 970,
     "10": 1355,
     "11": 5,
@@ -1673,9 +1679,9 @@
     "2": 4305,
     "24": 10,
     "26": 10,
-    "3": 5675,
-    "4": 8110,
-    "5": 4820,
+    "3": 5685,
+    "4": 8120,
+    "5": 4810,
     "6": 3380,
     "7": 3510,
     "8": 1350,
@@ -1688,7 +1694,7 @@
     "cast": 648440,
     "const": 1175239,
     "dup": 1310860,
-    "echo": 2089491,
+    "echo": 2086061,
     "eq": 99645,
     "free": 13437,
     "grow": 308748,
@@ -1698,7 +1704,7 @@
     "ld.s": 226055,
     "lt": 9295,
     "mul": 87945,
-    "nop": 164945,
+    "nop": 164938,
     "or": 87865,
     "pick": 115160,
     "ret": 9343,
@@ -1713,7 +1719,7 @@
    "ret_trigger": {
     "0": 9343
    },
-   "steps": 8895924
+   "steps": 8892487
   }
  },
  "qrduino": {
@@ -1723,13 +1729,13 @@
    "DataReadBytes": 3619380,
    "DataReads": 1290096,
    "DataWriteBytes": 579620,
-   "InstructionReads": 10687873,
+   "InstructionReads": 10687271,
    "IssuedBranches": 232202,
    "IssuedCalls": 2659,
    "IssuedReturns": 2660,
    "QueuedValueBytes": 19070675,
    "QueuedValues": 6859472,
-   "ReorderedOperands": 4594121,
+   "ReorderedOperands": 4591241,
    "StackFreeBase": 0,
    "StackFreeBaseBytes": 81072,
    "StackFreeTotal": 2571,
@@ -1752,30 +1758,30 @@
    "call_trigger": {
     "0": 2659
    },
-   "dataflow": 4599783,
+   "dataflow": 4599181,
    "inflight_all_max": 30,
-   "inflight_all_mean": 6.797,
+   "inflight_all_mean": 6.796,
    "inflight_frame_max": 27,
-   "inflight_frame_mean": 5.212,
-   "instructions": 10687873,
+   "inflight_frame_mean": 5.211,
+   "instructions": 10687271,
    "jmp_trigger": {
     "0": 109378,
     "1": 98160,
     "10": 606,
     "11": 7272,
     "12": 11328,
-    "122": 108,
+    "121": 108,
     "125": 90,
     "126": 24,
     "13": 32478,
-    "14": 30006,
-    "15": 246,
+    "14": 30036,
+    "15": 216,
     "17": 1230,
     "18": 48,
     "19": 24,
     "2": 43046,
     "20": 48,
-    "205": 18,
+    "204": 18,
     "21": 6,
     "22": 12,
     "23": 27924,
@@ -1790,25 +1796,24 @@
     "38": 6,
     "4": 5230,
     "40": 6,
-    "41": 6,
+    "41": 12,
     "45": 12,
-    "49": 6,
     "5": 1140,
     "54": 30,
     "59": 36,
     "6": 22908,
     "62": 2,
-    "7": 5004,
+    "7": 5268,
     "74": 48,
-    "8": 828,
+    "8": 564,
     "9": 32568
    },
    "load_ref": {
-    "0": 954338,
-    "1": 58789,
-    "10": 1219,
-    "11": 642,
-    "12": 204,
+    "0": 954710,
+    "1": 58831,
+    "10": 163,
+    "11": 636,
+    "12": 210,
     "13": 108,
     "14": 264,
     "15": 60,
@@ -1816,18 +1821,18 @@
     "17": 16380,
     "18": 330,
     "19": 12,
-    "2": 9156,
+    "2": 8892,
+    "20": 6,
     "21": 12,
     "22": 6,
-    "23": 6,
     "24": 6,
-    "3": 35286,
-    "4": 65210,
-    "5": 63042,
+    "3": 35304,
+    "4": 66224,
+    "5": 61878,
     "6": 1272,
     "7": 35994,
-    "8": 35586,
-    "9": 10242
+    "8": 36642,
+    "9": 10224
    },
    "opcodes": {
     "add": 599967,
@@ -1836,7 +1841,7 @@
     "cast": 648435,
     "const": 1002040,
     "dup": 1634697,
-    "echo": 2463239,
+    "echo": 2462753,
     "eq": 310226,
     "free": 2571,
     "grow": 108586,
@@ -1846,7 +1851,7 @@
     "ld.s": 698070,
     "lt": 133896,
     "mul": 98064,
-    "nop": 501847,
+    "nop": 501731,
     "or": 7128,
     "pick": 129288,
     "ret": 2660,
@@ -1861,36 +1866,36 @@
    "ret_trigger": {
     "0": 2660
    },
-   "steps": 10687872
+   "steps": 10687270
   },
   "window": {
    "call_trigger": {
     "0": 2208
    },
-   "dataflow": 3832841,
+   "dataflow": 3832344,
    "inflight_all_max": 30,
-   "inflight_all_mean": 6.797,
+   "inflight_all_mean": 6.796,
    "inflight_frame_max": 27,
-   "inflight_frame_mean": 5.212,
-   "instructions": 8905960,
+   "inflight_frame_mean": 5.211,
+   "instructions": 8905463,
    "jmp_trigger": {
     "0": 91130,
     "1": 81800,
     "10": 505,
     "11": 6060,
     "12": 9440,
-    "122": 90,
+    "121": 90,
     "125": 75,
     "126": 20,
     "13": 27065,
-    "14": 25005,
-    "15": 205,
+    "14": 25030,
+    "15": 180,
     "17": 1025,
     "18": 40,
     "19": 20,
     "2": 35870,
     "20": 40,
-    "205": 15,
+    "204": 15,
     "21": 5,
     "22": 10,
     "23": 23270,
@@ -1905,25 +1910,24 @@
     "38": 5,
     "4": 4340,
     "40": 5,
-    "41": 5,
+    "41": 10,
     "45": 10,
-    "49": 5,
     "5": 950,
     "54": 25,
     "59": 30,
     "6": 19090,
     "62": 1,
-    "7": 4170,
+    "7": 4390,
     "74": 40,
-    "8": 690,
+    "8": 470,
     "9": 27140
    },
    "load_ref": {
-    "0": 795245,
-    "1": 48990,
-    "10": 1015,
-    "11": 535,
-    "12": 170,
+    "0": 795555,
+    "1": 49025,
+    "10": 135,
+    "11": 530,
+    "12": 175,
     "13": 90,
     "14": 220,
     "15": 50,
@@ -1931,18 +1935,18 @@
     "17": 13650,
     "18": 275,
     "19": 10,
-    "2": 7630,
+    "2": 7410,
+    "20": 5,
     "21": 10,
     "22": 5,
-    "23": 5,
     "24": 5,
-    "3": 29405,
-    "4": 54340,
-    "5": 52535,
+    "3": 29420,
+    "4": 55185,
+    "5": 51565,
     "6": 1060,
     "7": 29995,
-    "8": 29655,
-    "9": 8535
+    "8": 30535,
+    "9": 8520
    },
    "opcodes": {
     "add": 499935,
@@ -1951,7 +1955,7 @@
     "cast": 540360,
     "const": 834986,
     "dup": 1362155,
-    "echo": 2052551,
+    "echo": 2052146,
     "eq": 258500,
     "free": 2141,
     "grow": 90437,
@@ -1961,7 +1965,7 @@
     "ld.s": 581725,
     "lt": 111580,
     "mul": 81720,
-    "nop": 418135,
+    "nop": 418043,
     "or": 5940,
     "pick": 107740,
     "ret": 2208,
@@ -1976,7 +1980,7 @@
    "ret_trigger": {
     "0": 2208
    },
-   "steps": 8905960
+   "steps": 8905463
   }
  },
  "sglib-combined": {
@@ -1986,7 +1990,7 @@
    "DataReadBytes": 3726832,
    "DataReads": 999816,
    "DataWriteBytes": 1436996,
-   "InstructionReads": 10201848,
+   "InstructionReads": 10177938,
    "IssuedBranches": 335783,
    "IssuedCalls": 33581,
    "IssuedReturns": 33582,
@@ -2015,12 +2019,12 @@
    "call_trigger": {
     "0": 33581
    },
-   "dataflow": 3733404,
+   "dataflow": 3709494,
    "inflight_all_max": 13,
-   "inflight_all_mean": 4.062,
+   "inflight_all_mean": 4.066,
    "inflight_frame_max": 8,
-   "inflight_frame_mean": 3.446,
-   "instructions": 10201848,
+   "inflight_frame_mean": 3.453,
+   "instructions": 10177938,
    "jmp_trigger": {
     "0": 295502,
     "1": 34080,
@@ -2034,8 +2038,8 @@
     "18": 16928,
     "2": 92715,
     "21": 3200,
-    "23": 224,
-    "24": 13792,
+    "23": 256,
+    "24": 13760,
     "3": 46368,
     "33": 3200,
     "36": 32,
@@ -2048,14 +2052,14 @@
     "9": 13440
    },
    "load_ref": {
-    "0": 756243,
-    "1": 95853,
+    "0": 738451,
+    "1": 113645,
     "10": 544,
     "12": 1632,
     "14": 32,
     "16": 9600,
-    "2": 31844,
-    "3": 26242,
+    "2": 49636,
+    "3": 8450,
     "4": 27970,
     "5": 6400,
     "6": 30048,
@@ -2079,7 +2083,7 @@
     "ld.s": 208925,
     "lt": 211808,
     "mul": 19400,
-    "nop": 486272,
+    "nop": 462362,
     "or": 13248,
     "pick": 51744,
     "ret": 33582,
@@ -2094,18 +2098,18 @@
    "ret_trigger": {
     "0": 33582
    },
-   "steps": 10201847
+   "steps": 10177937
   },
   "window": {
    "call_trigger": {
     "0": 32522
    },
-   "dataflow": 3607759,
+   "dataflow": 3584601,
    "inflight_all_max": 13,
-   "inflight_all_mean": 4.064,
+   "inflight_all_mean": 4.068,
    "inflight_frame_max": 8,
-   "inflight_frame_mean": 3.447,
-   "instructions": 9865033,
+   "inflight_frame_mean": 3.453,
+   "instructions": 9841875,
    "jmp_trigger": {
     "0": 285200,
     "1": 33015,
@@ -2119,8 +2123,8 @@
     "18": 16399,
     "2": 89621,
     "21": 3100,
-    "23": 217,
-    "24": 13361,
+    "23": 248,
+    "24": 13330,
     "3": 44919,
     "33": 3100,
     "36": 31,
@@ -2133,14 +2137,14 @@
     "9": 13020
    },
    "load_ref": {
-    "0": 730670,
-    "1": 92566,
+    "0": 713434,
+    "1": 109802,
     "10": 527,
     "12": 1581,
     "14": 31,
     "16": 9300,
-    "2": 30752,
-    "3": 25421,
+    "2": 47988,
+    "3": 8185,
     "4": 27094,
     "5": 6200,
     "6": 29109,
@@ -2164,7 +2168,7 @@
     "ld.s": 201717,
     "lt": 205189,
     "mul": 18600,
-    "nop": 469499,
+    "nop": 446341,
     "or": 12834,
     "pick": 50127,
     "ret": 32522,
@@ -2179,7 +2183,7 @@
    "ret_trigger": {
     "0": 32522
    },
-   "steps": 9865033
+   "steps": 9841875
   }
  },
  "slre": {
@@ -2189,7 +2193,7 @@
    "DataReadBytes": 3026334,
    "DataReads": 979995,
    "DataWriteBytes": 2211138,
-   "InstructionReads": 9597962,
+   "InstructionReads": 9597956,
    "IssuedBranches": 324211,
    "IssuedCalls": 34643,
    "IssuedReturns": 34644,
@@ -2218,12 +2222,12 @@
    "call_trigger": {
     "0": 34643
    },
-   "dataflow": 2892167,
+   "dataflow": 2892161,
    "inflight_all_max": 18,
    "inflight_all_mean": 9.407,
    "inflight_frame_max": 9,
    "inflight_frame_mean": 2.991,
-   "instructions": 9597962,
+   "instructions": 9597956,
    "jmp_trigger": {
     "0": 374868,
     "1": 63531,
@@ -2284,7 +2288,7 @@
     "ld": 398622,
     "ld.s": 581373,
     "lt": 142272,
-    "nop": 448249,
+    "nop": 448243,
     "or": 9009,
     "pick": 18486,
     "ret": 34644,
@@ -2299,18 +2303,18 @@
    "ret_trigger": {
     "0": 34644
    },
-   "steps": 9597961
+   "steps": 9597955
   },
   "window": {
    "call_trigger": {
     "0": 34339
    },
-   "dataflow": 2867418,
+   "dataflow": 2867417,
    "inflight_all_max": 18,
    "inflight_all_mean": 9.407,
    "inflight_frame_max": 9,
    "inflight_frame_mean": 2.991,
-   "instructions": 9515793,
+   "instructions": 9515792,
    "jmp_trigger": {
     "0": 371664,
     "1": 62988,
@@ -2371,7 +2375,7 @@
     "ld": 395213,
     "ld.s": 576404,
     "lt": 141056,
-    "nop": 444402,
+    "nop": 444401,
     "or": 8932,
     "pick": 18328,
     "ret": 34339,
@@ -2386,7 +2390,7 @@
    "ret_trigger": {
     "0": 34339
    },
-   "steps": 9515793
+   "steps": 9515792
   }
  },
  "statemate": {
@@ -2396,7 +2400,7 @@
    "DataReadBytes": 5140157,
    "DataReads": 1725672,
    "DataWriteBytes": 2641772,
-   "InstructionReads": 11424492,
+   "InstructionReads": 11401167,
    "IssuedBranches": 329899,
    "IssuedCalls": 29991,
    "IssuedReturns": 29992,
@@ -2425,12 +2429,12 @@
    "call_trigger": {
     "0": 29991
    },
-   "dataflow": 2932132,
+   "dataflow": 2908807,
    "inflight_all_max": 52,
    "inflight_all_mean": 10.602,
    "inflight_frame_max": 51,
-   "inflight_frame_mean": 9.251,
-   "instructions": 11424492,
+   "inflight_frame_mean": 9.25,
+   "instructions": 11401167,
    "jmp_trigger": {
     "0": 136700,
     "1": 6662,
@@ -2442,8 +2446,8 @@
     "48": 6662,
     "5": 216579,
     "682": 3331,
-    "72": 3331,
-    "77": 3331
+    "71": 3331,
+    "76": 3331
    },
    "load_ref": {
     "0": 1462439,
@@ -2480,7 +2484,7 @@
     "jmp": 399915,
     "ld": 1189315,
     "ld.s": 536357,
-    "nop": 139927,
+    "nop": 116602,
     "or": 2,
     "ret": 29992,
     "rsrv": 36651,
@@ -2493,18 +2497,18 @@
    "ret_trigger": {
     "0": 29992
    },
-   "steps": 11424491
+   "steps": 11401166
   },
   "window": {
    "call_trigger": {
     "0": 29973
    },
-   "dataflow": 2930411,
+   "dataflow": 2907099,
    "inflight_all_max": 52,
-   "inflight_all_mean": 10.604,
+   "inflight_all_mean": 10.603,
    "inflight_frame_max": 51,
-   "inflight_frame_mean": 9.253,
-   "instructions": 11418734,
+   "inflight_frame_mean": 9.251,
+   "instructions": 11395422,
    "jmp_trigger": {
     "0": 136530,
     "1": 6660,
@@ -2516,8 +2520,8 @@
     "48": 6660,
     "5": 216450,
     "682": 3330,
-    "72": 3330,
-    "77": 3330
+    "71": 3330,
+    "76": 3330
    },
    "load_ref": {
     "0": 1461870,
@@ -2549,7 +2553,7 @@
     "jmp": 399601,
     "ld": 1188810,
     "ld.s": 536130,
-    "nop": 139865,
+    "nop": 116553,
     "ret": 29973,
     "rsrv": 36633,
     "saddr": 882451,
@@ -2561,7 +2565,7 @@
    "ret_trigger": {
     "0": 29973
    },
-   "steps": 11418734
+   "steps": 11395422
   }
  },
  "tarfind": {
@@ -2571,7 +2575,7 @@
    "DataReadBytes": 833106,
    "DataReads": 187805,
    "DataWriteBytes": 667741,
-   "InstructionReads": 7292475,
+   "InstructionReads": 7292422,
    "IssuedBranches": 473713,
    "IssuedCalls": 37987,
    "IssuedReturns": 37988,
@@ -2600,12 +2604,12 @@
    "call_trigger": {
     "0": 37987
    },
-   "dataflow": 3639424,
+   "dataflow": 3639371,
    "inflight_all_max": 9,
    "inflight_all_mean": 6.112,
    "inflight_frame_max": 8,
    "inflight_frame_mean": 3.669,
-   "instructions": 7292475,
+   "instructions": 7292422,
    "jmp_trigger": {
     "0": 12171,
     "1": 94,
@@ -2642,7 +2646,7 @@
     "ld": 57290,
     "ld.s": 130515,
     "mul": 114915,
-    "nop": 69813,
+    "nop": 69760,
     "pick": 47,
     "ret": 37988,
     "rsrv": 1648,
@@ -2656,18 +2660,18 @@
    "ret_trigger": {
     "0": 37988
    },
-   "steps": 7292474
+   "steps": 7292421
   },
   "window": {
    "call_trigger": {
     "0": 37171
    },
-   "dataflow": 3561969,
+   "dataflow": 3561922,
    "inflight_all_max": 9,
    "inflight_all_mean": 6.112,
    "inflight_frame_max": 8,
    "inflight_frame_mean": 3.669,
-   "instructions": 7137152,
+   "instructions": 7137105,
    "jmp_trigger": {
     "0": 11913,
     "1": 92,
@@ -2704,7 +2708,7 @@
     "ld": 56072,
     "ld.s": 127740,
     "mul": 112470,
-    "nop": 68314,
+    "nop": 68267,
     "pick": 46,
     "ret": 37171,
     "rsrv": 1611,
@@ -2718,7 +2722,7 @@
    "ret_trigger": {
     "0": 37171
    },
-   "steps": 7137152
+   "steps": 7137105
   }
  },
  "ud": {
@@ -2728,7 +2732,7 @@
    "DataReadBytes": 4850956,
    "DataReads": 1198571,
    "DataWriteBytes": 1879324,
-   "InstructionReads": 8349480,
+   "InstructionReads": 8349474,
    "IssuedBranches": 225198,
    "IssuedCalls": 39305,
    "IssuedReturns": 39306,
@@ -2757,12 +2761,12 @@
    "call_trigger": {
     "0": 39305
    },
-   "dataflow": 3422041,
+   "dataflow": 3422035,
    "inflight_all_max": 18,
-   "inflight_all_mean": 11.107,
+   "inflight_all_mean": 11.175,
    "inflight_frame_max": 10,
-   "inflight_frame_mean": 4.052,
-   "instructions": 8349480,
+   "inflight_frame_mean": 4.119,
+   "instructions": 8349474,
    "jmp_trigger": {
     "0": 1867,
     "1": 1786,
@@ -2814,7 +2818,7 @@
     "ld.s": 760838,
     "lt": 3572,
     "mul": 208962,
-    "nop": 498572,
+    "nop": 498566,
     "or": 1,
     "ret": 39306,
     "rsrv": 7154,
@@ -2828,18 +2832,18 @@
    "ret_trigger": {
     "0": 39306
    },
-   "steps": 8349479
+   "steps": 8349473
   },
   "window": {
    "call_trigger": {
     "0": 39273
    },
-   "dataflow": 3418297,
+   "dataflow": 3418296,
    "inflight_all_max": 18,
-   "inflight_all_mean": 11.11,
+   "inflight_all_mean": 11.177,
    "inflight_frame_max": 10,
-   "inflight_frame_mean": 4.052,
-   "instructions": 8341589,
+   "inflight_frame_mean": 4.119,
+   "instructions": 8341588,
    "jmp_trigger": {
     "0": 1785,
     "1": 1785,
@@ -2888,7 +2892,7 @@
     "ld.s": 760410,
     "lt": 3570,
     "mul": 208845,
-    "nop": 498025,
+    "nop": 498024,
     "ret": 39273,
     "rsrv": 7143,
     "saddr": 53562,
@@ -2901,7 +2905,7 @@
    "ret_trigger": {
     "0": 39273
    },
-   "steps": 8341589
+   "steps": 8341588
   }
  },
  "xgboost": {
@@ -2911,7 +2915,7 @@
    "DataReadBytes": 9610076,
    "DataReads": 3709763,
    "DataWriteBytes": 1493056,
-   "InstructionReads": 19143175,
+   "InstructionReads": 19143169,
    "IssuedBranches": 366822,
    "IssuedCalls": 267,
    "IssuedReturns": 268,
@@ -2940,12 +2944,12 @@
    "call_trigger": {
     "0": 267
    },
-   "dataflow": 9538625,
+   "dataflow": 9538619,
    "inflight_all_max": 21,
    "inflight_all_mean": 6.02,
    "inflight_frame_max": 20,
    "inflight_frame_mean": 5.02,
-   "instructions": 19143175,
+   "instructions": 19143169,
    "jmp_trigger": {
     "1": 4,
     "11": 2560,
@@ -2982,7 +2986,7 @@
     "ld": 1677459,
     "ld.s": 2032304,
     "lt": 366820,
-    "nop": 992508,
+    "nop": 992502,
     "or": 768,
     "pick": 370660,
     "ret": 268,
@@ -2996,18 +3000,18 @@
    "ret_trigger": {
     "0": 268
    },
-   "steps": 19143174
+   "steps": 19143168
   },
   "window": {
    "call_trigger": {
     "0": 131
    },
-   "dataflow": 4769305,
+   "dataflow": 4769304,
    "inflight_all_max": 21,
    "inflight_all_mean": 6.02,
    "inflight_frame_max": 20,
    "inflight_frame_mean": 5.02,
-   "instructions": 9571560,
+   "instructions": 9571559,
    "jmp_trigger": {
     "1": 2,
     "11": 1280,
@@ -3043,7 +3047,7 @@
     "ld": 838729,
     "ld.s": 1016152,
     "lt": 183410,
-    "nop": 496249,
+    "nop": 496248,
     "or": 384,
     "pick": 185330,
     "ret": 131,
@@ -3057,7 +3061,7 @@
    "ret_trigger": {
     "0": 131
    },
-   "steps": 9571560
+   "steps": 9571559
   }
  }
 }
