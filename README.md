@@ -114,11 +114,15 @@ symbols (the Embench benchmark body).
 
 ```sh
 python3 scripts/run_embench.py --metrics --json new.json
-python3 scripts/compare_metrics.py docs/perf-baseline.json new.json
+python3 scripts/compare_metrics.py docs/perf-results.json new.json
 ```
 
-`docs/perf-baseline.md` records the numbers of the correctness-first
-backend as the reference for the optimisation work.
+`docs/perf-results.md` records the numbers of the current backend per
+benchmark, next to those of the correctness-first baseline
+(`docs/perf-baseline.md`) and of rv32imac: on the Embench window the
+current code executes 0.30 of the baseline's instructions (0.19 of its
+non-dataflow instructions) and 2.9 times the rv32imac count (1.6 times
+for non-dataflow instructions).
 
 ### Status
 
