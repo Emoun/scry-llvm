@@ -1670,7 +1670,9 @@ void ScryTemporalLowering::expandCall(MachineInstr &MI) {
   (void)ArgsPos;
   Cur->Calls.push_back(Call);
 
-  // The return value arrives at the trigger slot: capture it there.
+  // The return value arrives at the trigger slot: capture it there, or
+  // discard an unused one.  A void callee returns nothing, so the next
+  // instruction can take the slot itself.
   if (HasResult) {
     Register D = MI.getOperand(0).getReg();
     unsigned V = defineValue(D, MI);
@@ -1680,8 +1682,6 @@ void ScryTemporalLowering::expandCall(MachineInstr &MI) {
       produce(V, Call, -1, 0); // next-only: captured by an echo
       defineResult(MI, V);
     }
-  } else {
-    emit(Scry::NOP);
   }
 }
 
@@ -2388,6 +2388,13 @@ bool ScryTemporalLowering::expandFunction() {
       if (!MI.isTerminator())
         EmitJumpsAt(MIIndex.lookup(&MI) + 1);
     }
+    // A jump trigger must not share its address with a call trigger (the
+    // later issued call would replace the jump in the trigger map), so a
+    // block ending in a call gets a nop for its jumps to trigger at; it
+    // comes before the deliveries, which aim past the block's last item.
+    if (!Cur->Items.empty() && Cur->Items.back().Opc == Scry::CALL &&
+        llvm::any_of(Cur->Items, [](const Item &I) { return I.JumpTarget; }))
+      emit(Scry::NOP);
     deliverContract(MBB);
     // Every block occupies at least one instruction so that a forward jump
     // never targets the instruction right after its own trigger.

@@ -106,3 +106,23 @@ define void @field_store(i32 %v) {
   store i32 %v, ptr getelementptr inbounds nuw (i8, ptr @tab, i32 8)
   ret void
 }
+
+; CHECK-LABEL: call_loop:
+; A loop body ending in a call of a void function keeps a nop after the
+; call: the loop's jump triggers there, not at the call's own trigger.
+; CHECK: call 0
+; CHECK-NEXT: nop
+; CHECK-NEXT: ; %bb.
+declare void @step()
+define void @call_loop(i32 %n) {
+entry:
+  br label %loop
+loop:
+  %i = phi i32 [ 0, %entry ], [ %i1, %loop ]
+  call void @step()
+  %i1 = add i32 %i, 1
+  %c = icmp ult i32 %i1, %n
+  br i1 %c, label %loop, label %done
+done:
+  ret void
+}

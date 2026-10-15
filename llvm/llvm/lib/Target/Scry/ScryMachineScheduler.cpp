@@ -98,6 +98,44 @@ class ScrySchedStrategy final : public MachineSchedStrategy {
     return false;
   }
 
+  /// Operand index at which the result of P is used by S, or -1.
+  static int operandIndexIn(const SUnit *P, const SUnit *S) {
+    const MachineInstr &MP = *P->getInstr(), &MS = *S->getInstr();
+    if (MP.getNumExplicitDefs() != 1 || !MP.getOperand(0).isReg())
+      return -1;
+    Register R = MP.getOperand(0).getReg();
+    for (unsigned i = 0, e = MS.getNumOperands(); i != e; ++i) {
+      const MachineOperand &MO = MS.getOperand(i);
+      if (MO.isReg() && MO.isUse() && MO.getReg() == R)
+        return (int)i;
+    }
+    return -1;
+  }
+
+  /// When A and B feed the same consumer, the one it uses first should be
+  /// emitted first: the consumer takes its operands in the order their
+  /// producers executed, and anything else costs an echo to reorder.
+  /// Returns -1 (A first), 1 (B first) or 0 (no common consumer / same).
+  static int operandOrder(const SUnit *A, const SUnit *B) {
+    for (const SDep &SA : A->Succs) {
+      if (SA.getKind() != SDep::Data)
+        continue;
+      const SUnit *S = SA.getSUnit();
+      if (S->isScheduled)
+        continue;
+      bool Common = false;
+      for (const SDep &SB : B->Succs)
+        if (SB.getKind() == SDep::Data && SB.getSUnit() == S)
+          Common = true;
+      if (!Common)
+        continue;
+      int IA = operandIndexIn(A, S), IB = operandIndexIn(B, S);
+      if (IA >= 0 && IB >= 0 && IA != IB)
+        return IA < IB ? -1 : 1;
+    }
+    return 0;
+  }
+
   /// Is A to be scheduled before B?
   bool better(const SUnit *A, const SUnit *B) const {
     const MachineInstr &MA = *A->getInstr(), &MB = *B->getInstr();
@@ -116,6 +154,8 @@ class ScrySchedStrategy final : public MachineSchedStrategy {
       if (FA != FB)
         return FA > FB;
     }
+    if (int Order = operandOrder(A, B))
+      return Order < 0;
     unsigned OA = oldestInput(A), OB = oldestInput(B);
     if (OA != OB)
       return OA > OB; // the one whose inputs are freshest

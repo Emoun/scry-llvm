@@ -69,10 +69,12 @@ register file for Scry, so the backend keeps values in memory instead.
    that compute the block's branch condition (so the jump is issued as
    early as possible, far before its trigger), then the loads and the
    instructions computing their addresses (so the loads are issued long
-   before their results are used), then the instruction whose inputs were
-   produced most recently (short references, few values in flight); above
-   a soft target of `-scry-inflight-target` (32) values in flight,
-   consumers are preferred over producers.
+   before their results are used), then, among instructions feeding the
+   same consumer, the one it uses first (its operands arrive in the order
+   their producers executed, so anything else costs an echo), then the
+   instruction whose inputs were produced most recently (short references,
+   few values in flight); above a soft target of `-scry-inflight-target`
+   (32) values in flight, consumers are preferred over producers.
    Constants and addresses are scheduled last, since the lowering rebuilds
    them in front of their consumer anyway.  The call pseudos are not
    scheduling barriers: a condition or a load is happily moved above a
@@ -261,7 +263,8 @@ trigger slot), past the callee address chain and the call.  The callee
 address is the call's own first input (a glued PC-relative `const`/`grow`
 chain for a symbol, or a value in flight for an indirect call).  The return value
 arrives at the trigger slot, where a long `echo` (or `dup`) captures it for
-its consumers, or a `nop` discards it.  Stack-passed arguments are written
+its consumers, or a `nop` discards it; after a call of a void function
+the next instruction takes the slot itself.  Stack-passed arguments are written
 to the outgoing area, which is reserved in the shared frame before the call
 (`rsrv N`) and freed after it (`free N`); its address is the frame base
 plus the private frame size.

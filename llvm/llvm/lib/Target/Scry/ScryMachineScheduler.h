@@ -15,10 +15,13 @@
 //     that the jump is issued as early as possible;
 //  2. loads, and the instructions computing their addresses, come next, so
 //     that the loads are issued long before their results are used;
-//  3. otherwise an instruction whose inputs were produced most recently is
+//  3. of two instructions feeding the same consumer, the one it uses first
+//     comes first (a consumer takes its operands in the order their
+//     producers executed; anything else costs an echo);
+//  4. otherwise an instruction whose inputs were produced most recently is
 //     preferred (short references, no hops, few values in flight), with a
 //     soft limit on the number of values in flight;
-//  4. ties go to the longer critical path, then the original order.
+//  5. ties go to the longer critical path, then the original order.
 //
 // Constants and addresses are rebuilt by the emitter in front of their
 // consumer whatever their position, so they neither count as producers nor
