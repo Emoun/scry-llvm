@@ -141,9 +141,33 @@ cover every read.
 ### 2.2 Constants and addresses
 
 A constant is built with `const T, byte` followed by one `grow` per further
-byte (`grow` shifts the value left by 8 and inserts the new low byte).
-Symbol addresses use the same sequence with relocations
-`%b3(sym)`, `%b2(sym)`, `%b1(sym)`, `%b0(sym)` on the four immediates.
+byte (`grow` shifts the value left by 8 and inserts the new low byte);
+leading zero bytes, or sign-extension bytes when a signed constant does the
+same job, are left out.  A symbol address built right in front of the
+load, store or call that uses it as its address is PC-relative: a signed
+address is taken relative to the consuming instruction, so `const i32,
+%pcrel_b2(sym-6)`, `grow %pcrel_b1(sym-4)`, `grow %pcrel_b0(sym-2)` (three
+instructions, reaching 8 MB either way) deliver `sym` to the instruction two
+bytes after the last `grow`.  Any other symbol address is absolute: the
+same sequence with four immediates and the relocations `%b3(sym)` to
+`%b0(sym)`.
+
+Constants and addresses are rematerialisable, so machine LICM hoists them
+out of loops.  The slot allocator then compares, per loop depth, the cost
+of rebuilding a hoisted constant at every use (its chain length), of a slot
+(the chain and a store once, a load per use) and of carrying it in flight
+across the loop's edges (a landing-pad instruction per block entered),
+and picks the cheapest; the lowering rebuilds a constant that was given
+neither a slot nor a landing position at each use.
+
+A load or store whose address is `base + index * size` (`add nuw` of the
+base and the index shifted by log2 of the access size, or a constant
+non-negative multiple of the size) uses the indexed form `ld T [base,
+index]` / `st [value, base, index]`: the simulator scales an unsigned
+index by the access size, and `nuw` guarantees that the 32-bit sum does
+not wrap, which is what the simulator's wider address arithmetic
+computes.  The shift and the add disappear, and the base may be a
+PC-relative symbol address.
 
 ### 2.3 Control flow
 
@@ -227,8 +251,8 @@ free pool) and executes `ret 0`.
 
 Operand-passed arguments are aimed at the instruction after the call (the
 trigger slot), past the callee address chain and the call.  The callee
-address is the call's own first input (a glued `const`/`grow` chain for a
-symbol, or a value in flight for an indirect call).  The return value
+address is the call's own first input (a glued PC-relative `const`/`grow`
+chain for a symbol, or a value in flight for an indirect call).  The return value
 arrives at the trigger slot, where a long `echo` (or `dup`) captures it for
 its consumers, or a `nop` discards it.  Stack-passed arguments are written
 to the outgoing area, which is reserved in the shared frame before the call
@@ -320,7 +344,9 @@ per block.
   directly from the compiler), no disassembler.
 * `scry64` is registered in the triple parser but no code generation exists
   for it yet.
-* Code is large: roughly 5-10 real instructions per IR operation.  The
+* Code is still a few times larger than for a register machine (on the
+  Embench window about 1.8 instructions per rv32imac instruction, of which
+  roughly 40% are dataflow instructions).  The
   scryer simulator's stack is fixed at 4 KB, which bounds the call depth and
   frame sizes of programs that can run.
 

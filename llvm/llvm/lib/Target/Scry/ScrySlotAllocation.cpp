@@ -26,10 +26,12 @@
 #include "Scry.h"
 #include "ScryMachineFunctionInfo.h"
 #include "ScrySubtarget.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/CodeGen/LiveIntervals.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
+#include "llvm/CodeGen/MachineLoopInfo.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Support/CommandLine.h"
@@ -80,6 +82,7 @@ public:
     AU.setPreservesCFG();
     if (ShareSlots || EdgeFlight)
       AU.addRequired<LiveIntervalsWrapperPass>();
+    AU.addRequired<MachineLoopInfoWrapperPass>();
     MachineFunctionPass::getAnalysisUsage(AU);
   }
 
@@ -150,6 +153,7 @@ char ScrySlotAllocation::ID = 0;
 INITIALIZE_PASS_BEGIN(ScrySlotAllocation, DEBUG_TYPE,
                       "Scry virtual register slot allocation", false, false)
 INITIALIZE_PASS_DEPENDENCY(LiveIntervalsWrapperPass)
+INITIALIZE_PASS_DEPENDENCY(MachineLoopInfoWrapperPass)
 INITIALIZE_PASS_END(ScrySlotAllocation, DEBUG_TYPE,
                     "Scry virtual register slot allocation", false, false)
 
@@ -165,6 +169,37 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   LiveIntervals *LIS = ShareSlots || EdgeFlight
                            ? &getAnalysis<LiveIntervalsWrapperPass>().getLIS()
                            : nullptr;
+  MachineLoopInfo &MLI = getAnalysis<MachineLoopInfoWrapperPass>().getLI();
+  // Instructions in loops execute more often: weight them by 8 per level.
+  auto Weight = [&](const MachineBasicBlock *MBB) -> unsigned {
+    unsigned Depth = std::min(MLI.getLoopDepth(MBB), 4u);
+    return 1u << (3 * Depth);
+  };
+  // Instructions the lowering can rebuild in front of a use, with the
+  // number of instructions that costs; 0 for everything else.
+  auto RematLen = [&](const MachineInstr *Def) -> unsigned {
+    switch (Def->getOpcode()) {
+    case Scry::CONST_8:
+      return 1;
+    case Scry::CONST_16:
+    case Scry::CONST_32:
+    case Scry::CONST_64: {
+      unsigned Scale = Def->getOpcode() == Scry::CONST_16 ? 2
+                       : Def->getOpcode() == Scry::CONST_32 ? 4 : 8;
+      uint64_t Imm = Def->getOperand(1).getImm();
+      return std::min(scryConstBytesLen(Imm, Scale, false),
+                      scryConstBytesLen(Imm, Scale, true));
+    }
+    case Scry::ADDR_SYM:
+      return 4;
+    case Scry::ADDR_FI:
+      return 1;
+    case Scry::ADDR_OUT:
+      return 2;
+    default:
+      return 0;
+    }
+  };
 
   // Position of every instruction within its block, to tell whether a use
   // follows the definition.
@@ -215,8 +250,12 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   // qualifies when it is live into at most FlightBlocks blocks; registers
   // that always arrive together are paired in one position, and positions
   // are coloured so that registers arriving at the same block differ.
+  // A constant or address with uses outside its block (typically hoisted
+  // out of a loop) may instead be rebuilt at each use; the cheapest of
+  // rebuilding, slot and flight wins.
+  DenseSet<Register> RematRegs;
   DenseMap<Register, SmallVector<MachineBasicBlock *, 4>> LiveInBlocks;
-  if (EdgeFlight && LIS) {
+  if (LIS) {
     for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
       Register Reg = Register::index2VirtReg(i);
       if (MRI.reg_nodbg_empty(Reg) || StaysInFlight(Reg))
@@ -224,30 +263,43 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
       const LiveInterval *LI = IntervalOf(Reg);
       if (!LI || LI->empty())
         continue;
-      SmallVector<MachineBasicBlock *, 4> In;
-      for (MachineBasicBlock &MBB : MF)
-        if (LIS->isLiveInToMBB(*LI, &MBB))
-          In.push_back(&MBB);
-      if (In.empty() || In.size() > FlightBlocks)
-        continue;
-      // Compare the cost of one pad per block entered (plus a share of the
-      // delivery hops) with that of a store per definition and a load per
-      // use not already served in flight after a definition in its block.
-      unsigned SlotCost = 0;
+      unsigned Len = InFlightValues && MRI.hasOneDef(Reg)
+                         ? RematLen(MRI.getVRegDef(Reg))
+                         : 0;
+      // The cost of a store per definition (plus the constant's chain) and
+      // a load per use not already served in flight after a definition in
+      // its block, weighted by loop depth; that of rebuilding at every use;
+      // and that of one pad per block entered (plus a share of the delivery
+      // hops).
+      unsigned SlotCost = 0, RematCost = 0;
       for (const MachineInstr &Def : MRI.def_instructions(Reg))
-        SlotCost += 1 + (Def.isCopy() ? 0 : 0);
+        SlotCost += (1 + Len) * Weight(Def.getParent());
       for (const MachineInstr &Use : MRI.use_nodbg_instructions(Reg)) {
         bool Served = false;
         for (const MachineInstr &Def : MRI.def_instructions(Reg))
           if (Def.getParent() == Use.getParent() && Index[&Def] < Index[&Use])
             Served = true;
+        unsigned W = Weight(Use.getParent());
         if (!Served)
-          ++SlotCost;
+          SlotCost += W;
+        RematCost += Len * W;
       }
+      SmallVector<MachineBasicBlock *, 4> In;
+      for (MachineBasicBlock &MBB : MF)
+        if (LIS->isLiveInToMBB(*LI, &MBB))
+          In.push_back(&MBB);
+      bool FlightOK = EdgeFlight && !In.empty() && In.size() <= FlightBlocks;
       unsigned FlightCost10 = 0; // in tenths
       for (MachineBasicBlock *MBB : In)
-        FlightCost10 += 10 + 3 * MBB->pred_size();
-      if (FlightCost10 * FlightCostPercent > SlotCost * 1000)
+        FlightCost10 += (10 + 3 * MBB->pred_size()) * Weight(MBB);
+      // The flight cost as scaled by the slot cost comparison below.
+      uint64_t FlightScaled = (uint64_t)FlightCost10 * FlightCostPercent;
+      if (Len && RematCost * 1000ull <= SlotCost * 1000ull &&
+          (!FlightOK || RematCost * 1000ull <= FlightScaled)) {
+        RematRegs.insert(Reg);
+        continue;
+      }
+      if (!FlightOK || FlightScaled > SlotCost * 1000ull)
         continue;
       LiveInBlocks[Reg] = std::move(In);
     }
@@ -310,7 +362,8 @@ bool ScrySlotAllocation::runOnMachineFunction(MachineFunction &MF) {
   SmallVector<Register, 32> InFlightCopies;
   for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
     Register Reg = Register::index2VirtReg(i);
-    if (MRI.reg_nodbg_empty(Reg) || LiveInBlocks.count(Reg))
+    if (MRI.reg_nodbg_empty(Reg) || LiveInBlocks.count(Reg) ||
+        RematRegs.count(Reg))
       continue;
     if (StaysInFlight(Reg)) {
       if (MRI.getVRegDef(Reg)->isCopy())

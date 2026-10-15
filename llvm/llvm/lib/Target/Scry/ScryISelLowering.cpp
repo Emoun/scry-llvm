@@ -426,12 +426,10 @@ SDValue ScryTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   if (!MemOpChains.empty())
     Chain = DAG.getNode(ISD::TokenFactor, DL, MVT::Other, MemOpChains);
 
-  // Direct calls use the symbol; everything else is an address value.
-  if (auto *G = dyn_cast<GlobalAddressSDNode>(Callee))
-    Callee = DAG.getTargetGlobalAddress(G->getGlobal(), DL, PtrVT,
-                                        G->getOffset());
-  else if (auto *E = dyn_cast<ExternalSymbolSDNode>(Callee))
-    Callee = DAG.getTargetExternalSymbol(E->getSymbol(), PtrVT);
+  // The callee stays an ordinary address value, even for a symbol: it is
+  // then materialised by its own ADDR_SYM, which machine LICM can hoist out
+  // of a loop and machine CSE can share between calls, and which the
+  // lowering otherwise rebuilds right in front of the call.
 
   SmallVector<SDValue, 8> Ops;
   Ops.push_back(Chain);

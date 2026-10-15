@@ -45,7 +45,7 @@ define i32 @select(i1 %c, i32 %a, i32 %b) {
 ; CHECK-NEXT: const u32, 4
 ; CHECK-NEXT: const u32, 3
 ; CHECK-NEXT: const u32, 2
-; CHECK-NEXT: echo =>5
+; CHECK-NEXT: echo =>4
 ; CHECK: call 0
 ; CHECK: free 16
 declare i32 @callee(i32, i32, i32, i32, i32)
@@ -64,15 +64,45 @@ define void @indirect(ptr %f) {
 }
 
 ; CHECK-LABEL: global_store:
-; The value is aimed past the address chain at the store: [value, address].
-; CHECK: echo =>4
-; CHECK-NEXT: const u32, %b3(g)
-; CHECK-NEXT: grow %b2(g)
-; CHECK-NEXT: grow %b1(g)
-; CHECK-NEXT: grow %b0(g)
+; The value is aimed past the address chain at the store: [value, address];
+; the address is PC-relative to the store.
+; CHECK: echo =>3
+; CHECK-NEXT: const i32, %pcrel_b2(g-6)
+; CHECK-NEXT: grow %pcrel_b1(g-4)
+; CHECK-NEXT: grow %pcrel_b0(g-2)
 ; CHECK-NEXT: st
 @g = global i32 0
 define void @global_store(i32 %v) {
   store i32 %v, ptr @g
+  ret void
+}
+
+; CHECK-LABEL: indexed_load:
+; An element of a global array is loaded with the [base, index] form: the
+; base is the PC-relative array address, the index is scaled by the load.
+; CHECK-NOT: sh
+; CHECK: const i32, %pcrel_b2(tab-6)
+; CHECK-NEXT: grow %pcrel_b1(tab-4)
+; CHECK-NEXT: grow %pcrel_b0(tab-2)
+; CHECK-NEXT: ld u32, =>{{[0-9]+}}
+; CHECK-NEXT: ret 0
+@tab = global [16 x i32] zeroinitializer
+define i32 @indexed_load(i32 %i) {
+  %p = getelementptr inbounds nuw [16 x i32], ptr @tab, i32 0, i32 %i
+  %v = load i32, ptr %p
+  ret i32 %v
+}
+
+; CHECK-LABEL: field_store:
+; A store at a constant offset that is a multiple of the access size uses
+; the same form with a constant index ([value, base, index]).
+; CHECK: echo =>{{[0-9]+}}
+; CHECK-NEXT: const u32, 2
+; CHECK-NEXT: const i32, %pcrel_b2(tab-6)
+; CHECK-NEXT: grow %pcrel_b1(tab-4)
+; CHECK-NEXT: grow %pcrel_b0(tab-2)
+; CHECK-NEXT: st
+define void @field_store(i32 %v) {
+  store i32 %v, ptr getelementptr inbounds nuw (i8, ptr @tab, i32 8)
   ret void
 }

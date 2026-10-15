@@ -120,6 +120,7 @@ struct Item {
   int CPIdx = -1;
   int64_t SymOffset = 0;
   unsigned SymByte = 0;
+  bool PCRel = false; // the byte is of (symbol - this instruction's address)
 
   // Late-bound trigger of a jmp: Imms := trigger offset TrigTarget - index,
   // split into the two immediates for the far form.
@@ -189,6 +190,10 @@ struct Operand {
   uint64_t Imm = 0;
   unsigned Scale = 1;
   const MachineOperand *Sym = nullptr;
+  // A symbol address consumed directly as a memory base or call target: when
+  // built right in front of that consumer it is PC-relative (three
+  // instructions instead of four).
+  bool RelBase = false;
 
   static Operand flight(unsigned V) {
     Operand O;
@@ -310,7 +315,8 @@ private:
   unsigned chainLength(const Operand &O) const;
   bool chainPassesThrough(const Operand &O) const;
   int chainRefOp(const Operand &O) const;
-  int emitChain(const Operand &O, int &LastItem);
+  int emitChain(const Operand &O, int &LastItem, bool Glued = false);
+  void relocateGlued(int First, int Consumer);
   int outputTime(const Output &O) const;
 
   // --- jumps ---------------------------------------------------------------
@@ -363,7 +369,7 @@ private:
   unsigned frameAddrLen(unsigned Off) const;
   void emitFrameAddr(unsigned Off);
   void emitConstBytes(unsigned TypeCode3, uint64_t Value, unsigned Scale);
-  void emitSymAddr(const MachineOperand &MO);
+  void emitSymAddr(const MachineOperand &MO, bool PCRel);
   void storeToSlot(Register R, unsigned V);
   void storeOperand(Register R, const Operand &Src);
   void emitFrees();
@@ -454,18 +460,7 @@ void ScryTemporalLowering::setRef(int Idx, int TargetIdx, bool Second) {
 /// for signed ones) are left out.
 static unsigned constBytesLen(uint64_t Value, unsigned Scale,
                               bool Signed = false) {
-  unsigned N = Scale;
-  while (N > 1) {
-    unsigned Top = (Value >> (8 * (N - 1))) & 0xff;
-    unsigned Next = (Value >> (8 * (N - 2))) & 0xff;
-    bool Redundant = Signed ? (Top == 0xff && (Next & 0x80)) ||
-                                  (Top == 0 && !(Next & 0x80))
-                            : Top == 0;
-    if (!Redundant)
-      break;
-    --N;
-  }
-  return N;
+  return scryConstBytesLen(Value, Scale, Signed);
 }
 
 /// Emit a constant of the given 3-bit type code; the value goes to the next
@@ -478,13 +473,19 @@ void ScryTemporalLowering::emitConstBytes(unsigned TypeCode3, uint64_t Value,
     emit(Scry::GROW, {(int64_t)((Value >> (8 * i)) & 0xff)});
 }
 
-/// Emit the four-instruction chain producing a symbol address.
-void ScryTemporalLowering::emitSymAddr(const MachineOperand &MO) {
-  for (int B = 3; B >= 0; --B) {
-    int Idx = B == 3 ? emit(Scry::CONST, {(int64_t)Scry::T_U32, 0})
-                     : emit(Scry::GROW, {0});
+/// Emit the chain producing a symbol address: four instructions for the
+/// absolute address, or three for the PC-relative one (a signed i32 whose
+/// top byte is sign-extended, so symbols within 8 MB of the consumer fit;
+/// the consumer's address is subtracted by relocateGlued once known).
+void ScryTemporalLowering::emitSymAddr(const MachineOperand &MO, bool PCRel) {
+  for (int B = PCRel ? 2 : 3; B >= 0; --B) {
+    int Idx = (PCRel ? B == 2 : B == 3)
+                  ? emit(Scry::CONST,
+                         {(int64_t)(PCRel ? Scry::T_I32 : Scry::T_U32), 0})
+                  : emit(Scry::GROW, {0});
     Item &I = Cur->Items[Idx];
     I.SymByte = B;
+    I.PCRel = PCRel;
     I.SymOffset = MO.getOffset();
     if (MO.isGlobal())
       I.GV = MO.getGlobal();
@@ -775,7 +776,7 @@ unsigned ScryTemporalLowering::chainLength(const Operand &O) const {
   case Operand::FrameAddr:
     return frameAddrLen(O.Imm);
   case Operand::SymAddr:
-    return 4;
+    return O.RelBase ? 3 : 4;
   }
   llvm_unreachable("bad operand kind");
 }
@@ -803,7 +804,8 @@ int ScryTemporalLowering::chainRefOp(const Operand &O) const {
 
 /// Emit the producer chain of a non-flight operand.  Returns the index of
 /// its first item and sets LastItem to its last.
-int ScryTemporalLowering::emitChain(const Operand &O, int &LastItem) {
+int ScryTemporalLowering::emitChain(const Operand &O, int &LastItem,
+                                    bool Glued) {
   int First = curIndex();
   switch (O.K) {
   case Operand::Flight:
@@ -825,11 +827,21 @@ int ScryTemporalLowering::emitChain(const Operand &O, int &LastItem) {
     emitFrameAddr(O.Imm);
     break;
   case Operand::SymAddr:
-    emitSymAddr(*O.Sym);
+    emitSymAddr(*O.Sym, Glued && O.RelBase);
     break;
   }
   LastItem = curIndex() - 1;
   return First;
+}
+
+/// The items from First on were glued in front of the consumer at index
+/// Consumer: make their PC-relative symbol bytes relative to it.
+void ScryTemporalLowering::relocateGlued(int First, int Consumer) {
+  for (int Idx = First; Idx < Consumer; ++Idx) {
+    Item &I = Cur->Items[Idx];
+    if (I.PCRel)
+      I.SymOffset -= 2 * (int64_t)(Consumer - Idx);
+  }
 }
 
 /// Emit whatever is needed so that the operands Ops arrive, in order, at the
@@ -914,8 +926,9 @@ int ScryTemporalLowering::prepareOperands(ArrayRef<Operand> Ops, unsigned Gap,
       int RunStart = curIndex();
       int Last = -1;
       for (unsigned i = R; i-- > P;)
-        emitChain(Ops[i], Last);
+        emitChain(Ops[i], Last, /*Glued=*/true);
       int C = curIndex();
+      relocateGlued(RunStart, C);
       for (unsigned i = 0; i != P; ++i)
         bindOutput(Chosen[i], C, IsArg);
       for (unsigned i = R; i != Q; ++i)
@@ -1608,6 +1621,7 @@ void ScryTemporalLowering::expandCall(MachineInstr &MI) {
 
   Operand Callee = CalleeMO.isReg() ? operandFor(CalleeMO)
                                     : Operand::symAddr(&CalleeMO);
+  Callee.RelBase = Callee.K == Operand::SymAddr;
   unsigned CalleeLen = Callee.K == Operand::Flight ? 0 : chainLength(Callee);
   if (Callee.K == Operand::Flight) {
     expire(3);
@@ -1625,8 +1639,9 @@ void ScryTemporalLowering::expandCall(MachineInstr &MI) {
     bindOutput(O, Call);
   } else {
     int Last;
-    emitChain(Callee, Last);
+    int First = emitChain(Callee, Last, /*Glued=*/true);
     Call = emit(Scry::CALL, {0});
+    relocateGlued(First, Call);
   }
   assert(Call + 1 == ArgsPos && "call trigger slot mismatch");
   (void)ArgsPos;
@@ -2227,6 +2242,7 @@ void ScryTemporalLowering::expandInstr(MachineInstr &MI,
   case Scry::LD_8: case Scry::LD_16: case Scry::LD_32: case Scry::LD_64: {
     Register D = MI.getOperand(0).getReg();
     Operand A = operandFor(MI.getOperand(1));
+    A.RelBase = A.K == Operand::SymAddr;
     unsigned V = defineValue(D, MI);
     int L = consume(Scry::LD, {A}, {(int64_t)utype(D), 0});
     produce(V, L, 1, 31);
@@ -2236,7 +2252,28 @@ void ScryTemporalLowering::expandInstr(MachineInstr &MI,
   case Scry::ST_8: case Scry::ST_16: case Scry::ST_32: case Scry::ST_64: {
     Operand Val = operandFor(MI.getOperand(0));
     Operand A = operandFor(MI.getOperand(1));
+    A.RelBase = A.K == Operand::SymAddr;
     consume(Scry::ST, {Val, A});
+    break;
+  }
+  // Indexed forms: [base, idx], the index scaled by the access size.
+  case Scry::LDX_8: case Scry::LDX_16: case Scry::LDX_32: case Scry::LDX_64: {
+    Register D = MI.getOperand(0).getReg();
+    Operand A = operandFor(MI.getOperand(1));
+    Operand I = operandFor(MI.getOperand(2));
+    A.RelBase = A.K == Operand::SymAddr;
+    unsigned V = defineValue(D, MI);
+    int L = consume(Scry::LD, {A, I}, {(int64_t)utype(D), 0});
+    produce(V, L, 1, 31);
+    defineResult(MI, V);
+    break;
+  }
+  case Scry::STX_8: case Scry::STX_16: case Scry::STX_32: case Scry::STX_64: {
+    Operand Val = operandFor(MI.getOperand(0));
+    Operand A = operandFor(MI.getOperand(1));
+    Operand I = operandFor(MI.getOperand(2));
+    A.RelBase = A.K == Operand::SymAddr;
+    consume(Scry::ST, {Val, A, I});
     break;
   }
 
@@ -2470,12 +2507,14 @@ void ScryTemporalLowering::resolveAndMaterialise() {
           MIB.addImm(I.Imms[k]);
           continue;
         }
-        unsigned Flags = Scry::MO_B0 + I.SymByte;
+        unsigned Flags = (I.PCRel ? Scry::MO_PCREL_B0 : Scry::MO_B0) + I.SymByte;
         if (I.GV)
           MIB.addGlobalAddress(I.GV, I.SymOffset, Flags);
-        else if (I.ExtSym)
-          MIB.addExternalSymbol(I.ExtSym, Flags);
-        else if (I.BA)
+        else if (I.ExtSym) {
+          MachineOperand MO = MachineOperand::CreateES(I.ExtSym, Flags);
+          MO.setOffset(I.SymOffset);
+          MIB.add(MO);
+        } else if (I.BA)
           MIB.addBlockAddress(I.BA, I.SymOffset, Flags);
         else
           MIB.addConstantPoolIndex(I.CPIdx, I.SymOffset, Flags);

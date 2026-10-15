@@ -23,9 +23,11 @@ define i8 @call_ret8() {
 ; A signext byte argument is sign extended to 32 bits before the call and
 ; aimed past the callee address at the call's trigger slot.
 ; CHECK: cast i8, =>0
-; CHECK-NEXT: cast u32, =>5
-; CHECK-NEXT: const u32, %b3(take8)
-; CHECK: call 0
+; CHECK-NEXT: cast u32, =>4
+; CHECK-NEXT: const i32, %pcrel_b2(take8-6)
+; CHECK-NEXT: grow %pcrel_b1(take8-4)
+; CHECK-NEXT: grow %pcrel_b0(take8-2)
+; CHECK-NEXT: call 0
 define void @call_arg8(i8 %a) {
   call void @take8(i8 signext %a)
   ret void
@@ -47,8 +49,8 @@ define zeroext i16 @ret16(i16 %a) {
 ; constant arguments are built in reverse and carried by one echo.
 ; CHECK: const u32, 100
 ; CHECK-NEXT: const u32, 7
-; CHECK-NEXT: echo =>5
-; CHECK-NEXT: const u32, %b3(memset)
+; CHECK-NEXT: echo =>4
+; CHECK-NEXT: const i32, %pcrel_b2(memset-6)
 define void @memset_i8(ptr %p) {
   call void @llvm.memset.p0.i32(ptr %p, i8 7, i32 100, i1 false)
   ret void

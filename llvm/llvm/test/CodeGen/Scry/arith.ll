@@ -18,12 +18,12 @@ define i32 @add32(i32 %a, i32 %b) {
 }
 
 ; CHECK-LABEL: sdiv32:
-; Signed division is a libcall (Scry division is Euclidean).
-; CHECK: const u32, %b3(__divsi3)
-; CHECK: grow %b2(__divsi3)
-; CHECK: grow %b1(__divsi3)
-; CHECK: grow %b0(__divsi3)
-; CHECK: call 0
+; Signed division is a libcall (Scry division is Euclidean); the callee
+; address is PC-relative to the call, three instructions before it.
+; CHECK: const i32, %pcrel_b2(__divsi3-6)
+; CHECK-NEXT: grow %pcrel_b1(__divsi3-4)
+; CHECK-NEXT: grow %pcrel_b0(__divsi3-2)
+; CHECK-NEXT: call 0
 define i32 @sdiv32(i32 %a, i32 %b) {
   %r = sdiv i32 %a, %b
   ret i32 %r

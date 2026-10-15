@@ -35,6 +35,25 @@ void initializeScrySlotAllocationPass(PassRegistry &);
 void initializeScryTemporalLoweringPass(PassRegistry &);
 void initializeScryAsmPrinterPass(PassRegistry &);
 
+/// Number of bytes (const + grows) needed to build Value as a Scale-byte
+/// constant: leading zero bytes (unsigned) or sign-extension bytes (signed)
+/// are redundant.
+inline unsigned scryConstBytesLen(uint64_t Value, unsigned Scale,
+                                  bool Signed = false) {
+  unsigned N = Scale;
+  while (N > 1) {
+    unsigned Top = (Value >> (8 * (N - 1))) & 0xff;
+    unsigned Next = (Value >> (8 * (N - 2))) & 0xff;
+    bool Redundant = Signed ? (Top == 0xff && (Next & 0x80)) ||
+                                  (Top == 0 && !(Next & 0x80))
+                            : Top == 0;
+    if (!Redundant)
+      break;
+    --N;
+  }
+  return N;
+}
+
 namespace Scry {
 /// Target operand flags on symbol operands of CONST/GROW: which byte of the
 /// symbol's address the immediate carries (same values as Scry::Specifier).
@@ -44,6 +63,10 @@ enum TargetFlags {
   MO_B1 = 2,
   MO_B2 = 3,
   MO_B3 = 4,
+  MO_PCREL_B0 = 5, // byte of (symbol - address of this instruction)
+  MO_PCREL_B1 = 6,
+  MO_PCREL_B2 = 7,
+  MO_PCREL_B3 = 8,
 };
 } // namespace Scry
 

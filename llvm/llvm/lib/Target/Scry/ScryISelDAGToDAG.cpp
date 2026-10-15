@@ -18,6 +18,7 @@
 #include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/MathExtras.h"
 
 using namespace llvm;
 
@@ -42,6 +43,8 @@ public:
   }
 
 #include "ScryGenDAGISel.inc"
+
+  bool SelectAddrIdx(SDNode *Root, SDValue N, SDValue &Base, SDValue &Idx);
 
 private:
   void selectFrameIndex(SDNode *N);
@@ -112,6 +115,51 @@ void ScryDAGToDAGISel::selectCall(SDNode *N) {
 
   MachineSDNode *Call = CurDAG->getMachineNode(Opc, DL, CurDAG->getVTList(VTs), Ops);
   ReplaceNode(N, Call);
+}
+
+/// [base, idx] addressing for the memory access Root: the simulator scales
+/// an unsigned index by the access size, so `add nuw base, idx << log2(size)`
+/// and `add nuw base, c` (c a non-negative multiple of the size) qualify.
+bool ScryDAGToDAGISel::SelectAddrIdx(SDNode *Root, SDValue N, SDValue &Base,
+                                     SDValue &Idx) {
+  auto *Mem = dyn_cast<MemSDNode>(Root);
+  if (!Mem || N.getOpcode() != ISD::ADD || !N->getFlags().hasNoUnsignedWrap())
+    return false;
+  unsigned Size = Mem->getMemoryVT().getStoreSize();
+  if (!isPowerOf2_32(Size) || Size > 8)
+    return false;
+  unsigned K = Log2_32(Size);
+  SDLoc DL(N);
+  auto IsBaseLike = [](SDValue V) {
+    return V.getOpcode() == ScryISD::WRAPPER ||
+           V.getOpcode() == ISD::FrameIndex || V.getOpcode() == ISD::CopyFromReg;
+  };
+  for (unsigned Swap = 0; Swap != 2; ++Swap) {
+    SDValue B = N.getOperand(Swap), Off = N.getOperand(1 - Swap);
+    if (auto *C = dyn_cast<ConstantSDNode>(Off)) {
+      int64_t V = C->getSExtValue();
+      if (V < 0 || V % Size != 0)
+        return false;
+      Base = B;
+      SDValue Imm = CurDAG->getTargetConstant(V / Size, DL, MVT::i32);
+      Idx = SDValue(CurDAG->getMachineNode(Scry::CONST_32, DL, MVT::i32, Imm), 0);
+      return true;
+    }
+    if (K == 0) {
+      if (Swap == 0 && !IsBaseLike(B) && IsBaseLike(Off))
+        continue;
+      Base = B;
+      Idx = Off;
+      return true;
+    }
+    if (Off.getOpcode() == ISD::SHL && isa<ConstantSDNode>(Off.getOperand(1)) &&
+        Off.getConstantOperandVal(1) == K) {
+      Base = B;
+      Idx = Off.getOperand(0);
+      return true;
+    }
+  }
+  return false;
 }
 
 void ScryDAGToDAGISel::Select(SDNode *N) {

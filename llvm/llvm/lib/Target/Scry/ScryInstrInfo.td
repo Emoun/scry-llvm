@@ -311,7 +311,10 @@ def ARG_32 : ScryPseudo<(outs GR32:$dst), (ins i32imm:$idx), [(set GR32:$dst, (S
 def ARG_64 : ScryPseudo<(outs GR64:$dst), (ins i32imm:$idx), [(set GR64:$dst, (ScryArg timm:$idx))]>;
 }
 
-// Constants.
+// Constants and addresses are rematerialisable and cheap: machine LICM
+// hoists them out of loops, and the slot allocator then decides whether a
+// hoisted one travels in flight, lives in a slot or is rebuilt at each use.
+let isReMaterializable = 1, isAsCheapAsAMove = 1 in {
 def CONST_8  : ScryPseudo<(outs GR8:$dst),  (ins i8imm:$imm),  [(set GR8:$dst,  imm:$imm)]>;
 def CONST_16 : ScryPseudo<(outs GR16:$dst), (ins i16imm:$imm), [(set GR16:$dst, imm:$imm)]>;
 def CONST_32 : ScryPseudo<(outs GR32:$dst), (ins i32imm:$imm), [(set GR32:$dst, imm:$imm)]>;
@@ -320,6 +323,7 @@ def CONST_64 : ScryPseudo<(outs GR64:$dst), (ins i64imm:$imm), [(set GR64:$dst, 
 // Absolute address of a symbol.
 def ADDR_SYM : ScryPseudo<(outs GR32:$dst), (ins symop:$sym),
                           [(set GR32:$dst, (ScryWrapper tglobaladdr:$sym))]>;
+}
 def : Pat<(ScryWrapper texternalsym:$sym),  (ADDR_SYM texternalsym:$sym)>;
 def : Pat<(ScryWrapper tblockaddress:$sym), (ADDR_SYM tblockaddress:$sym)>;
 def : Pat<(ScryWrapper tconstpool:$sym),    (ADDR_SYM tconstpool:$sym)>;
@@ -442,6 +446,62 @@ def ST_8  : ScryPseudo<(outs), (ins GR8:$val,  GR32:$addr), [(store GR8:$val,  G
 def ST_16 : ScryPseudo<(outs), (ins GR16:$val, GR32:$addr), [(store GR16:$val, GR32:$addr)]>;
 def ST_32 : ScryPseudo<(outs), (ins GR32:$val, GR32:$addr), [(store GR32:$val, GR32:$addr)]>;
 def ST_64 : ScryPseudo<(outs), (ins GR64:$val, GR32:$addr), [(store GR64:$val, GR32:$addr)]>;
+}
+
+// Indexed forms: the address is [base, idx], and the simulator scales the
+// unsigned index by the access size.  Selected (SelectAddrIdx) when the
+// address is `add nuw base, idx << log2(size)` or `add nuw base, c` with c a
+// non-negative multiple of the size; nuw guarantees that base plus the
+// scaled 32-bit index does not wrap, which is what the simulator's wider
+// address arithmetic computes.
+def addr_idx : ComplexPattern<i32, 2, "SelectAddrIdx"> {
+  let WantsRoot = 1;
+}
+let mayLoad = 1 in {
+def LDX_8  : ScryPseudo<(outs GR8:$dst),  (ins GR32:$base, GR32:$idx), []>;
+def LDX_16 : ScryPseudo<(outs GR16:$dst), (ins GR32:$base, GR32:$idx), []>;
+def LDX_32 : ScryPseudo<(outs GR32:$dst), (ins GR32:$base, GR32:$idx), []>;
+def LDX_64 : ScryPseudo<(outs GR64:$dst), (ins GR32:$base, GR32:$idx), []>;
+}
+let mayStore = 1 in {
+def STX_8  : ScryPseudo<(outs), (ins GR8:$val,  GR32:$base, GR32:$idx), []>;
+def STX_16 : ScryPseudo<(outs), (ins GR16:$val, GR32:$base, GR32:$idx), []>;
+def STX_32 : ScryPseudo<(outs), (ins GR32:$val, GR32:$base, GR32:$idx), []>;
+def STX_64 : ScryPseudo<(outs), (ins GR64:$val, GR32:$base, GR32:$idx), []>;
+}
+let AddedComplexity = 10 in {
+def : Pat<(i8  (load (addr_idx GR32:$b, GR32:$i))), (LDX_8  GR32:$b, GR32:$i)>;
+def : Pat<(i16 (load (addr_idx GR32:$b, GR32:$i))), (LDX_16 GR32:$b, GR32:$i)>;
+def : Pat<(i32 (load (addr_idx GR32:$b, GR32:$i))), (LDX_32 GR32:$b, GR32:$i)>;
+def : Pat<(i64 (load (addr_idx GR32:$b, GR32:$i))), (LDX_64 GR32:$b, GR32:$i)>;
+def : Pat<(store GR8:$v,  (addr_idx GR32:$b, GR32:$i)), (STX_8  GR8:$v,  GR32:$b, GR32:$i)>;
+def : Pat<(store GR16:$v, (addr_idx GR32:$b, GR32:$i)), (STX_16 GR16:$v, GR32:$b, GR32:$i)>;
+def : Pat<(store GR32:$v, (addr_idx GR32:$b, GR32:$i)), (STX_32 GR32:$v, GR32:$b, GR32:$i)>;
+def : Pat<(store GR64:$v, (addr_idx GR32:$b, GR32:$i)), (STX_64 GR64:$v, GR32:$b, GR32:$i)>;
+def : Pat<(i16 (zextloadi8 (addr_idx GR32:$b, GR32:$i))),  (ZEXT_8_16 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i32 (zextloadi8 (addr_idx GR32:$b, GR32:$i))),  (ZEXT_8_32 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (zextloadi8 (addr_idx GR32:$b, GR32:$i))),  (ZEXT_8_64 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i32 (zextloadi16 (addr_idx GR32:$b, GR32:$i))), (ZEXT_16_32 (LDX_16 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (zextloadi16 (addr_idx GR32:$b, GR32:$i))), (ZEXT_16_64 (LDX_16 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (zextloadi32 (addr_idx GR32:$b, GR32:$i))), (ZEXT_32_64 (LDX_32 GR32:$b, GR32:$i))>;
+def : Pat<(i16 (sextloadi8 (addr_idx GR32:$b, GR32:$i))),  (SEXT_8_16 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i32 (sextloadi8 (addr_idx GR32:$b, GR32:$i))),  (SEXT_8_32 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (sextloadi8 (addr_idx GR32:$b, GR32:$i))),  (SEXT_8_64 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i32 (sextloadi16 (addr_idx GR32:$b, GR32:$i))), (SEXT_16_32 (LDX_16 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (sextloadi16 (addr_idx GR32:$b, GR32:$i))), (SEXT_16_64 (LDX_16 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (sextloadi32 (addr_idx GR32:$b, GR32:$i))), (SEXT_32_64 (LDX_32 GR32:$b, GR32:$i))>;
+def : Pat<(i16 (extloadi8 (addr_idx GR32:$b, GR32:$i))),   (ZEXT_8_16 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i32 (extloadi8 (addr_idx GR32:$b, GR32:$i))),   (ZEXT_8_32 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (extloadi8 (addr_idx GR32:$b, GR32:$i))),   (ZEXT_8_64 (LDX_8 GR32:$b, GR32:$i))>;
+def : Pat<(i32 (extloadi16 (addr_idx GR32:$b, GR32:$i))),  (ZEXT_16_32 (LDX_16 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (extloadi16 (addr_idx GR32:$b, GR32:$i))),  (ZEXT_16_64 (LDX_16 GR32:$b, GR32:$i))>;
+def : Pat<(i64 (extloadi32 (addr_idx GR32:$b, GR32:$i))),  (ZEXT_32_64 (LDX_32 GR32:$b, GR32:$i))>;
+def : Pat<(truncstorei8 GR16:$v, (addr_idx GR32:$b, GR32:$i)),  (STX_8 (TRUNC_16_8 GR16:$v), GR32:$b, GR32:$i)>;
+def : Pat<(truncstorei8 GR32:$v, (addr_idx GR32:$b, GR32:$i)),  (STX_8 (TRUNC_32_8 GR32:$v), GR32:$b, GR32:$i)>;
+def : Pat<(truncstorei8 GR64:$v, (addr_idx GR32:$b, GR32:$i)),  (STX_8 (TRUNC_64_8 GR64:$v), GR32:$b, GR32:$i)>;
+def : Pat<(truncstorei16 GR32:$v, (addr_idx GR32:$b, GR32:$i)), (STX_16 (TRUNC_32_16 GR32:$v), GR32:$b, GR32:$i)>;
+def : Pat<(truncstorei16 GR64:$v, (addr_idx GR32:$b, GR32:$i)), (STX_16 (TRUNC_64_16 GR64:$v), GR32:$b, GR32:$i)>;
+def : Pat<(truncstorei32 GR64:$v, (addr_idx GR32:$b, GR32:$i)), (STX_32 (TRUNC_64_32 GR64:$v), GR32:$b, GR32:$i)>;
 }
 
 // Extending loads and truncating stores.
