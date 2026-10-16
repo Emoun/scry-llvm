@@ -121,6 +121,12 @@ register file for Scry, so the backend keeps values in memory instead.
      constants are built in reverse order; a constant that cannot be glued
      (e.g. a call argument, since the call sits between) is captured by an
      `echo`.
+   * A zero extension of a value in flight is not emitted when every use in
+     the block is indifferent to the value's width: a binary operation whose
+     other operand is at least as wide (a mixed-width operation takes the
+     wider type), a compare, the amount of a shift or the index of an
+     indexed access.  The uses take the narrow value (`-mllvm
+     -scry-elide-casts=false` keeps the casts).
    * Dead results are discarded by a `nop`.
 
    A call shifts the caller's pending operand lists by one position (the

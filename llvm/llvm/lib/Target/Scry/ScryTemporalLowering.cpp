@@ -89,11 +89,21 @@ using namespace llvm;
 
 #define DEBUG_TYPE "scry-temporal"
 
+static cl::opt<bool> ElideCasts(
+    "scry-elide-casts", cl::Hidden, cl::init(true),
+    cl::desc("Drop zero extensions whose uses do not depend on the width"));
+
+static cl::opt<unsigned> ElideCastsLimit(
+    "scry-elide-casts-limit", cl::Hidden, cl::init(~0u),
+    cl::desc("Elide at most this many zero extensions (for bisection)"));
+
 static cl::opt<bool> ExpireAllPending(
     "scry-expire-all-pending", cl::Hidden, cl::init(false),
     cl::desc("Expire outputs with every pending output as the hop margin "
              "instead of iterating to the outputs actually due (the previous "
              "behaviour, for measurement)"));
+
+
 STATISTIC(NumNearJumps, "Number of single-instruction (near) jumps");
 STATISTIC(NumFarJumps, "Number of two-operand (far) jumps");
 STATISTIC(NumJumpNegations, "Number of jump conditions negated with eq");
@@ -102,6 +112,7 @@ STATISTIC(NumHops, "Number of echo hops (reach, ordering, capture)");
 STATISTIC(NumDups, "Number of dup copies");
 STATISTIC(NumSlotLoads, "Number of slot loads");
 STATISTIC(NumSlotStores, "Number of slot stores");
+STATISTIC(NumElidedCasts, "Number of zero extensions not emitted");
 
 namespace {
 
@@ -270,8 +281,11 @@ private:
   DenseMap<Register, unsigned> RegValue;   // register -> value in flight
   DenseMap<Register, Register> SlotAlias;  // copy of a slot value -> its slot
   const MachineInstr *CurExpandMI = nullptr; // virtual instruction being expanded
+  DenseSet<Register> NarrowRegs; // registers holding a narrower value than their class
+  unsigned ElidedBefore = 0; // casts elided in the functions already done (for the limit)
   DenseMap<Register, const MachineInstr *> Remat; // constants built at use
-  unsigned FnHops = 0, FnDups = 0, FnSlotLoads = 0, FnSlotStores = 0;
+  unsigned FnHops = 0, FnDups = 0, FnSlotLoads = 0, FnSlotStores = 0,
+           FnElidedCasts = 0;
 
   unsigned newValue(unsigned Uses) {
     Values.push_back(ValueState{{}, Uses});
@@ -392,6 +406,8 @@ private:
   void expandCompare(MachineInstr &MI, unsigned First, bool Negate,
                      bool Signed);
   void expandCasts(MachineInstr &MI, ArrayRef<unsigned> TypeCodes);
+  bool widthTolerantUse(const MachineInstr &Use, Register R) const;
+  bool tryElideZext(MachineInstr &MI);
   void expandCall(MachineInstr &MI);
   void expandReturn(MachineInstr &MI);
   void expandCopy(MachineInstr &MI);
@@ -1689,6 +1705,107 @@ void ScryTemporalLowering::expandCompare(MachineInstr &MI, unsigned First,
 }
 
 /// Apply a chain of casts to the source.
+/// Is the use of the narrow value R by Use indifferent to R's width?  The
+/// simulator gives a mixed-width operation the wider operand's width and
+/// compares numerically, so a zero-extended value and its narrow original
+/// behave the same as a compare operand, a shift amount, an index, or an
+/// operand of an arithmetic or logic operation whose other operand is wide.
+bool ScryTemporalLowering::widthTolerantUse(const MachineInstr &Use,
+                                            Register R) const {
+  // The other operand must really be wide: not a narrow value itself, and
+  // not a constant the expansion folds into the implicit operand (which
+  // takes the type of the single input), e.g. x + 1 as a one-input add.
+  auto OtherIsWide = [&](unsigned A, unsigned B) {
+    const MachineOperand &MA = Use.getOperand(A), &MB = Use.getOperand(B);
+    if (!MA.isReg() || !MB.isReg())
+      return false;
+    Register Other = MA.getReg() == R ? MB.getReg() : MA.getReg();
+    if (Other == R || NarrowRegs.count(Other))
+      return false;
+    const MachineInstr *Def = MRI->hasOneDef(Other) ? MRI->getVRegDef(Other) : nullptr;
+    if (!Def)
+      return false;
+    switch (Def->getOpcode()) {
+    case Scry::CONST_8: case Scry::CONST_16: case Scry::CONST_32: case Scry::CONST_64: {
+      unsigned Scale = scaleOf(Other);
+      uint64_t Mask = Scale == 8 ? ~0ull : ((1ull << (8 * Scale)) - 1);
+      uint64_t Val = (uint64_t)Def->getOperand(1).getImm() & Mask;
+      switch (Use.getOpcode()) {
+      case Scry::ADD_GR16: case Scry::ADD_GR32: case Scry::ADD_GR64:
+      case Scry::SUB_GR16: case Scry::SUB_GR32: case Scry::SUB_GR64:
+      case Scry::AND_GR16: case Scry::AND_GR32: case Scry::AND_GR64:
+        return Val != 1;
+      case Scry::OR_GR16: case Scry::OR_GR32: case Scry::OR_GR64:
+      case Scry::XOR_GR16: case Scry::XOR_GR32: case Scry::XOR_GR64:
+        return Val != Mask;
+      case Scry::UDIV_GR16: case Scry::UDIV_GR32: case Scry::UDIV_GR64:
+      case Scry::UREM_GR16: case Scry::UREM_GR32: case Scry::UREM_GR64:
+        return Val != 2;
+      default:
+        return true;
+      }
+    }
+    default:
+      return true;
+    }
+  };
+  switch (Use.getOpcode()) {
+  case Scry::ADD_GR16: case Scry::ADD_GR32: case Scry::ADD_GR64:
+  case Scry::SUB_GR16: case Scry::SUB_GR32: case Scry::SUB_GR64:
+  case Scry::MUL_GR16: case Scry::MUL_GR32: case Scry::MUL_GR64:
+  case Scry::AND_GR16: case Scry::AND_GR32: case Scry::AND_GR64:
+  case Scry::OR_GR16: case Scry::OR_GR32: case Scry::OR_GR64:
+  case Scry::XOR_GR16: case Scry::XOR_GR32: case Scry::XOR_GR64:
+  case Scry::UDIV_GR16: case Scry::UDIV_GR32: case Scry::UDIV_GR64:
+  case Scry::UREM_GR16: case Scry::UREM_GR32: case Scry::UREM_GR64:
+    return OtherIsWide(1, 2);
+  case Scry::SHL_GR8: case Scry::SHL_GR16: case Scry::SHL_GR32: case Scry::SHL_GR64:
+  case Scry::LSHR_GR8: case Scry::LSHR_GR16: case Scry::LSHR_GR32: case Scry::LSHR_GR64:
+  case Scry::ASHR_GR8: case Scry::ASHR_GR16: case Scry::ASHR_GR32: case Scry::ASHR_GR64:
+    // Only as the amount.
+    return Use.getOperand(2).getReg() == R && Use.getOperand(1).getReg() != R;
+  case Scry::LDX_8: case Scry::LDX_16: case Scry::LDX_32: case Scry::LDX_64:
+    return Use.getOperand(2).getReg() == R && Use.getOperand(1).getReg() != R;
+  case Scry::STX_8: case Scry::STX_16: case Scry::STX_32: case Scry::STX_64:
+    return Use.getOperand(2).getReg() == R && Use.getOperand(0).getReg() != R &&
+           Use.getOperand(1).getReg() != R;
+  default:
+    return isEqualityCompare(Use.getOpcode()) ||
+           isOrderingCompare(Use.getOpcode()) ||
+           isNegatingCompare(Use.getOpcode());
+  }
+}
+
+/// A zero extension whose source is in flight and whose uses, all in this
+/// block, are indifferent to the value's width is not emitted: the uses
+/// take the narrow value.
+bool ScryTemporalLowering::tryElideZext(MachineInstr &MI) {
+  if (!ElideCasts || ElidedBefore + FnElidedCasts >= ElideCastsLimit)
+    return false;
+  Register D = MI.getOperand(0).getReg();
+  Register S = MI.getOperand(1).getReg();
+  if (hasSlot(D) || FuncInfo->isEdgeFlight(D) || DeliverSet.count(D) ||
+      !MRI->hasOneDef(D))
+    return false;
+  auto It = RegValue.find(S);
+  if (It == RegValue.end())
+    return false;
+  if (!MRI->hasOneDef(S))
+    return false;
+  for (const MachineInstr &Use : MRI->use_nodbg_instructions(D))
+    if (Use.getParent() != CurMBB || !widthTolerantUse(Use, D))
+      return false;
+  unsigned V = It->second;
+  Values[V].RemainingUses += countUsesAfter(D, MI) + extraUses(D, &MI);
+  --Values[V].RemainingUses; // the cast's own use of S
+  RegValue[D] = V;
+  SlotAlias.erase(D);
+  Remat.erase(D);
+  NarrowRegs.insert(D);
+  ++FnElidedCasts;
+  return true;
+}
+
 void ScryTemporalLowering::expandCasts(MachineInstr &MI,
                                        ArrayRef<unsigned> TypeCodes) {
   Register D = MI.getOperand(0).getReg();
@@ -2323,6 +2440,9 @@ void ScryTemporalLowering::expandInstr(MachineInstr &MI,
 
   case Scry::ZEXT_8_16: case Scry::ZEXT_8_32: case Scry::ZEXT_8_64:
   case Scry::ZEXT_16_32: case Scry::ZEXT_16_64: case Scry::ZEXT_32_64:
+    if (tryElideZext(MI))
+      break;
+    [[fallthrough]];
   case Scry::TRUNC_16_8: case Scry::TRUNC_32_8: case Scry::TRUNC_64_8:
   case Scry::TRUNC_32_16: case Scry::TRUNC_64_16: case Scry::TRUNC_64_32:
     expandCasts(MI, {utype(MI.getOperand(0).getReg())});
@@ -2435,7 +2555,7 @@ bool ScryTemporalLowering::expandFunction() {
   JumpOnlyCompares.clear();
   JumpOnlyInfo.clear();
   FnNearJumps = FnFarJumps = FnNegations = 0;
-  FnHops = FnDups = FnSlotLoads = FnSlotStores = 0;
+  FnHops = FnDups = FnSlotLoads = FnSlotStores = FnElidedCasts = 0;
   Blocks.reserve(MF->size());
   for (MachineBasicBlock &MBB : *MF) {
     Blocks.push_back(BlockSeq{&MBB, {}, {}, 0});
@@ -2445,6 +2565,7 @@ bool ScryTemporalLowering::expandFunction() {
     RegValue.clear();
     SlotAlias.clear();
     Remat.clear();
+    NarrowRegs.clear();
 
     computeDeliverSet(MBB);
     if (&MBB == &MF->front())
@@ -2594,6 +2715,8 @@ bool ScryTemporalLowering::expandFunction() {
   NumJumpNegations += FnNegations;
   NumHops += FnHops;
   NumDups += FnDups;
+  NumElidedCasts += FnElidedCasts;
+  ElidedBefore += FnElidedCasts;
   NumSlotLoads += FnSlotLoads;
   NumSlotStores += FnSlotStores;
   return true;

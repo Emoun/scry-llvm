@@ -91,3 +91,43 @@ define i32 @sext8(i8 %a) {
 define i64 @const64() {
   ret i64 1234567890000
 }
+
+; CHECK-LABEL: zext_add_wide:
+; A widened u8 feeding an add whose other operand is a full-width value
+; needs no cast: a mixed-width operation takes the wider type.
+; CHECK: ld u8
+; CHECK-NOT: cast
+; CHECK: add Low
+define i32 @zext_add_wide(ptr %p, i32 %w) {
+  %b = load i8, ptr %p
+  %z = zext i8 %b to i32
+  %r = add i32 %z, %w
+  ret i32 %r
+}
+
+; CHECK-LABEL: zext_add_one:
+; x + 1 is a one-input add whose implicit operand takes the input's type,
+; so the widening cast stays.
+; CHECK: ld u8
+; CHECK: cast u32
+; CHECK: add Low
+define i32 @zext_add_one(ptr %p) {
+  %b = load i8, ptr %p
+  %z = zext i8 %b to i32
+  %r = add i32 %z, 1
+  ret i32 %r
+}
+
+; CHECK-LABEL: ashr_zext:
+; An arithmetic shift leaves its result tagged signed; widening it must
+; zero-extend, so the result is cast back to unsigned first.
+; CHECK: cast i8
+; CHECK: sh Low
+; CHECK-NEXT: cast u8
+; CHECK: cast u32
+define i32 @ashr_zext(ptr %p) {
+  %b = load i8, ptr %p
+  %s = ashr i8 %b, 1
+  %z = zext i8 %s to i32
+  ret i32 %z
+}
