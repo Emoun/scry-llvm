@@ -1155,8 +1155,18 @@ Operand ScryTemporalLowering::operandFor(const MachineOperand &MO) {
     }
     return Operand::slot(R);
   }
-  // A constant without a slot is rebuilt wherever it is used.
-  if (const MachineInstr *Def = MRI->hasOneDef(R) ? MRI->getVRegDef(R) : nullptr) {
+  // A constant without a slot is rebuilt wherever it is used.  Tail
+  // duplication may have copied its definition into several blocks; the
+  // copies are identical, so any of them serves.
+  const MachineInstr *Def = nullptr;
+  for (const MachineInstr &D : MRI->def_instructions(R)) {
+    if (Def && !D.isIdenticalTo(*Def)) {
+      Def = nullptr;
+      break;
+    }
+    Def = &D;
+  }
+  if (Def) {
     switch (Def->getOpcode()) {
     case Scry::CONST_8: case Scry::CONST_16: case Scry::CONST_32: case Scry::CONST_64: {
       unsigned Scale = scaleOf(R);
@@ -1198,10 +1208,12 @@ void ScryTemporalLowering::planJumps(MachineBasicBlock &MBB,
   // Index of the instruction defining R if it is in MBB, else -1 (the jump
   // is issued at the block start, after the prologue).
   auto boundaryAfterDef = [&](Register R) -> unsigned {
-    MachineInstr *Def = MRI->getVRegDef(R);
-    if (!Def || Def->getParent() != &MBB)
-      return 0;
-    return MIIndex.lookup(Def) + 1;
+    // A register may be defined in several blocks after tail duplication;
+    // only a definition in this block matters.
+    for (MachineInstr &Def : MRI->def_instructions(R))
+      if (Def.getParent() == &MBB)
+        return MIIndex.lookup(&Def) + 1;
+    return 0;
   };
   auto cond = [&](MachineBasicBlock *Tgt, bool Pol) {
     Register C = CondBr->getOperand(0).getReg();
@@ -1295,7 +1307,7 @@ void ScryTemporalLowering::planNegationFolds(MachineBasicBlock &MBB,
   for (const PlannedJump &J : Jumps) {
     if (!J.Cond.isValid())
       continue;
-    MachineInstr *Def = MRI->getVRegDef(J.Cond);
+    MachineInstr *Def = MRI->hasOneDef(J.Cond) ? MRI->getVRegDef(J.Cond) : nullptr;
     if (!Def || Def->getParent() != &MBB || !MRI->hasOneNonDBGUse(J.Cond) ||
         !(isNegatingCompare(Def->getOpcode()) ||
           isEqualityCompare(Def->getOpcode()) ||
