@@ -89,6 +89,11 @@ using namespace llvm;
 
 #define DEBUG_TYPE "scry-temporal"
 
+static cl::opt<bool> ExpireAllPending(
+    "scry-expire-all-pending", cl::Hidden, cl::init(false),
+    cl::desc("Expire outputs with every pending output as the hop margin "
+             "instead of iterating to the outputs actually due (the previous "
+             "behaviour, for measurement)"));
 STATISTIC(NumNearJumps, "Number of single-instruction (near) jumps");
 STATISTIC(NumFarJumps, "Number of two-operand (far) jumps");
 STATISTIC(NumJumpNegations, "Number of jump conditions negated with eq");
@@ -745,22 +750,32 @@ void ScryTemporalLowering::ensureDirect(unsigned V) {
 /// also covers one hop per pending output, so that outputs expiring together
 /// can all be hopped in time; hops are emitted earliest deadline first.
 void ScryTemporalLowering::expire(unsigned Lookahead, unsigned ExtraCalls) {
-  unsigned NumPending = 0;
-  for (const ValueState &VS : Values)
-    NumPending += VS.Pending.size();
-  int P = curIndex() + (int)Lookahead + (int)NumPending - 1;
-
+  // Every hop emitted here pushes the next Lookahead items one further, so
+  // an output is due when it cannot reach the item Lookahead ahead even
+  // after the hops of the outputs due before it.  Iterate to a fixed
+  // point: hopping one output can only push others past their reach.
   // (deadline, value, output index)
   SmallVector<std::tuple<int, unsigned, unsigned>, 8> Due;
-  for (unsigned V = 0, e = Values.size(); V != e; ++V) {
-    ValueState &VS = Values[V];
-    for (unsigned i = 0, n = VS.Pending.size(); i != n; ++i) {
-      const Output &O = VS.Pending[i];
-      if (O.RefOp < 0)
-        continue;
-      if (Cur->refValue(O.Item, P, false) + (int)ExtraCalls > O.Reach)
-        Due.push_back({O.Item + O.Reach, V, i});
+  unsigned Hops = 0;
+  if (ExpireAllPending)
+    for (const ValueState &VS : Values)
+      Hops += VS.Pending.size();
+  for (;;) {
+    Due.clear();
+    int P = curIndex() + (int)Lookahead + (int)Hops - 1;
+    for (unsigned V = 0, e = Values.size(); V != e; ++V) {
+      ValueState &VS = Values[V];
+      for (unsigned i = 0, n = VS.Pending.size(); i != n; ++i) {
+        const Output &O = VS.Pending[i];
+        if (O.RefOp < 0)
+          continue;
+        if (Cur->refValue(O.Item, P, false) + (int)ExtraCalls > O.Reach)
+          Due.push_back({O.Item + O.Reach, V, i});
+      }
     }
+    if (ExpireAllPending || Due.size() == Hops)
+      break;
+    Hops = Due.size();
   }
   llvm::sort(Due);
   for (auto &[D, V, I] : Due)

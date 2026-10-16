@@ -103,7 +103,12 @@ register file for Scry, so the backend keeps values in memory instead.
    * A value with several consumers is copied with `dup =>r1, =>r2` right
      after it is produced (one dup per two further consumers).
    * A reference is at most 31 (1023 for the long `echo`): an output whose
-     consumer is not emitted in time is carried on by an `echo` hop.
+     consumer is not emitted in time is carried on by an `echo` hop.  Before
+     each instruction the emitter hops exactly the outputs that would
+     otherwise expire, iterating to a fixed point because every hop pushes
+     the later outputs one further (hopping for every pending output at
+     once, the previous rule, cost a `dup; echo; echo` at most multi-use
+     values in busy blocks).
    * A consumer's inputs are ordered by the execution time of their last
      emitters.  Operands already in order are aimed at the consumer
      directly; the remaining ones are re-emitted in operand order right
