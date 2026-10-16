@@ -2,9 +2,29 @@
 #include <stddef.h>
 #include <string.h>
 
+/* The copy and fill routines work a word at a time once the pointers are
+   aligned: a byte loop costs about ten instructions per byte on Scry. */
+typedef unsigned int word_t;
+#define WORD_ALIGNED(p) (((size_t)(p) & (sizeof(word_t) - 1)) == 0)
+
 void *memcpy(void *dst, const void *src, size_t n) {
   unsigned char *d = (unsigned char *)dst;
   const unsigned char *s = (const unsigned char *)src;
+  if (n >= 2 * sizeof(word_t) &&
+      ((size_t)d & (sizeof(word_t) - 1)) == ((size_t)s & (sizeof(word_t) - 1))) {
+    while (!WORD_ALIGNED(d)) {
+      *d++ = *s++;
+      n--;
+    }
+    word_t *dw = (word_t *)d;
+    const word_t *sw = (const word_t *)s;
+    while (n >= sizeof(word_t)) {
+      *dw++ = *sw++;
+      n -= sizeof(word_t);
+    }
+    d = (unsigned char *)dw;
+    s = (const unsigned char *)sw;
+  }
   while (n--)
     *d++ = *s++;
   return dst;
@@ -15,28 +35,67 @@ void *memmove(void *dst, const void *src, size_t n) {
   const unsigned char *s = (const unsigned char *)src;
   if (d == s || n == 0)
     return dst;
-  if (d < s || d >= s + n) {
-    while (n--)
-      *d++ = *s++;
-  } else {
-    d += n;
-    s += n;
-    while (n--)
+  if (d < s || d >= s + n)
+    return memcpy(dst, src, n);
+  d += n;
+  s += n;
+  if (n >= 2 * sizeof(word_t) &&
+      ((size_t)d & (sizeof(word_t) - 1)) == ((size_t)s & (sizeof(word_t) - 1))) {
+    while (!WORD_ALIGNED(d)) {
       *--d = *--s;
+      n--;
+    }
+    word_t *dw = (word_t *)d;
+    const word_t *sw = (const word_t *)s;
+    while (n >= sizeof(word_t)) {
+      *--dw = *--sw;
+      n -= sizeof(word_t);
+    }
+    d = (unsigned char *)dw;
+    s = (const unsigned char *)sw;
   }
+  while (n--)
+    *--d = *--s;
   return dst;
 }
 
 void *memset(void *dst, int c, size_t n) {
   unsigned char *d = (unsigned char *)dst;
+  unsigned char b = (unsigned char)c;
+  if (n >= 2 * sizeof(word_t)) {
+    while (!WORD_ALIGNED(d)) {
+      *d++ = b;
+      n--;
+    }
+    word_t w = b;
+    w |= w << 8;
+    w |= w << 16;
+    word_t *dw = (word_t *)d;
+    while (n >= sizeof(word_t)) {
+      *dw++ = w;
+      n -= sizeof(word_t);
+    }
+    d = (unsigned char *)dw;
+  }
   while (n--)
-    *d++ = (unsigned char)c;
+    *d++ = b;
   return dst;
 }
 
 int memcmp(const void *a, const void *b, size_t n) {
   const unsigned char *x = (const unsigned char *)a;
   const unsigned char *y = (const unsigned char *)b;
+  if (n >= 2 * sizeof(word_t) && WORD_ALIGNED(x) && WORD_ALIGNED(y)) {
+    const word_t *xw = (const word_t *)x;
+    const word_t *yw = (const word_t *)y;
+    while (n >= sizeof(word_t) && *xw == *yw) {
+      xw++;
+      yw++;
+      n -= sizeof(word_t);
+    }
+    x = (const unsigned char *)xw;
+    y = (const unsigned char *)yw;
+  }
   for (; n; n--, x++, y++)
     if (*x != *y)
       return (int)*x - (int)*y;
