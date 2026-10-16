@@ -2268,7 +2268,11 @@ void ScryTemporalLowering::deliverContract(MachineBasicBlock &MBB) {
     Look += chainLength(operandFor(MachineOperand::CreateReg(R, false))) + 3;
   expire(Look);
   SmallVector<Delivery, 8> Deliveries;
-  int Worst = curIndex() + 2 * (int)Positions.size();
+  // The worst-case end: every position copying (a dup) or building (a
+  // chain and an echo) its value and hopping it.
+  int Worst = curIndex();
+  for (auto &[Pos, R] : Positions)
+    Worst += chainLength(operandFor(MachineOperand::CreateReg(R, false))) + 2;
   for (auto &[Pos, R] : Positions) {
     Operand Op = operandFor(MachineOperand::CreateReg(R, false));
     Output O;
