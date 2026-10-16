@@ -74,7 +74,11 @@ register file for Scry, so the backend keeps values in memory instead.
    their producers executed, so anything else costs an echo), then the
    instruction whose inputs were produced most recently (short references,
    few values in flight); above a soft target of `-scry-inflight-target`
-   (32) values in flight, consumers are preferred over producers.
+   (32) values in flight, consumers are preferred over producers.  Among
+   ready memory loads the one with the most work behind it goes first,
+   and the consumers of a load's result wait while anything else is ready
+   (`-scry-sched-consumers-last`), so that a load delivers as far ahead
+   of its use as the block allows.
    Constants and addresses are scheduled last, since the lowering rebuilds
    them in front of their consumer anyway.  The call pseudos are not
    scheduling barriers: a condition or a load is happily moved above a

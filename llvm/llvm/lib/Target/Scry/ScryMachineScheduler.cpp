@@ -23,6 +23,11 @@ static cl::opt<unsigned> InFlightTarget(
     cl::desc("Soft limit on the number of values in flight within a block; "
              "above it consumers are preferred over producers"));
 
+static cl::opt<bool> ConsumersLast(
+    "scry-sched-consumers-last", cl::Hidden, cl::init(true),
+    cl::desc("Schedule the consumers of a load's result after any other "
+             "ready instruction"));
+
 static cl::opt<bool> LoadsEarly(
     "scry-sched-loads-early", cl::Hidden, cl::init(true),
     cl::desc("Schedule loads, and the instructions computing their "
@@ -136,6 +141,19 @@ class ScrySchedStrategy final : public MachineSchedStrategy {
     return 0;
   }
 
+  /// Does SU consume the result of a memory load already scheduled?  Such
+  /// consumers wait while anything else is ready, so that loads deliver as
+  /// far ahead of their use as the block allows.
+  bool consumesLoad(const SUnit *SU) const {
+    for (const SDep &D : SU->Preds) {
+      const SUnit *P = D.getSUnit();
+      if (isDataPred(D) && P->isScheduled && P->getInstr()->mayLoad() &&
+          !isRematerialised(*P->getInstr()))
+        return true;
+    }
+    return false;
+  }
+
   /// Is A to be scheduled before B?
   bool better(const SUnit *A, const SUnit *B) const {
     const MachineInstr &MA = *A->getInstr(), &MB = *B->getInstr();
@@ -145,6 +163,8 @@ class ScrySchedStrategy final : public MachineSchedStrategy {
     bool LA = LoadSlice.count(A), LB = LoadSlice.count(B);
     if (LA != LB)
       return LA;
+    if (LA && MA.mayLoad() && MB.mayLoad() && A->getHeight() != B->getHeight())
+      return A->getHeight() > B->getHeight(); // the load with the most work behind it
     bool RA = isRematerialised(MA), RB = isRematerialised(MB);
     if (RA != RB)
       return RB; // constants last: their position does not matter
@@ -153,6 +173,11 @@ class ScrySchedStrategy final : public MachineSchedStrategy {
       int FB = (int)valuesFreed(B) - (int)producesValue(B);
       if (FA != FB)
         return FA > FB;
+    }
+    if (ConsumersLast) {
+      bool DA = consumesLoad(A), DB = consumesLoad(B);
+      if (DA != DB)
+        return DB; // the one that does not use a load's result
     }
     if (int Order = operandOrder(A, B))
       return Order < 0;
@@ -210,6 +235,7 @@ public:
         if (SUnit *Root = DAG->getSUnit(Def))
           addSlice(CondSlice, Root);
     }
+
 
     // The loads and the instructions computing their addresses.
     if (LoadsEarly)
