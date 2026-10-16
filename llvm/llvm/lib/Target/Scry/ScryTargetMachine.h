@@ -33,6 +33,8 @@ public:
 
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
 
+  TargetTransformInfo getTargetTransformInfo(const Function &F) const override;
+
   ScheduleDAGInstrs *
   createMachineScheduler(MachineSchedContext *C) const override;
 

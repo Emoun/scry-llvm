@@ -8,6 +8,7 @@
 
 #include "ScryTargetMachine.h"
 #include "ScryMachineScheduler.h"
+#include "ScryTargetTransformInfo.h"
 #include "Scry.h"
 #include "ScryMachineFunctionInfo.h"
 #include "TargetInfo/ScryTargetInfo.h"
@@ -83,6 +84,11 @@ public:
 ScheduleDAGInstrs *
 ScryTargetMachine::createMachineScheduler(MachineSchedContext *C) const {
   return createScryMachineScheduler(C);
+}
+
+TargetTransformInfo
+ScryTargetMachine::getTargetTransformInfo(const Function &F) const {
+  return TargetTransformInfo(std::make_unique<ScryTTIImpl>(this, F));
 }
 
 TargetPassConfig *ScryTargetMachine::createPassConfig(PassManagerBase &PM) {

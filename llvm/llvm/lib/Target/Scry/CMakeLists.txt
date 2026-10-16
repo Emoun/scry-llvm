@@ -22,6 +22,7 @@ add_llvm_target(ScryCodeGen
   ScryRegisterInfo.cpp
   ScrySlotAllocation.cpp
   ScrySubtarget.cpp
+  ScryTargetTransformInfo.cpp
   ScryTargetMachine.cpp
   ScryTemporalLowering.cpp
 
