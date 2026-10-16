@@ -117,6 +117,15 @@ python3 scripts/run_embench.py --metrics --json new.json
 python3 scripts/compare_metrics.py docs/perf-results.json new.json
 ```
 
+Slot loads (`ld.s`) are built right in front of their consumer by design
+and are left out of the load distance.  Two static views complement the
+simulator counts: `scripts/df_roles.py <source.c or .s>...` breaks the
+dataflow instructions of the generated assembly down by role (landing
+pads and how many of them are `nop`s, deliveries to successors, jump
+conditions, call arguments, hops and ordering fixups), and `clang -mllvm
+-stats` prints the lowering's own counters (near and far jumps, hops,
+dups, elided casts, slot traffic) for a compilation.
+
 `docs/perf-results.md` records the numbers of the current backend per
 benchmark, next to those of the correctness-first baseline
 (`docs/perf-baseline.md`) and of rv32imac: on the Embench window the

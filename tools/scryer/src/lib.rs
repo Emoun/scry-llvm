@@ -287,9 +287,9 @@ impl Stats {
             Instruction::Load(_, offset) => {
                 *self.load_ref.entry((offset.value as u64) & 0x1f).or_insert(0) += 1;
             }
-            Instruction::LoadStack(_, _) => {
-                *self.load_ref.entry(0).or_insert(0) += 1;
-            }
+            // Slot loads are built right in front of their consumer by design;
+            // their distance says nothing, so they are left out of load_ref.
+            Instruction::LoadStack(_, _) => {}
             _ => {}
         }
     }
