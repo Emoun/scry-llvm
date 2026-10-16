@@ -29,7 +29,14 @@ register file for Scry, so the backend keeps values in memory instead.
    registers of the classes `GR8`, `GR16`, `GR32`, `GR64` (i1 is promoted to
    i8).  i64 is a legal type because the ISA handles 8-byte scalars
    natively.  No floating-point types are legal: all FP operations become
-   compiler-rt soft-float calls.
+   compiler-rt soft-float calls.  The inliner's threshold is doubled for
+   Scry (`ScryTargetTransformInfo`, `-mllvm -scry-inline-multiplier`): a
+   call costs about eight instructions of its own and empties the
+   in-flight state.  Loop strength reduction is told that only a plain
+   base address is free: declaring `base + index * size` free as well
+   (the indexed `ld`/`st` form) was measured and made the array loops
+   worse, since the pointer increments it replaces keep the induction
+   variable in flight while the indexed form rebuilds the index.
 
 2. **Register allocation never runs.**  Like the WebAssembly backend, the
    pass pipeline overrides `createTargetRegisterAllocator` to return
