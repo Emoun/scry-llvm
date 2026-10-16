@@ -16,6 +16,7 @@ import collections
 import os
 import pathlib
 import re
+import signal
 import subprocess
 import sys
 
@@ -45,6 +46,8 @@ def classify(line):
 
 
 def main():
+    if hasattr(signal, "SIGPIPE"):  # a closed pipe (| head) ends the output quietly
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--clang", default=str(ROOT / "build" / "llvm" / "bin" / ("clang" + EXE)))
