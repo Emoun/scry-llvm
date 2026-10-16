@@ -55,10 +55,42 @@ runtime library of the time):
 5. constants and addresses hoisted out of loops by machine LICM and
    rebuilt, slotted or carried in flight by cost; PC-relative symbol
    chains of three instructions; indexed loads and stores; the frame
-   ordered by hotness; slot values loaded once per block.
+   ordered by hotness; slot values loaded once per block;
+6. the emitter hops exactly the outputs that would expire (iterating to
+   a fixed point) instead of one per pending output, which removed most
+   `dup; echo; echo` triples (-8.3% instructions, a third of the echoes);
+   a doubled inlining threshold (-2.2%); word-wise copy and fill routines
+   in the runtime (-3.8%; tarfind -33%, statemate -10%); zero extensions of values in flight dropped
+   where the consumer takes the wider type anyway (-0.7%); and a
+   scheduler rule keeping the consumers of a load's result behind other
+   ready work (mean `ld` reference 6.1 to 6.4 for +0.3% dataflow
+   instructions).  Each figure is against the same build with that one
+   change off.
+
+Measured in the same way and not kept: tail-duplicating small branch
+blocks (LLVM's own size limit and a dedicated pass in SSA form; +0.0 to
+0.1% instructions, mean jump distance +0.1: the jumps that trigger at
+themselves sit in blocks that only carry values on, not in blocks that
+compute a condition); colouring landing positions by need (1% fewer
+`nop`s but +0.02% instructions, the freed positions costing hops
+elsewhere); scheduling the last in-block use of a delivered value late
+(+0.06%, distances unchanged); telling loop strength reduction that the
+indexed addressing form `base + index * size` is free (total unchanged,
+non-dataflow instructions +1.6%: matmult-int +7% with its loads losing
+their distance, md5sum -7%).  Global-pointer-relative addressing was
+estimated rather than built: with the image at 0x100000 a symbol
+address costs three instructions, and `ld [gp, idx]` would need one or
+two for the index plus a `dup` to keep the pointer in flight per use,
+so it converts about one non-dataflow instruction per global access
+into a dataflow one without reducing the count.
 
 What remains is largely inherent to the instruction set as the simulator
 implements it: an immediate costs a `const` (plus a `grow` per further
 byte), a symbol address three instructions, a shift by a constant two,
-a narrow load that is widened a `cast`; and every value used more than
-once or further than 31 instructions away costs a `dup` or an `echo`.
+a narrow load that is widened a `cast` where the width matters; and
+every value used more than once or further than 31 instructions away
+costs a `dup` or an `echo`.  Of the remaining dataflow instructions
+(static, over the Embench sources) landing pads are a third (two
+positions in five a `nop`), copies, hops and ordering fixups inside
+expansions about 58%, deliveries to successors 6%
+(`scripts/df_roles.py`).
