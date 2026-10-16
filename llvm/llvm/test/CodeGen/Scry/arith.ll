@@ -46,11 +46,13 @@ define i8 @urem8(i8 %a, i8 %b) {
 
 ; CHECK-LABEL: ashr32:
 ; Arithmetic shifts re-tag the value as signed and negate the amount: the
-; amount rides through the const 0 so that the sub sees [0, n].
+; amount rides through the const 0 so that the sub sees [0, n].  The result
+; leaves the function, so it gets its unsigned tag back.
 ; CHECK: cast i32, =>0
 ; CHECK-NEXT: const i32, 0
 ; CHECK-NEXT: sub Low =>{{[0-9]+}}
-; CHECK: sh Low =>1
+; CHECK: sh Low =>0
+; CHECK-NEXT: cast u32, =>1
 define i32 @ashr32(i32 %a, i32 %n) {
   %r = ashr i32 %a, %n
   ret i32 %r

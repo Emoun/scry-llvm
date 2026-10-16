@@ -314,7 +314,12 @@ per block.
   Data layout: `e-m:e-p:32:32-i64:64-i128:128-n8:16:32:64-S128`.
 * All values are tagged unsigned in flight; signed operations re-tag their
   inputs with `cast` where it matters (signed compares, arithmetic shifts,
-  sign extension).  Signed division uses compiler-rt (`__divsi3` etc.)
+  sign extension).  A shift's result has the type of its first operand, so
+  an arithmetic shift leaves a signed-tagged value; it is cast back to
+  unsigned when a use would see the difference (a widening cast, a compare
+  against an unsigned value, a logical shift, a division, or any use in
+  another block), and left as it is for same-width arithmetic, which
+  treats mixed signedness as unsigned anyway.  Signed division uses compiler-rt (`__divsi3` etc.)
   because the ISA's division is Euclidean, not truncating.
 * Argument passing: the first four scalar arguments travel as operands of
   the call trigger in order; further named scalar arguments go on the

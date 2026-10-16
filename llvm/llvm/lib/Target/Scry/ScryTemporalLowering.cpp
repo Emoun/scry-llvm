@@ -1501,6 +1501,49 @@ void ScryTemporalLowering::expandBinary(MachineInstr &MI, unsigned RealOpc) {
 
 /// Logical / arithmetic right shift: the shift amount must be a negative
 /// signed value, so compute 0 - n (as i32).
+/// A shift's result has the type of its first operand, so an arithmetic
+/// shift (whose operand is cast signed) produces a signed-tagged value.
+/// Same-width arithmetic treats it like any other (mixed signedness makes
+/// both operands unsigned), but a widening cast would sign-extend it, a
+/// compare against an unsigned value would use its signed logical value, a
+/// logical shift would fill with the sign, and anything leaving the block
+/// is beyond tracking.  Such uses need the tag put back by a cast.
+static bool ashrResultNeedsUnsignedTag(const MachineInstr &MI,
+                                       const MachineRegisterInfo &MRI) {
+  Register D = MI.getOperand(0).getReg();
+  for (const MachineInstr &Use : MRI.use_nodbg_instructions(D)) {
+    if (Use.getParent() != MI.getParent())
+      return true;
+    switch (Use.getOpcode()) {
+    case Scry::ADD_GR8: case Scry::ADD_GR16: case Scry::ADD_GR32: case Scry::ADD_GR64:
+    case Scry::SUB_GR8: case Scry::SUB_GR16: case Scry::SUB_GR32: case Scry::SUB_GR64:
+    case Scry::MUL_GR8: case Scry::MUL_GR16: case Scry::MUL_GR32: case Scry::MUL_GR64:
+    case Scry::AND_GR8: case Scry::AND_GR16: case Scry::AND_GR32: case Scry::AND_GR64:
+    case Scry::OR_GR8: case Scry::OR_GR16: case Scry::OR_GR32: case Scry::OR_GR64:
+    case Scry::XOR_GR8: case Scry::XOR_GR16: case Scry::XOR_GR32: case Scry::XOR_GR64:
+    case Scry::SEXT_8_16: case Scry::SEXT_8_32: case Scry::SEXT_8_64:
+    case Scry::SEXT_16_32: case Scry::SEXT_16_64: case Scry::SEXT_32_64:
+    case Scry::SEXTINREG_16: case Scry::SEXTINREG_32: case Scry::SEXTINREG_64:
+    case Scry::TRUNC_16_8: case Scry::TRUNC_32_8: case Scry::TRUNC_64_8:
+    case Scry::TRUNC_32_16: case Scry::TRUNC_64_16: case Scry::TRUNC_64_32:
+    case Scry::ASHR_GR8: case Scry::ASHR_GR16: case Scry::ASHR_GR32: case Scry::ASHR_GR64:
+    case Scry::CMP_SLT_GR8: case Scry::CMP_SLT_GR16: case Scry::CMP_SLT_GR32: case Scry::CMP_SLT_GR64:
+    case Scry::CMP_SLE_GR8: case Scry::CMP_SLE_GR16: case Scry::CMP_SLE_GR32: case Scry::CMP_SLE_GR64:
+    case Scry::CMP_SGT_GR8: case Scry::CMP_SGT_GR16: case Scry::CMP_SGT_GR32: case Scry::CMP_SGT_GR64:
+    case Scry::CMP_SGE_GR8: case Scry::CMP_SGE_GR16: case Scry::CMP_SGE_GR32: case Scry::CMP_SGE_GR64:
+      break;
+    case Scry::ST_8: case Scry::ST_16: case Scry::ST_32: case Scry::ST_64:
+    case Scry::STX_8: case Scry::STX_16: case Scry::STX_32: case Scry::STX_64:
+      if (Use.getOperand(0).getReg() != D)
+        return true; // as an address: zero-extended by the ISA, but keep it simple
+      break;
+    default:
+      return true;
+    }
+  }
+  return false;
+}
+
 void ScryTemporalLowering::expandRightShift(MachineInstr &MI,
                                             bool Arithmetic) {
   Register D = MI.getOperand(0).getReg();
@@ -1533,7 +1576,14 @@ void ScryTemporalLowering::expandRightShift(MachineInstr &MI,
     Shifted = Operand::flight(TS);
   }
   int Sh = consume(Scry::SH_L, {Shifted, Neg}, {0});
-  produce(V, Sh, 0, 31);
+  if (Arithmetic && ashrResultNeedsUnsignedTag(MI, *MRI)) {
+    unsigned TR = newValue(1);
+    produce(TR, Sh, 0, 31);
+    Sh = consume(Scry::CAST, {Operand::flight(TR)}, {(int64_t)utype(D), 0});
+    produce(V, Sh, 1, 31);
+  } else {
+    produce(V, Sh, 0, 31);
+  }
   defineResult(MI, V);
 }
 
