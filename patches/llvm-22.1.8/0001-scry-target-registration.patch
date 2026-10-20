@@ -75,7 +75,7 @@ index db06584d7..e0b8ed583 100644
  createNVPTXTargetCodeGenInfo(CodeGenModule &CGM);
  
 diff --git a/clang/lib/Driver/ToolChains/BareMetal.cpp b/clang/lib/Driver/ToolChains/BareMetal.cpp
-index 6574651b7..d58402138 100644
+index 6574651b7..acfe2a2f4 100644
 --- a/clang/lib/Driver/ToolChains/BareMetal.cpp
 +++ b/clang/lib/Driver/ToolChains/BareMetal.cpp
 @@ -46,6 +46,10 @@ static bool isRISCVBareMetal(const llvm::Triple &Triple) {
@@ -109,6 +109,19 @@ index 6574651b7..d58402138 100644
  }
  
  void BareMetal::addLibStdCxxIncludePaths(
+@@ -641,6 +649,12 @@ void baremetal::Linker::ConstructJob(Compilation &C, const JobAction &JA,
+     CmdArgs.push_back(Arch == llvm::Triple::aarch64_be ? "-EB" : "-EL");
+   }
+ 
++  // Scry: the runtime archives are built with one section per function, and
++  // every Scry instruction is two bytes of code the simulator must hold, so
++  // drop unreferenced sections unless asked otherwise.
++  if (Triple.isScry() && !Args.hasArg(options::OPT_r))
++    CmdArgs.push_back("--gc-sections");
++
+   bool NeedCRTs =
+       !Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles);
+ 
 diff --git a/clang/lib/Driver/ToolChains/BareMetal.h b/clang/lib/Driver/ToolChains/BareMetal.h
 index d3d415b33..62c87fca9 100644
 --- a/clang/lib/Driver/ToolChains/BareMetal.h

@@ -30,9 +30,12 @@ def run(cmd, **kw):
 
 
 def compile_one(clang, src, obj, extra):
-    run([clang, "--target=" + TRIPLE, "-c", "-O1", "-ffreestanding",
-         "-fno-builtin", "-nostdlib", "-Wno-unused-command-line-argument",
-         *extra, "-o", obj, src])
+    # One section per function and per object, so that the linker's
+    # --gc-sections (the Scry driver's default) keeps only what a program
+    # references: an archive member is a whole source file otherwise.
+    run([clang, "--target=" + TRIPLE, "-c", "-O2", "-ffreestanding",
+         "-fno-builtin", "-nostdlib", "-ffunction-sections", "-fdata-sections",
+         "-Wno-unused-command-line-argument", *extra, "-o", obj, src])
 
 
 def archive(ar, out, objs):

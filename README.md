@@ -71,6 +71,10 @@ echo $?        # exit code = low byte of main's return value
 
 * The full triple `scry32-unknown-none-elf` must be given; the driver uses
   it to locate the runtime under `<prefix>/lib/clang-runtimes/<triple>`.
+* The driver links with `--gc-sections` by default and the runtime is
+  built with one section per function, so an image only carries the
+  runtime functions it references (an empty `main` is 40 bytes of code);
+  `-Wl,--no-gc-sections` keeps everything.
 * `-S` emits assembly in the syntax of the reference `scry_asm` assembler,
   with comments showing the original virtual instructions
   (`clang --target=scry32-unknown-none-elf -S -O2 hello.c`).

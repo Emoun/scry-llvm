@@ -370,6 +370,11 @@ per block.
 * The ELF entry is `_start` (in `crt0`), which calls `main` and returns its
   value; the simulator uses the low byte as the exit code.  `exit()` cannot
   unwind the Scry call stack and therefore records the status and traps.
+* The runtime archives are compiled at `-O2` with one section per function
+  and per object, and the driver links with `--gc-sections`, so an image
+  carries only the runtime code and data it references (without this an
+  archive member is a whole source file: one call into `stdlib.c` pulled
+  in 17 KB of code, the soft-float routines behind `strtod` included).
 
 ## 4. Limitations (current)
 
