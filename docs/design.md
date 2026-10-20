@@ -336,7 +336,12 @@ per block.
   Data layout: `e-m:e-p:32:32-i64:64-i128:128-n8:16:32:64-S128`.
 * All values are tagged unsigned in flight; signed operations re-tag their
   inputs with `cast` where it matters (signed compares, arithmetic shifts,
-  sign extension).  A shift's result has the type of its first operand, so
+  sign extension).  A constant operand of a signed compare is built with
+  the signed type (`const i32, v`) instead of being cast; a value operand
+  is always cast, because the simulator converts a mixed signed/unsigned
+  pair to unsigned before comparing.  A right shift by one is a one-input
+  `div` (its implicit divisor is 2, and the Euclidean quotient is the
+  floor, as for the shift).  A shift's result has the type of its first operand, so
   an arithmetic shift leaves a signed-tagged value; it is cast back to
   unsigned when a use would see the difference (a widening cast, a compare
   against an unsigned value, a logical shift, a division, or any use in

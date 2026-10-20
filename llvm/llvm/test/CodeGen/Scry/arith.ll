@@ -120,9 +120,10 @@ define i32 @zext_add_one(ptr %p) {
 
 ; CHECK-LABEL: ashr_zext:
 ; An arithmetic shift leaves its result tagged signed; widening it must
-; zero-extend, so the result is cast back to unsigned first.
+; zero-extend, so the result is cast back to unsigned first.  A shift by
+; one is a one-input division by two (floor division, like the shift).
 ; CHECK: cast i8
-; CHECK: sh Low
+; CHECK-NEXT: div Low
 ; CHECK-NEXT: cast u8
 ; CHECK: cast u32
 define i32 @ashr_zext(ptr %p) {
@@ -130,4 +131,25 @@ define i32 @ashr_zext(ptr %p) {
   %s = ashr i8 %b, 1
   %z = zext i8 %s to i32
   ret i32 %z
+}
+
+; CHECK-LABEL: slt_const:
+; A signed compare against a constant builds the constant with the signed
+; type instead of casting it; the value operand is still cast.
+; CHECK: cast i32
+; CHECK-NEXT: const i32, 5
+; CHECK-NEXT: lt
+define i8 @slt_const(i32 %a) {
+  %c = icmp slt i32 %a, 5
+  %r = zext i1 %c to i8
+  ret i8 %r
+}
+
+; CHECK-LABEL: lshr_one:
+; A logical shift right by one is a one-input division by two.
+; CHECK: div Low
+; CHECK-NOT: sh Low
+define i32 @lshr_one(i32 %a) {
+  %r = lshr i32 %a, 1
+  ret i32 %r
 }

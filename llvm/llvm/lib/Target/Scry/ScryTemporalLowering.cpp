@@ -1585,6 +1585,31 @@ void ScryTemporalLowering::expandRightShift(MachineInstr &MI,
   Operand NOp = operandFor(MI.getOperand(2));
   unsigned V = defineValue(D, MI);
 
+  // A shift right by one is a division by two: div's implicit second
+  // operand is 2, and the ISA's division is Euclidean, i.e. floor division
+  // for a positive divisor, which is what an arithmetic shift computes for
+  // a negative value too.  One instruction instead of const + sh.
+  if (NOp.K == Operand::Const && (NOp.Imm & (NOp.Scale == 8 ? ~0ull : ((1ull << (8 * NOp.Scale)) - 1))) == 1) {
+    Operand In = ValOp;
+    if (Arithmetic) {
+      unsigned TS = newValue(1);
+      int SC = consume(Scry::CAST, {ValOp}, {(int64_t)stype(A), 0});
+      produce(TS, SC, 1, 31);
+      In = Operand::flight(TS);
+    }
+    int Dv = consume(Scry::DIV_L, {In}, {0});
+    if (Arithmetic && ashrResultNeedsUnsignedTag(MI, *MRI)) {
+      unsigned TR = newValue(1);
+      produce(TR, Dv, 0, 31);
+      Dv = consume(Scry::CAST, {Operand::flight(TR)}, {(int64_t)utype(D), 0});
+      produce(V, Dv, 1, 31);
+    } else {
+      produce(V, Dv, 0, 31);
+    }
+    defineResult(MI, V);
+    return;
+  }
+
   // The amount as a negative i32: a constant directly, else 0 - n.
   Operand Neg;
   if (NOp.K == Operand::Const) {
@@ -1685,16 +1710,22 @@ void ScryTemporalLowering::expandCompare(MachineInstr &MI, unsigned First,
   // Comparing against zero: the implicit second operand is zero.
   bool ZeroB = OB.K == Operand::Const && OB.Imm == 0;
   if (Signed) {
-    unsigned TA = newValue(1);
-    int CA = consume(Scry::CAST, {OA}, {(int64_t)stype(A), 0});
-    produce(TA, CA, 1, 31);
-    OA = Operand::flight(TA);
-    if (!ZeroB) {
-      unsigned TB = newValue(1);
-      int CB = consume(Scry::CAST, {OB}, {(int64_t)stype(B), 0});
-      produce(TB, CB, 1, 31);
-      OB = Operand::flight(TB);
-    }
+    // Both operands must carry the signed type (the simulator converts a
+    // mixed pair to unsigned before comparing); a constant is built signed
+    // directly instead of being cast.
+    auto Prepare = [&](Operand &O, Register R) {
+      if (O.K == Operand::Const) {
+        O.TypeCode = stype(R);
+        return;
+      }
+      unsigned T = newValue(1);
+      int C = consume(Scry::CAST, {O}, {(int64_t)stype(R), 0});
+      produce(T, C, 1, 31);
+      O = Operand::flight(T);
+    };
+    Prepare(OA, A);
+    if (!ZeroB)
+      Prepare(OB, B);
   }
   int Cmp = ZeroB ? consume(First, {OA}, {0}) : consume(First, {OA, OB}, {0});
   if (Negate) {
