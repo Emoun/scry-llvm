@@ -32,7 +32,14 @@ register file for Scry, so the backend keeps values in memory instead.
    compiler-rt soft-float calls.  The inliner's threshold is doubled for
    Scry (`ScryTargetTransformInfo`, `-mllvm -scry-inline-multiplier`): a
    call costs about eight instructions of its own and empties the
-   in-flight state.  Loop strength reduction is told that only a plain
+   in-flight state.  Innermost loops with few loop-carried values and a
+   small body are unrolled (`getUnrollingPreferences`: factor
+   `-scry-unroll-count`, at most `-scry-unroll-max-phis` header PHIs and
+   `-scry-unroll-max-body` instructions, run-time trip counts included),
+   since every iteration pays its loop-carried values' landing pads and
+   deliveries, the induction update, the compare and the jump on top of
+   its body; loops with more state are left alone because the doubled
+   state would no longer travel in flight.  Loop strength reduction is told that only a plain
    base address is free: declaring `base + index * size` free as well
    (the indexed `ld`/`st` form) was measured and made the array loops
    worse, since the pointer increments it replaces keep the induction

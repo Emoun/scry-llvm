@@ -42,6 +42,10 @@ public:
 
   unsigned getInliningThresholdMultiplier() const override;
 
+  void getUnrollingPreferences(Loop *L, ScalarEvolution &SE,
+                               TTI::UnrollingPreferences &UP,
+                               OptimizationRemarkEmitter *ORE) const override;
+
   unsigned getNumberOfRegisters(unsigned ClassID) const override {
     // Vectors are never legal; scalars live in flight or in frame slots.
     return ClassID == 1 ? 0 : 32;
