@@ -25,6 +25,7 @@ import json
 import os
 import pathlib
 import re
+import struct
 import subprocess
 import sys
 import time
@@ -48,6 +49,19 @@ def hist_mean(h):
     """Mean of a {value: count} histogram."""
     n = sum(h.values())
     return sum(int(k) * v for k, v in h.items()) / n if n else 0.0
+
+
+def text_size(elf):
+    """Bytes of the executable sections of a 32-bit little-endian ELF file."""
+    with open(elf, "rb") as f:
+        data = f.read()
+    shoff, shentsize, shnum = struct.unpack_from("<I", data, 32)[0], *struct.unpack_from("<HH", data, 46)
+    total = 0
+    for i in range(shnum):
+        sh_type, sh_flags, _, _, sh_size = struct.unpack_from("<IIIII", data, shoff + i * shentsize + 4)
+        if sh_type == 1 and sh_flags & 0x4:  # PROGBITS, SHF_EXECINSTR
+            total += sh_size
+    return total
 
 
 def find_default(candidates):
@@ -81,6 +95,9 @@ def main():
                          "metrics of the benchmark() window")
     ap.add_argument("--metrics-bin", help="path to scryer-metrics (default: next to scryer)")
     ap.add_argument("--json", help="write all per-benchmark metrics to this JSON file")
+    ap.add_argument("--profile", action="store_true",
+                    help="with --metrics: also write the execution count of every instruction "
+                         "address in the window to build/embench/<name>.profile.json")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--cflags", action="append", default=[],
                     help="extra compiler flag (repeatable; use --cflags=-mllvm --cflags=-x)")
@@ -146,6 +163,7 @@ def main():
             return ("compile-error", 0, 0, None,
                     [f"FAIL {name}: compile error\n{r.stderr[-3000:]}"])
         size = elf.stat().st_size
+        text = text_size(elf)
         run = subprocess.run([str(scryer), str(elf), "--target=" + TRIPLE,
                               "--machine-mode", f"--timeout={args.timeout}"],
                              capture_output=True, text=True)
@@ -158,13 +176,17 @@ def main():
         metrics_text = ""
         if args.metrics and run.returncode == 0:
             jpath = outdir / (name + ".metrics.json")
-            subprocess.run([str(metrics_bin), str(elf), "--target=" + TRIPLE,
-                            f"--timeout={args.timeout}", "--window-start", "start_trigger",
-                            "--window-stop", "stop_trigger", "--json", str(jpath)],
-                           capture_output=True, text=True)
+            cmd = [str(metrics_bin), str(elf), "--target=" + TRIPLE,
+                   f"--timeout={args.timeout}", "--window-start", "start_trigger",
+                   "--window-stop", "stop_trigger", "--json", str(jpath)]
+            if args.profile:
+                cmd += ["--profile", str(outdir / (name + ".profile.json"))]
+            subprocess.run(cmd, capture_output=True, text=True)
             if jpath.exists():
                 with open(jpath) as f:
                     metrics = json.load(f)
+                metrics["static_text_bytes"] = text
+                metrics["static_instructions"] = text // 2
                 w = metrics["window"]
                 instrs = w["instructions"]
                 metrics_text = (f" {instrs:11,d} {instrs - w['dataflow']:11,d} "
@@ -177,7 +199,7 @@ def main():
         if args.metrics:
             lines.append(f"{status:14} {name:18}{metrics_text}")
         else:
-            lines.append(f"{status:14} {name:18} elf={size:8d}B  {elapsed:6.1f}s")
+            lines.append(f"{status:14} {name:18} elf={size:8d}B text={text:7d}B  {elapsed:6.1f}s")
         if status.startswith("XFAIL"):
             lines.append(f"               (expected: {XFAIL[name]})")
         elif run.returncode != 0 and run.stderr.strip():

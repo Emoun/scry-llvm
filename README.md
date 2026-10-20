@@ -127,8 +127,15 @@ simulator counts: `scripts/df_roles.py <source.c or .s>...` breaks the
 dataflow instructions of the generated assembly down by role (landing
 pads and how many of them are `nop`s, deliveries to successors, jump
 conditions, call arguments, hops and ordering fixups), and `clang -mllvm
--stats` prints the lowering's own counters (near and far jumps, hops,
-dups, elided casts, slot traffic) for a compilation.
+-stats` prints the lowering's own counters (near and far jumps, reach
+hops, ordering fixups, captures, dups, elided casts, slot traffic) for a
+compilation.  `scryer-metrics --profile p.json` (or `run_embench.py
+--metrics --profile`) writes the execution count of every instruction
+address in the window, which `df_roles.py --profile p.json --elf image
+sources...` uses to weight the roles by how often each instruction ran
+and to report the share executed in the runtime library.
+`scripts/rv32_metrics.py` counts the same window on rv32imac images under
+Spike, in instructions and in bytes (compressed instructions are two).
 
 `docs/perf-results.md` records the numbers of the current backend per
 benchmark, next to those of the correctness-first baseline

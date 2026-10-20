@@ -108,7 +108,9 @@ STATISTIC(NumNearJumps, "Number of single-instruction (near) jumps");
 STATISTIC(NumFarJumps, "Number of two-operand (far) jumps");
 STATISTIC(NumJumpNegations, "Number of jump conditions negated with eq");
 STATISTIC(JumpTrigDistance, "Sum of jump issue-to-trigger distances");
-STATISTIC(NumHops, "Number of echo hops (reach, ordering, capture)");
+STATISTIC(NumReachHops, "Number of echo hops carrying a value further");
+STATISTIC(NumOrderingFixups, "Number of echoes reordering a consumer's operands");
+STATISTIC(NumCaptures, "Number of echoes capturing a next-only value");
 STATISTIC(NumDups, "Number of dup copies");
 STATISTIC(NumSlotLoads, "Number of slot loads");
 STATISTIC(NumSlotStores, "Number of slot stores");
@@ -284,7 +286,7 @@ private:
   DenseSet<Register> NarrowRegs; // registers holding a narrower value than their class
   unsigned ElidedBefore = 0; // casts elided in the functions already done (for the limit)
   DenseMap<Register, const MachineInstr *> Remat; // constants built at use
-  unsigned FnHops = 0, FnDups = 0, FnSlotLoads = 0, FnSlotStores = 0,
+  unsigned FnReachHops = 0, FnFixups = 0, FnCaptures = 0, FnDups = 0, FnSlotLoads = 0, FnSlotStores = 0,
            FnElidedCasts = 0;
 
   unsigned newValue(unsigned Uses) {
@@ -697,7 +699,7 @@ void ScryTemporalLowering::produce(unsigned V, int ItemIdx, int RefOp,
   if (RefOp < 0) {
     int H = emit(Scry::ECHOL, {0});
     bindOutput(O, H);
-    ++FnHops;
+    ++FnCaptures;
     VS.Pending.push_back({H, 0, 1023});
     return;
   }
@@ -710,7 +712,7 @@ void ScryTemporalLowering::hopValue(unsigned V, unsigned Idx) {
   Output O = VS.Pending[Idx];
   int H = emit(Scry::ECHOL, {0});
   bindOutput(O, H);
-  ++FnHops;
+  ++FnReachHops;
   VS.Pending[Idx] = {H, 0, 1023};
 }
 
@@ -985,7 +987,7 @@ int ScryTemporalLowering::prepareOperands(ArrayRef<Operand> Ops, unsigned Gap,
         int H = emit(Scry::ECHO, {0, 0});
         bindOutput(Chosen[i], H);
         bindOutput(Chosen[i + 1], H);
-        ++FnHops;
+        ++FnFixups;
         ToBind.push_back({H, 0});
         ToBind.push_back({H, 1});
         i += 2;
@@ -997,7 +999,7 @@ int ScryTemporalLowering::prepareOperands(ArrayRef<Operand> Ops, unsigned Gap,
       int H = emit(Scry::ECHOL, {0});
       for (unsigned k = i; k != j; ++k)
         bindOutput(Chosen[k], H);
-      ++FnHops;
+      ++FnFixups;
       ToBind.push_back({H, 0});
       i = j;
       continue;
@@ -1010,7 +1012,7 @@ int ScryTemporalLowering::prepareOperands(ArrayRef<Operand> Ops, unsigned Gap,
       emitChain(Ops[i], Last);
       int H = emit(Scry::ECHO, {0, 0});
       bindOutput(Chosen[i + 1], H);
-      ++FnHops;
+      ++FnCaptures;
       ToBind.push_back({H, 0});
       ToBind.push_back({H, 1});
       i += 2;
@@ -1054,7 +1056,7 @@ int ScryTemporalLowering::prepareOperands(ArrayRef<Operand> Ops, unsigned Gap,
       ToBind.push_back({Last, chainRefOp(Ops[i])});
     } else {
       int H = emit(Scry::ECHOL, {0});
-      ++FnHops;
+      ++FnCaptures;
       ToBind.push_back({H, 0});
     }
     i = q;
@@ -2286,7 +2288,7 @@ void ScryTemporalLowering::deliverContract(MachineBasicBlock &MBB) {
       int Last;
       emitChain(Op, Last);
       int H = emit(Scry::ECHOL, {0});
-      ++FnHops;
+      ++FnCaptures;
       O = Output{H, 0, 1023};
     }
     // Hop right away if the output could not reach its position even in
@@ -2294,7 +2296,7 @@ void ScryTemporalLowering::deliverContract(MachineBasicBlock &MBB) {
     if (Cur->refValue(O.Item, Worst + 1 + (int)Pos, false) > O.Reach) {
       int H = emit(Scry::ECHOL, {0});
       bindOutput(O, H);
-      ++FnHops;
+      ++FnReachHops;
       O = Output{H, 0, 1023};
     }
     Deliveries.push_back({Pos, O});
@@ -2559,7 +2561,7 @@ bool ScryTemporalLowering::expandFunction() {
   JumpOnlyCompares.clear();
   JumpOnlyInfo.clear();
   FnNearJumps = FnFarJumps = FnNegations = 0;
-  FnHops = FnDups = FnSlotLoads = FnSlotStores = FnElidedCasts = 0;
+  FnReachHops = FnFixups = FnCaptures = FnDups = FnSlotLoads = FnSlotStores = FnElidedCasts = 0;
   Blocks.reserve(MF->size());
   for (MachineBasicBlock &MBB : *MF) {
     Blocks.push_back(BlockSeq{&MBB, {}, {}, 0});
@@ -2717,7 +2719,9 @@ bool ScryTemporalLowering::expandFunction() {
   NumNearJumps += FnNearJumps;
   NumFarJumps += FnFarJumps;
   NumJumpNegations += FnNegations;
-  NumHops += FnHops;
+  NumReachHops += FnReachHops;
+  NumOrderingFixups += FnFixups;
+  NumCaptures += FnCaptures;
   NumDups += FnDups;
   NumElidedCasts += FnElidedCasts;
   ElidedBefore += FnElidedCasts;

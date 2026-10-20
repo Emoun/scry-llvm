@@ -98,6 +98,11 @@ pub struct Cli {
     #[clap(long)]
     json: Option<std::path::PathBuf>,
 
+    /// Write the execution count of every instruction address in the window
+    /// (the whole run without a window) as JSON to this file.
+    #[clap(long)]
+    profile: Option<std::path::PathBuf>,
+
     /// Print every executed instruction with its ready operands (to stderr).
     #[clap(long)]
     trace: bool,
@@ -550,6 +555,7 @@ pub fn run(args: Cli, mut stdout: impl Write, _stderr: impl Write) -> i32 {
     let mut window = Stats::default();
     let mut in_window = false;
     let mut window_done = false;
+    let mut profile: BTreeMap<usize, u64> = BTreeMap::new();
 
     // The executor's constructor executes the entry instruction itself:
     // count it before the loop.
@@ -615,6 +621,19 @@ pub fn run(args: Cli, mut stdout: impl Write, _stderr: impl Write) -> i32 {
                         js.push_str("}}\n");
                         std::fs::write(path, js).unwrap();
                     }
+                    if let Some(path) = &args.profile {
+                        let mut js = String::from("{");
+                        let mut first = true;
+                        for (pc, n) in &profile {
+                            if !first {
+                                js.push(',');
+                            }
+                            first = false;
+                            js.push_str(&format!("\"{:#x}\":{}", pc, n));
+                        }
+                        js.push_str("}\n");
+                        std::fs::write(path, js).unwrap();
+                    }
                     return 0;
                 }
             }
@@ -646,6 +665,9 @@ pub fn run(args: Cli, mut stdout: impl Write, _stderr: impl Write) -> i32 {
             total.count(&instr, ready);
             if in_window {
                 window.count(&instr, ready);
+            }
+            if args.profile.is_some() && (in_window || win_start.is_none()) {
+                *profile.entry(a).or_insert(0) += 1;
             }
             if args.trace && (args.trace_limit == 0 || total.instructions < args.trace_limit) {
                 let ops: Vec<String> = state

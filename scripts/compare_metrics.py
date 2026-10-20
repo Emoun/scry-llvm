@@ -37,10 +37,15 @@ def main():
     if not names:
         sys.exit("no benchmark present in both files")
 
+    # Static code size (bytes of .text, two per instruction) when both files
+    # record it (run_embench.py --json does).
+    have_static = all("static_text_bytes" in base[n] and "static_text_bytes" in new[n]
+                      for n in names)
     print(f"{'benchmark':18} {'instructions':>27} {'ratio':>6} {'non-DF':>27} {'ratio':>6} "
-          f"{'DF%':>11} {'jmp':>11} {'ld':>11} {'flight':>13}")
+          f"{'DF%':>11} {'jmp':>11} {'ld':>11} {'flight':>13}"
+          + (f" {'static bytes':>17} {'ratio':>6}" if have_static else ""))
     ratios, ratios_ndf = [], []
-    tb = tn = tbd = tnd = 0
+    tb = tn = tbd = tnd = tsb = tsn = 0
     for n in names:
         b, a = base[n][key], new[n][key]
         bi, ai = b["instructions"], a["instructions"]
@@ -48,17 +53,24 @@ def main():
         tb += bi; tn += ai; tbd += bn; tnd += an
         ratios.append(ai / bi if bi else 1.0)
         ratios_ndf.append(an / bn if bn else 1.0)
-        print(f"{n:18} {bi:12,d} -> {ai:12,d} {ai / max(bi, 1):6.2f} {bn:12,d} -> {an:12,d} "
-              f"{an / max(bn, 1):6.2f} "
-              f"{100 * b['dataflow'] / max(bi, 1):4.1f}->{100 * a['dataflow'] / max(ai, 1):4.1f} "
-              f"{hist_mean(b['jmp_trigger']):4.1f}->{hist_mean(a['jmp_trigger']):4.1f} "
-              f"{hist_mean(b['load_ref']):4.1f}->{hist_mean(a['load_ref']):4.1f} "
-              f"{b['inflight_frame_mean']:4.1f}/{b['inflight_frame_max']}->"
-              f"{a['inflight_frame_mean']:4.1f}/{a['inflight_frame_max']}")
+        line = (f"{n:18} {bi:12,d} -> {ai:12,d} {ai / max(bi, 1):6.2f} {bn:12,d} -> {an:12,d} "
+                f"{an / max(bn, 1):6.2f} "
+                f"{100 * b['dataflow'] / max(bi, 1):4.1f}->{100 * a['dataflow'] / max(ai, 1):4.1f} "
+                f"{hist_mean(b['jmp_trigger']):4.1f}->{hist_mean(a['jmp_trigger']):4.1f} "
+                f"{hist_mean(b['load_ref']):4.1f}->{hist_mean(a['load_ref']):4.1f} "
+                f"{b['inflight_frame_mean']:4.1f}/{b['inflight_frame_max']}->"
+                f"{a['inflight_frame_mean']:4.1f}/{a['inflight_frame_max']}")
+        if have_static:
+            sb, sn = base[n]["static_text_bytes"], new[n]["static_text_bytes"]
+            tsb += sb; tsn += sn
+            line += f" {sb:7,d} -> {sn:7,d} {sn / max(sb, 1):6.2f}"
+        print(line)
     gm = math.exp(sum(math.log(r) for r in ratios) / len(ratios))
     gmn = math.exp(sum(math.log(r) for r in ratios_ndf) / len(ratios_ndf))
     print(f"{'total':18} {tb:12,d} -> {tn:12,d} {tn / max(tb, 1):6.2f} {tbd:12,d} -> {tnd:12,d} "
-          f"{tnd / max(tbd, 1):6.2f}")
+          f"{tnd / max(tbd, 1):6.2f}"
+          + (f" {'':34} {tsb:7,d} -> {tsn:7,d} {tsn / max(tsb, 1):6.2f}" if have_static else ""))
+    print(f"executed bytes: {2 * tb:,d} -> {2 * tn:,d} (two per instruction)")
     print(f"geometric mean of per-benchmark ratios: instructions {gm:.3f}, non-dataflow {gmn:.3f}")
 
 
