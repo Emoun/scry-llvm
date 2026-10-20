@@ -399,8 +399,9 @@ per block.
 * `scry64` is registered in the triple parser but no code generation exists
   for it yet.
 * Code is still a few times larger than for a register machine (on the
-  Embench window about 2.5 instructions per rv32imac instruction, of which
-  roughly 38% are dataflow instructions).  The
+  Embench window about 2.4 instructions per rv32imac instruction, of which
+  roughly 37% are dataflow instructions; in bytes about 1.5 times, since a
+  Scry instruction is two bytes and rv32imac averages 3.2).  The
   scryer simulator's stack is fixed at 4 KB, which bounds the call depth and
   frame sizes of programs that can run.
 

@@ -140,9 +140,11 @@ Spike, in instructions and in bytes (compressed instructions are two).
 `docs/perf-results.md` records the numbers of the current backend per
 benchmark, next to those of the correctness-first baseline
 (`docs/perf-baseline.md`) and of rv32imac: on the Embench window the
-current code executes 0.26 of the baseline's instructions (0.18 of its
-non-dataflow instructions) and 2.5 times the rv32imac count (1.5 times
-for non-dataflow instructions).
+current code executes 0.24 of the baseline's instructions (0.18 of its
+non-dataflow instructions) and 2.4 times the rv32imac count (1.5 times
+for non-dataflow instructions); in instruction bytes it is 1.5 times
+rv32imac, whose instructions average 3.2 bytes with 40% of them
+compressed.
 
 ### Status
 

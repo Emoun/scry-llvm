@@ -5,7 +5,9 @@ benchmarks that run on scryer, measured like the baseline
 (`perf-baseline.md`): with `scryer-metrics` over the benchmark window
 between `start_trigger` and `stop_trigger`, runtime library included.
 The raw data is `perf-results.json`; `scripts/compare_metrics.py
-docs/perf-results.json new.json` compares a new build against it.
+docs/perf-results.json new.json` compares a new build against it.  A
+second table below gives the executed instruction bytes and the static
+code size against rv32imac.
 
 Columns: baseline and current executed instructions and their ratio;
 current non-dataflow instructions (everything but `echo`, `dup` and
@@ -19,28 +21,61 @@ counts to it.
 
 | benchmark | baseline | current | ratio | non-DF | ratio | DF | jmp dist | ld ref | in flight | rv32imac | /rv32 | non-DF/rv32 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| aha-mont64 | 24,356,988 | 6,610,084 | 0.27 | 3,845,548 | 0.19 | 42% | 17 | 11.1 | 4.7 / 18 | 5,063,219 | 1.3 | 0.8 |
+| aha-mont64 | 24,356,988 | 5,324,355 | 0.22 | 3,428,300 | 0.17 | 36% | 40 | 11.1 | 6.0 / 18 | 5,063,219 | 1.1 | 0.7 |
 | crc32 | 24,912,394 | 8,016,581 | 0.32 | 6,272,369 | 0.29 | 22% | 14 | 3.0 | 2.2 / 4 | 4,005,915 | 2.0 | 1.6 |
-| depthconv | 19,961,445 | 8,268,796 | 0.41 | 4,649,873 | 0.27 | 44% | 131 | 21.5 | 19.8 / 26 | 3,463,226 | 2.4 | 1.3 |
-| edn | 36,452,182 | 11,414,269 | 0.31 | 7,092,262 | 0.23 | 38% | 22 | 7.1 | 7.0 / 38 | 3,259,019 | 3.5 | 2.2 |
-| matmult-int | 22,864,569 | 4,818,593 | 0.21 | 2,011,441 | 0.10 | 58% | 52 | 22.2 | 36.8 / 54 | 3,237,508 | 1.5 | 0.6 |
-| md5sum | 26,396,891 | 10,267,179 | 0.39 | 5,083,530 | 0.22 | 50% | 15 | 16.5 | 8.7 / 15 | 3,121,844 | 3.3 | 1.6 |
-| nettle-aes | 31,484,596 | 8,546,952 | 0.27 | 4,231,359 | 0.16 | 50% | 94 | 23.1 | 19.3 / 31 | 4,382,897 | 2.0 | 1.0 |
-| nettle-sha256 | 69,905,081 | 10,872,175 | 0.16 | 6,396,926 | 0.11 | 41% | 166 | 16.8 | 33.0 / 57 | 5,155,822 | 2.1 | 1.2 |
-| nsichneu | 17,034,943 | 6,458,259 | 0.38 | 5,828,698 | 0.39 | 10% | 0 | 0.5 | 1.5 / 4 | 2,242,272 | 2.9 | 2.6 |
-| picojpeg | 35,334,763 | 8,775,857 | 0.25 | 5,386,678 | 0.18 | 39% | 29 | 5.9 | 9.1 / 27 | 3,209,092 | 2.7 | 1.7 |
-| qrduino | 35,476,913 | 8,346,318 | 0.24 | 4,639,849 | 0.15 | 44% | 6 | 3.6 | 5.1 / 27 | 2,816,424 | 3.0 | 1.6 |
-| sglib-combined | 40,141,033 | 10,441,056 | 0.26 | 6,817,395 | 0.19 | 35% | 5 | 1.1 | 3.6 / 8 | 2,779,205 | 3.8 | 2.5 |
-| slre | 22,370,915 | 9,255,372 | 0.41 | 6,648,027 | 0.34 | 28% | 2 | 1.5 | 3.0 / 9 | 2,718,500 | 3.4 | 2.4 |
-| statemate | 25,527,859 | 9,886,981 | 0.39 | 7,912,282 | 0.36 | 20% | 23 | 3.8 | 9.1 / 33 | 3,290,069 | 3.0 | 2.4 |
-| tarfind | 25,816,534 | 4,765,759 | 0.18 | 2,910,989 | 0.13 | 39% | 12 | 2.5 | 3.9 / 8 | 2,031,177 | 2.3 | 1.4 |
+| depthconv | 19,961,445 | 8,144,232 | 0.41 | 4,777,715 | 0.27 | 41% | 487 | 22.2 | 53.7 / 78 | 3,463,226 | 2.4 | 1.4 |
+| edn | 36,452,182 | 9,842,737 | 0.27 | 6,156,418 | 0.20 | 37% | 57 | 13.3 | 14.2 / 99 | 3,259,019 | 3.0 | 1.9 |
+| matmult-int | 22,864,569 | 3,935,333 | 0.17 | 2,160,901 | 0.11 | 45% | 378 | 16.2 | 75.6 / 115 | 3,237,508 | 1.2 | 0.7 |
+| md5sum | 26,396,891 | 9,551,541 | 0.36 | 4,707,594 | 0.21 | 51% | 20 | 16.9 | 9.3 / 21 | 3,121,844 | 3.1 | 1.5 |
+| nettle-aes | 31,484,596 | 8,349,155 | 0.27 | 4,120,582 | 0.16 | 51% | 126 | 23.1 | 19.7 / 31 | 4,382,897 | 1.9 | 0.9 |
+| nettle-sha256 | 69,905,081 | 10,678,847 | 0.15 | 6,312,064 | 0.11 | 41% | 346 | 16.8 | 33.6 / 57 | 5,155,822 | 2.1 | 1.2 |
+| nsichneu | 17,034,943 | 6,140,403 | 0.36 | 5,510,842 | 0.37 | 10% | 0 | 0.5 | 1.5 / 4 | 2,242,272 | 2.7 | 2.5 |
+| picojpeg | 35,334,763 | 8,204,717 | 0.23 | 5,039,423 | 0.17 | 39% | 44 | 5.8 | 12.9 / 33 | 3,209,092 | 2.6 | 1.6 |
+| qrduino | 35,476,913 | 7,658,528 | 0.22 | 4,425,624 | 0.15 | 42% | 6 | 3.9 | 5.1 / 66 | 2,816,424 | 2.7 | 1.6 |
+| sglib-combined | 40,141,033 | 10,335,282 | 0.26 | 6,750,650 | 0.19 | 35% | 5 | 1.1 | 3.6 / 34 | 2,779,205 | 3.7 | 2.4 |
+| slre | 22,370,915 | 9,110,952 | 0.41 | 6,503,607 | 0.33 | 29% | 2 | 1.5 | 3.0 / 9 | 2,718,500 | 3.4 | 2.4 |
+| statemate | 25,527,859 | 9,853,681 | 0.39 | 7,962,232 | 0.36 | 19% | 26 | 3.8 | 9.0 / 33 | 3,290,069 | 3.0 | 2.4 |
+| tarfind | 25,816,534 | 3,484,245 | 0.13 | 2,343,717 | 0.11 | 33% | 15 | 2.5 | 4.3 / 21 | 2,031,177 | 1.7 | 1.2 |
 | ud | 64,761,665 | 7,022,696 | 0.11 | 4,027,457 | 0.07 | 43% | 17 | 6.5 | 6.1 / 18 | 2,607,928 | 2.7 | 1.5 |
-| xgboost | 32,029,599 | 8,896,515 | 0.28 | 4,333,163 | 0.16 | 51% | 7 | 2.8 | 5.0 / 20 | 3,559,528 | 2.5 | 1.2 |
-| **total** | 554,828,370 | 142,663,442 | 0.26 | 88,087,846 | 0.18 | 38% | | | | 56,943,645 | 2.51 | 1.55 |
+| xgboost | 32,029,599 | 8,713,233 | 0.27 | 4,149,881 | 0.15 | 52% | 7 | 2.8 | 5.0 / 20 | 3,559,528 | 2.4 | 1.2 |
+| **total** | 554,828,370 | 134,366,518 | 0.24 | 84,649,376 | 0.18 | 37% | | | | 56,943,645 | 2.36 | 1.49 |
 
-Geometric means of the per-benchmark ratios: current/baseline 0.269
-(non-dataflow 0.189); current/rv32imac 2.51
-(non-dataflow 1.52).
+Geometric means of the per-benchmark ratios: current/baseline 0.250
+(non-dataflow 0.181); current/rv32imac 2.33
+(non-dataflow 1.45).
+
+### Instruction bytes and static code
+
+A Scry instruction is two bytes; rv32imac mixes two-byte compressed and
+four-byte instructions (counted from Spike's instruction log by
+`scripts/rv32_metrics.py`: an instruction is compressed when the low two
+bits of its encoding are not 11).  Columns: executed bytes on the window
+for Scry and rv32imac and their ratio; the compressed share of the
+rv32imac instructions; bytes of executable code in the linked image
+(benchmark, Embench support files and the referenced runtime, both
+toolchains linking with function sections and `--gc-sections`) and
+their ratio.
+
+| benchmark | Scry bytes | rv32imac bytes | ratio | rv32 c16 | Scry text | rv32imac text | ratio |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 10,648,710 | 16,645,756 | 0.64 | 36% | 3,116 | 1,798 | 1.73 |
+| crc32 | 16,033,162 | 11,495,140 | 1.39 | 57% | 480 | 314 | 1.53 |
+| depthconv | 16,288,464 | 11,909,014 | 1.37 | 28% | 2,158 | 482 | 4.48 |
+| edn | 19,685,474 | 10,179,178 | 1.93 | 44% | 8,456 | 10,912 | 0.77 |
+| matmult-int | 7,870,666 | 9,226,478 | 0.85 | 58% | 7,726 | 9,774 | 0.79 |
+| md5sum | 19,103,082 | 9,174,638 | 2.08 | 53% | 5,314 | 10,294 | 0.52 |
+| nettle-aes | 16,698,310 | 14,398,330 | 1.16 | 36% | 6,998 | 3,192 | 2.19 |
+| nettle-sha256 | 21,357,694 | 17,813,228 | 1.20 | 27% | 12,158 | 15,234 | 0.80 |
+| nsichneu | 12,280,806 | 8,074,614 | 1.52 | 20% | 21,450 | 16,144 | 1.33 |
+| picojpeg | 16,409,434 | 10,154,170 | 1.62 | 42% | 55,448 | 22,296 | 2.49 |
+| qrduino | 15,317,056 | 9,280,310 | 1.65 | 35% | 33,622 | 18,394 | 1.83 |
+| sglib-combined | 20,670,564 | 8,079,658 | 2.56 | 55% | 12,286 | 12,096 | 1.02 |
+| slre | 18,221,904 | 7,756,316 | 2.35 | 57% | 9,312 | 12,294 | 0.76 |
+| statemate | 19,707,362 | 11,901,482 | 1.66 | 19% | 10,630 | 15,026 | 0.71 |
+| tarfind | 6,968,490 | 6,607,914 | 1.05 | 37% | 2,918 | 9,828 | 0.30 |
+| ud | 14,045,392 | 7,743,432 | 1.81 | 52% | 4,268 | 10,206 | 0.42 |
+| xgboost | 17,426,466 | 12,098,218 | 1.44 | 30% | 1,036 | 562 | 1.84 |
+| **total** | 268,733,036 | 182,537,876 | 1.47 | 40% | 197,376 | 168,846 | 1.17 |
 
 How the count was reduced, in the order the work was done (each step's
 own figure is in its commit message, measured on the window with the
@@ -66,7 +101,15 @@ runtime library of the time):
    scheduler rule keeping the consumers of a load's result behind other
    ready work (mean `ld` reference 6.1 to 6.4 for +0.3% dataflow
    instructions).  Each figure is against the same build with that one
-   change off.
+   change off;
+7. (round 3) small innermost loops unrolled by four (-3.2%; aha-mont64
+   -18%, edn -12%, matmult-int -9%; static code +29%); the copy and
+   fill routines working eight bytes at a time with unrolled loops
+   (-1.8%; tarfind -26%, matmult-int -12%, md5sum -5%); signed compares building their constant with the signed
+   type instead of casting it, and right shifts by one as one-input
+   divisions (-0.6%; nsichneu -5%); the runtime compiled at -O2 with one
+   section per function and the driver linking with `--gc-sections`
+   (-0.3% executed; every image 17 KB of code smaller).
 
 Measured in the same way and not kept: tail-duplicating small branch
 blocks (LLVM's own size limit and a dedicated pass in SSA form; +0.0 to
@@ -84,6 +127,23 @@ address costs three instructions, and `ld [gp, idx]` would need one or
 two for the index plus a `dup` to keep the pointer in flight per use,
 so it converts about one non-dataflow instruction per global access
 into a dataflow one without reducing the count.
+
+Round 3 was measured with execution profiles (`scryer-metrics
+--profile`, attributed to the assembly with `scripts/df_roles.py`),
+which settled three more candidates without building them: far-jump
+target chains are 0.7% of the executed instructions, the upper bound of
+a layout that keeps every jump in the near form; the jumps that trigger
+at themselves (34% of jumps) are the volatile compare-and-jump blocks of
+nsichneu's state machine and the pointer chasing of sglib and slre,
+where if-conversion has nothing to convert; and the doubled inlining
+threshold costs only 1.4% of static code (ud +25%), so no size-aware
+variant is needed.  Symbol address chains are 2.5% of the executed
+instructions (crc32 and statemate 13% each), the share a two-instruction
+address form would attack; the small-address code model that would give
+one (image base just above the simulator's stack, heap last) was
+considered and not adopted.  The ISA's compares convert a mixed
+signed/unsigned pair to unsigned in the simulator, so a signed compare
+cannot leave a known non-negative operand untagged.
 
 What remains is largely inherent to the instruction set as the simulator
 implements it: an immediate costs a `const` (plus a `grow` per further
