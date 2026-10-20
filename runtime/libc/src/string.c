@@ -2,22 +2,59 @@
 #include <stddef.h>
 #include <string.h>
 
-/* The copy and fill routines work a word at a time once the pointers are
-   aligned: a byte loop costs about ten instructions per byte on Scry. */
+/* The copy and fill routines work eight bytes at a time once the pointers
+   are aligned (the simulator requires an access to be aligned to its size),
+   four bytes when only that alignment is shared, and unroll the word loops
+   by four: on Scry a loop iteration costs its pads, deliveries, induction
+   update, compare and jump on top of the body, so a byte loop is about ten
+   instructions per byte and a plain word loop about five. */
+typedef unsigned long long dword_t;
 typedef unsigned int word_t;
-#define WORD_ALIGNED(p) (((size_t)(p) & (sizeof(word_t) - 1)) == 0)
+#define ALIGNED(p, a) (((size_t)(p) & ((a) - 1)) == 0)
+#define MISALIGN(p, a) ((size_t)(p) & ((a) - 1))
 
 void *memcpy(void *dst, const void *src, size_t n) {
   unsigned char *d = (unsigned char *)dst;
   const unsigned char *s = (const unsigned char *)src;
-  if (n >= 2 * sizeof(word_t) &&
-      ((size_t)d & (sizeof(word_t) - 1)) == ((size_t)s & (sizeof(word_t) - 1))) {
-    while (!WORD_ALIGNED(d)) {
+  if (n >= 4 * sizeof(dword_t) && MISALIGN(d, sizeof(dword_t)) == MISALIGN(s, sizeof(dword_t))) {
+    while (!ALIGNED(d, sizeof(dword_t))) {
+      *d++ = *s++;
+      n--;
+    }
+    dword_t *dw = (dword_t *)d;
+    const dword_t *sw = (const dword_t *)s;
+    while (n >= 4 * sizeof(dword_t)) {
+      dw[0] = sw[0];
+      dw[1] = sw[1];
+      dw[2] = sw[2];
+      dw[3] = sw[3];
+      dw += 4;
+      sw += 4;
+      n -= 4 * sizeof(dword_t);
+    }
+    while (n >= sizeof(dword_t)) {
+      *dw++ = *sw++;
+      n -= sizeof(dword_t);
+    }
+    d = (unsigned char *)dw;
+    s = (const unsigned char *)sw;
+  } else if (n >= 2 * sizeof(word_t) &&
+             MISALIGN(d, sizeof(word_t)) == MISALIGN(s, sizeof(word_t))) {
+    while (!ALIGNED(d, sizeof(word_t))) {
       *d++ = *s++;
       n--;
     }
     word_t *dw = (word_t *)d;
     const word_t *sw = (const word_t *)s;
+    while (n >= 4 * sizeof(word_t)) {
+      dw[0] = sw[0];
+      dw[1] = sw[1];
+      dw[2] = sw[2];
+      dw[3] = sw[3];
+      dw += 4;
+      sw += 4;
+      n -= 4 * sizeof(word_t);
+    }
     while (n >= sizeof(word_t)) {
       *dw++ = *sw++;
       n -= sizeof(word_t);
@@ -39,9 +76,31 @@ void *memmove(void *dst, const void *src, size_t n) {
     return memcpy(dst, src, n);
   d += n;
   s += n;
-  if (n >= 2 * sizeof(word_t) &&
-      ((size_t)d & (sizeof(word_t) - 1)) == ((size_t)s & (sizeof(word_t) - 1))) {
-    while (!WORD_ALIGNED(d)) {
+  if (n >= 4 * sizeof(dword_t) && MISALIGN(d, sizeof(dword_t)) == MISALIGN(s, sizeof(dword_t))) {
+    while (!ALIGNED(d, sizeof(dword_t))) {
+      *--d = *--s;
+      n--;
+    }
+    dword_t *dw = (dword_t *)d;
+    const dword_t *sw = (const dword_t *)s;
+    while (n >= 4 * sizeof(dword_t)) {
+      dw -= 4;
+      sw -= 4;
+      dw[3] = sw[3];
+      dw[2] = sw[2];
+      dw[1] = sw[1];
+      dw[0] = sw[0];
+      n -= 4 * sizeof(dword_t);
+    }
+    while (n >= sizeof(dword_t)) {
+      *--dw = *--sw;
+      n -= sizeof(dword_t);
+    }
+    d = (unsigned char *)dw;
+    s = (const unsigned char *)sw;
+  } else if (n >= 2 * sizeof(word_t) &&
+             MISALIGN(d, sizeof(word_t)) == MISALIGN(s, sizeof(word_t))) {
+    while (!ALIGNED(d, sizeof(word_t))) {
       *--d = *--s;
       n--;
     }
@@ -62,18 +121,27 @@ void *memmove(void *dst, const void *src, size_t n) {
 void *memset(void *dst, int c, size_t n) {
   unsigned char *d = (unsigned char *)dst;
   unsigned char b = (unsigned char)c;
-  if (n >= 2 * sizeof(word_t)) {
-    while (!WORD_ALIGNED(d)) {
+  if (n >= 2 * sizeof(dword_t)) {
+    while (!ALIGNED(d, sizeof(dword_t))) {
       *d++ = b;
       n--;
     }
     word_t w = b;
     w |= w << 8;
     w |= w << 16;
-    word_t *dw = (word_t *)d;
-    while (n >= sizeof(word_t)) {
-      *dw++ = w;
-      n -= sizeof(word_t);
+    dword_t ww = ((dword_t)w << 32) | w;
+    dword_t *dw = (dword_t *)d;
+    while (n >= 4 * sizeof(dword_t)) {
+      dw[0] = ww;
+      dw[1] = ww;
+      dw[2] = ww;
+      dw[3] = ww;
+      dw += 4;
+      n -= 4 * sizeof(dword_t);
+    }
+    while (n >= sizeof(dword_t)) {
+      *dw++ = ww;
+      n -= sizeof(dword_t);
     }
     d = (unsigned char *)dw;
   }
@@ -81,6 +149,8 @@ void *memset(void *dst, int c, size_t n) {
     *d++ = b;
   return dst;
 }
+
+#define WORD_ALIGNED(p) ALIGNED(p, sizeof(word_t))
 
 int memcmp(const void *a, const void *b, size_t n) {
   const unsigned char *x = (const unsigned char *)a;
