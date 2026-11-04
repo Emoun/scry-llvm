@@ -146,7 +146,7 @@ benchmark, next to those of the correctness-first baseline
 current code executes 0.24 of the baseline's instructions (0.18 of its
 non-dataflow instructions) and 2.4 times the rv32imac count (1.5 times
 for non-dataflow instructions); in instruction bytes it is 1.5 times
-rv32imac, whose instructions average 3.2 bytes with 40% of them
+rv32imac, whose instructions average 3.2 bytes with 41% of them
 compressed.
 
 ### Status
