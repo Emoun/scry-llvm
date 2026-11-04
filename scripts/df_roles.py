@@ -12,7 +12,7 @@ jump conditions, call arguments and results, function entry, the first
 instruction of an expansion (ordering fixups and captures) and the rest
 (hops and copies inside an expansion).
 
-With --profile (the per-address execution counts written by scryer-metrics
+With --profile (the per-address execution counts written by scry_metrics.py
 --profile, or run_embench.py --metrics --profile) and --elf (the linked
 image), every instruction is weighted by how often it ran: a function's
 instructions are two bytes each from its symbol address, so the n-th

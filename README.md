@@ -78,8 +78,8 @@ echo $?        # exit code = low byte of main's return value
 * `-S` emits assembly in the syntax of the reference `scry_asm` assembler,
   with comments showing the original virtual instructions
   (`clang --target=scry32-unknown-none-elf -S -O2 hello.c`).
-* Without `--machine-mode` scryer prints the returned operands and
-  simulation metrics (instruction counts) instead of using them as the exit
+* Without `--machine-mode` scryer prints the returned operands instead of
+  using them as the exit
   code.
 * There is no I/O in the simulator: `printf` writes to the in-memory buffer
   `__scry_console`; `exit()` traps (returning from `main` is the normal way
@@ -107,13 +107,16 @@ python3 scripts/run_embench.py --metrics   # also print code metrics (see below)
 
 ### Code metrics
 
-`tools/scryer` is a small fork of the scryer driver (`scryer-metrics`, built
-by `scripts/build_scryer.py` into `build/scryer-metrics`) that reports how
-the generated code behaves: executed instructions, how many of them are
-dataflow instructions (`echo`, `dup`, `nop`), per-opcode counts, how far
-ahead jumps, calls and returns are issued before they trigger, how far ahead
-loads deliver their result, and how many operands are in flight.  It counts
-the whole run and the window between the `start_trigger` and `stop_trigger`
+`scripts/scry_metrics.py` computes, from the simulator's event stream
+(`scryer --print-events`, read through a pipe as it is produced, so a run
+of millions of instructions needs no memory for it), how the generated
+code behaves: executed instructions, how many of them are dataflow
+instructions (`echo`, `dup`, `nop`), per-opcode counts, how far ahead
+jumps, calls and returns are issued before they trigger (both as written
+in the code and as executed, a callee in between included), how far ahead
+loads and values in general deliver their result, how many operands are
+in flight, and loads and stores with their bytes.  It counts the whole
+run and the window between the `start_trigger` and `stop_trigger`
 symbols (the Embench benchmark body).
 
 ```sh
@@ -129,7 +132,7 @@ pads and how many of them are `nop`s, deliveries to successors, jump
 conditions, call arguments, hops and ordering fixups), and `clang -mllvm
 -stats` prints the lowering's own counters (near and far jumps, reach
 hops, ordering fixups, captures, dups, elided casts, slot traffic) for a
-compilation.  `scryer-metrics --profile p.json` (or `run_embench.py
+compilation.  `scry_metrics.py --profile p.json` (or `run_embench.py
 --metrics --profile`) writes the execution count of every instruction
 address in the window, which `df_roles.py --profile p.json --elf image
 sources...` uses to weight the roles by how often each instruction ran

@@ -2,7 +2,7 @@
 
 Executed-instruction metrics of the current backend on the 17 Embench-IoT
 benchmarks that run on scryer, measured like the baseline
-(`perf-baseline.md`): with `scryer-metrics` over the benchmark window
+(`perf-baseline.md`): from the simulator's event stream (`scripts/scry_metrics.py`) over the benchmark window
 between `start_trigger` and `stop_trigger`, runtime library included.
 The raw data is `perf-results.json`; `scripts/compare_metrics.py
 docs/perf-results.json new.json` compares a new build against it.  A
@@ -122,13 +122,13 @@ elsewhere); scheduling the last in-block use of a delivered value late
 indexed addressing form `base + index * size` is free (total unchanged,
 non-dataflow instructions +1.6%: matmult-int +7% with its loads losing
 their distance, md5sum -7%).  Global-pointer-relative addressing was
-estimated rather than built: with the image at 0x100000 a symbol
+estimated rather than built: with the image above 64 KiB a symbol
 address costs three instructions, and `ld [gp, idx]` would need one or
 two for the index plus a `dup` to keep the pointer in flight per use,
 so it converts about one non-dataflow instruction per global access
 into a dataflow one without reducing the count.
 
-Round 3 was measured with execution profiles (`scryer-metrics
+Round 3 was measured with execution profiles (`scry_metrics.py
 --profile`, attributed to the assembly with `scripts/df_roles.py`),
 which settled three more candidates without building them: far-jump
 target chains are 0.7% of the executed instructions, the upper bound of

@@ -4,12 +4,13 @@ the scryer simulator.
 
 Each benchmark is compiled from its sources plus the Embench support files
 and the Scry board support in embench/config/scry, then executed with
-"scryer --machine-mode".  A benchmark passes when the exit code is 0, i.e.
-verify_benchmark() accepted the result.  With --metrics each benchmark is
-also run under scryer-metrics (tools/scryer), which reports, for the window
-between start_trigger and stop_trigger: executed instructions, non-dataflow
-instructions, the dataflow share, the mean jmp issue-to-trigger distance, the
-mean ld output reference and the in-flight operand count (mean/max).
+"scryer --machine-mode" and a 256 KiB stack.  A benchmark passes when the
+exit code is 0, i.e. verify_benchmark() accepted the result.  With
+--metrics each benchmark is also run through scripts/scry_metrics.py (the
+simulator's event stream), which reports, for the window between
+start_trigger and stop_trigger: executed instructions, non-dataflow
+instructions, the dataflow share, the mean jmp issue-to-trigger distance,
+the mean ld output reference and the in-flight operand count (mean/max).
 
 Usage:
     run_embench.py [--embench <dir>] [--clang <clang>] [--scryer <scryer>]
@@ -36,13 +37,8 @@ EXE = ".exe" if os.name == "nt" else ""
 EMBENCH_REPO = "https://github.com/embench/embench-iot.git"
 EMBENCH_REV = "09c2ed8c3b7008c95d08b038de4a3f6dc103ed70"
 
-# Benchmarks that cannot run on the stock scryer simulator and why.  They are
-# still built and run, but a failure is reported as XFAIL and does not fail
-# the script (pass --strict to count them).
-XFAIL = {
-    "huffbench": "needs a 2 KB frame plus callers; scryer's stack is fixed at 4 KB",
-    "wikisort": "needs 4 KB frames; scryer's stack is fixed at 4 KB",
-}
+# The simulator's default stack is 4 KiB; huffbench and wikisort need more.
+STACK_BUFFER = 256 * 1024
 
 
 def hist_mean(h):
@@ -91,9 +87,8 @@ def main():
     ap.add_argument("--warmup", default="1", help="warm-up heat")
     ap.add_argument("--timeout", type=int, default=1800, help="seconds per run")
     ap.add_argument("--metrics", action="store_true",
-                    help="also run under scryer-metrics (tools/scryer) and print the code "
-                         "metrics of the benchmark() window")
-    ap.add_argument("--metrics-bin", help="path to scryer-metrics (default: next to scryer)")
+                    help="also compute the code metrics of the benchmark() window from the "
+                         "simulator's event stream (scripts/scry_metrics.py)")
     ap.add_argument("--json", help="write all per-benchmark metrics to this JSON file")
     ap.add_argument("--profile", action="store_true",
                     help="with --metrics: also write the execution count of every instruction "
@@ -103,8 +98,6 @@ def main():
                     help="extra compiler flag (repeatable; use --cflags=-mllvm --cflags=-x)")
     ap.add_argument("-j", "--jobs", type=int, default=1,
                     help="benchmarks to build and run in parallel (default 1)")
-    ap.add_argument("--strict", action="store_true",
-                    help="count the known simulator-limited benchmarks (XFAIL) as failures")
     ap.add_argument("benchmarks", nargs="*")
     args = ap.parse_args()
 
@@ -120,13 +113,7 @@ def main():
         sys.exit("scryer not found; pass --scryer")
     warn_if_runtime_stale(clang)
 
-    metrics_bin = None
-    if args.metrics:
-        metrics_bin = pathlib.Path(args.metrics_bin) if args.metrics_bin else find_default([
-            ROOT / "build" / "scryer-metrics" / "release" / ("scryer-metrics" + EXE),
-            ROOT / "install" / "bin" / ("scryer-metrics" + EXE)])
-        if not metrics_bin or not metrics_bin.exists():
-            sys.exit("scryer-metrics not found; run scripts/build_scryer.py or pass --metrics-bin")
+    metrics_script = ROOT / "scripts" / "scry_metrics.py"
 
     embench = pathlib.Path(args.embench)
     if not (embench / "src").exists():
@@ -165,19 +152,19 @@ def main():
         size = elf.stat().st_size
         text = text_size(elf)
         run = subprocess.run([str(scryer), str(elf), "--target=" + TRIPLE,
-                              "--machine-mode", f"--timeout={args.timeout}"],
+                              "--machine-mode", f"--timeout={args.timeout}",
+                              "--stack-buffer", str(STACK_BUFFER)],
                              capture_output=True, text=True)
         elapsed = time.time() - t0
         status = "PASS" if run.returncode == 0 else f"FAIL(exit {run.returncode})"
-        if run.returncode != 0 and name in XFAIL and not args.strict:
-            status = f"XFAIL(exit {run.returncode})"
         instrs = 0
         metrics = None
         metrics_text = ""
         if args.metrics and run.returncode == 0:
             jpath = outdir / (name + ".metrics.json")
-            cmd = [str(metrics_bin), str(elf), "--target=" + TRIPLE,
-                   f"--timeout={args.timeout}", "--window-start", "start_trigger",
+            cmd = [sys.executable, str(metrics_script), str(elf), "--scryer", str(scryer),
+                   "--target", TRIPLE, f"--timeout={args.timeout}",
+                   "--stack-buffer", str(STACK_BUFFER), "--window-start", "start_trigger",
                    "--window-stop", "stop_trigger", "--json", str(jpath)]
             if args.profile:
                 cmd += ["--profile", str(outdir / (name + ".profile.json"))]
@@ -200,9 +187,7 @@ def main():
             lines.append(f"{status:14} {name:18}{metrics_text}")
         else:
             lines.append(f"{status:14} {name:18} elf={size:8d}B text={text:7d}B  {elapsed:6.1f}s")
-        if status.startswith("XFAIL"):
-            lines.append(f"               (expected: {XFAIL[name]})")
-        elif run.returncode != 0 and run.stderr.strip():
+        if run.returncode != 0 and run.stderr.strip():
             lines.append(run.stderr[-2000:])
         if not args.keep and elf.exists():
             elf.unlink()
@@ -227,10 +212,8 @@ def main():
         print(f"{'':14} {'total':18} {tot:11,d} {tot - df:11,d} {100.0 * df / max(tot, 1):5.1f}")
 
     passed = sum(1 for r in results if r[1] == "PASS")
-    xfailed = sum(1 for r in results if r[1].startswith("XFAIL"))
-    print(f"\n{passed}/{len(results)} benchmarks passed"
-          + (f" ({xfailed} expected failures)" if xfailed else ""))
-    return 0 if passed + xfailed == len(results) else 1
+    print(f"\n{passed}/{len(results)} benchmarks passed")
+    return 0 if passed == len(results) else 1
 
 
 if __name__ == "__main__":
