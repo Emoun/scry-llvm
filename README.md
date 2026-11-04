@@ -148,20 +148,17 @@ compressed.
 
 ### Status
 
-With llvm-project 22.1.8 and scryer revision `6fc6ac9d`:
+With llvm-project 22.1.8 and scryer revision `eb7d2b5`:
 
-* the four lit tests and the 15 C programs in `tests/c/` (at `-O0` and
+* the four lit tests and the 17 C programs in `tests/c/` (at `-O0` and
   `-O2`) pass;
-* 17 of the 19 Embench-IoT benchmarks build at `-O2` and verify on the
-  simulator (aha-mont64, crc32, depthconv, edn, matmult-int, md5sum,
-  nettle-aes, nettle-sha256, nsichneu, picojpeg, qrduino, sglib-combined,
-  slre, statemate, tarfind, ud, xgboost);
-* `huffbench` and `wikisort` need stack frames of 2 KB and 4 KB and cannot
-  run on the simulator, whose stack is a fixed 4 KB buffer; the runner
-  reports them as `XFAIL` (pass `--strict` to count them as failures).
+* all 19 Embench-IoT benchmarks build at `-O2` and verify on the
+  simulator.  The scripts run it with a 256 KiB stack (`--stack-buffer`;
+  the default is 4 KiB, which `huffbench` and `wikisort` exceed).
 
 Each benchmark takes between 15 s and 70 s to simulate, so a full run takes
-about 10 minutes.
+about 10 minutes; with `--metrics` the simulator also writes its event
+stream, which roughly triples the time.
 
 ## Developing the backend
 

@@ -40,9 +40,9 @@ public:
 Scry::Scry(Ctx &ctx) : TargetInfo(ctx) {
   // The "trap" instruction is encoded as all-zero bits, which is also the
   // default value of trapInstr.
-  // The scryer simulator places its stack at 0x10000; keep the image well
-  // clear of it.
-  defaultImageBase = 0x100000;
+  // The scryer simulator places its stack at 1 MiB (0x100000) by default,
+  // growing upwards; an image must fit below it.
+  defaultImageBase = 0x10000;
   defaultMaxPageSize = 4096;
   defaultCommonPageSize = 4096;
 }

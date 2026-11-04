@@ -162,8 +162,8 @@ register file for Scry, so the backend keeps values in memory instead.
    `scry_asm` assembler and encoded to ELF objects (`e_machine` 0x264).  The
    only relocations in code are byte-wise absolute addresses in `const`/`grow`
    immediates (`R_SCRY_IMM8_B0..B3`); data uses `R_SCRY_8/16/32/64`.  lld
-   links the objects with image base 0x100000, clear of the simulator's stack
-   at 0x10000.
+   links the objects with image base 0x10000, below the simulator's
+   default stack at 1 MiB.
 
 ### 2.1 Slot access forms
 
@@ -407,18 +407,22 @@ per block.
 
 ## 5. Notes on the scryer simulator
 
-Observations made while bringing the backend up, which matter for anyone
-running the generated code (revision 6fc6ac9d of scryer):
+Observations that matter for anyone running the generated code (revision
+eb7d2b5 of scryer, scry_sim 9487398):
 
-* The stack is a fixed 4 KB buffer (`stack_buffer = 1 << 12` in
-  `src/lib.rs`); exhausting it panics with "TODO: Reserve inadequate
-  buffer" and the exit code is 101.  Deep recursion or large frames need a
-  larger buffer in the simulator.
+* The stack is a buffer at `--stack-base` (default 1 MiB, 0x100000; an
+  address or an ELF symbol) of `--stack-buffer` bytes (default 4 KiB);
+  exhausting it panics with "TODO: Reserve inadequate buffer" and the
+  exit code is 101.  The test and benchmark scripts pass a 256 KiB
+  buffer, which is what huffbench and wikisort need; the linker places
+  images at 0x10000, below the default stack.
 * The ELF loader (`add_block_zeroed`) marks bytes that have no file
   contents as *uninitialised* and reading them panics (`todo!()` in
   `perform_load`), hence the `.data` placement of zero-initialised globals.
   Uninitialised stack memory is the same, which is why every slot is
   written before it is read.
+* An access must be aligned to its size (`MemError::UnalignedAddr`); the
+  runtime's eight-byte copy loops align their pointers first.
 * `rsrv` and `free` panic if they receive an operand; the prologue therefore
   starts with `nop` when the function expects no operands, so that a caller
   passing extra arguments (e.g. `_start` calling `main(0, NULL)`) is safe.
@@ -430,10 +434,30 @@ running the generated code (revision 6fc6ac9d of scryer):
 * Pending jump triggers are kept per call frame and a jump that would skip
   over another pending trigger is an exception; the backend only ever has
   the jumps of one block pending, all with the same trigger.
+* `lt` and `gt` convert a mixed signed/unsigned operand pair to unsigned
+  before comparing (the effective input type rule), where the
+  specification compares logical values; both operands of a signed compare
+  are therefore tagged signed.
 * `pick` with an immediate (`PickI`) is unimplemented; the backend only
   uses the register form.
 * `--target=scry32-unknown-none-elf` must be given explicitly; target
   detection from the ELF header is unimplemented.
+* `--print-events[=FILE]` writes every simulation event: the executed
+  instruction with its address and disassembly, operand produce, consume,
+  forward and discard with an id per operand, control issue and trigger
+  with an id per jump, call and return, stack base, split and top, and
+  loads and stores with address, stack index and size, one `STEP_END` per
+  instruction.  `--print-events-buffered N` flushes every N steps (0 keeps
+  everything until the end); in `--machine-mode` the last buffer is not
+  flushed at exit, and the instruction-count timeout counts only the
+  buffered steps, so `scripts/scry_metrics.py` runs without machine mode
+  and takes the program's result from the printed returned operand.  The
+  stream is about 100 bytes per executed instruction and triples the
+  running time; the script reads it through a pipe as it is produced.
+* The trigger events give the distance in *executed* instructions
+  between a jump and its trigger (a callee executed in between counts),
+  the trigger immediate the distance in the code; `scry_metrics.py`
+  reports both.
 
 ## 6. Repository layout
 

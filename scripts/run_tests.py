@@ -18,6 +18,9 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TRIPLE = "scry32-unknown-none-elf"
+# The simulator's default stack is 4 KiB; give the tests the same 256 KiB as the
+# benchmarks.
+STACK_BUFFER = 256 * 1024
 EXE = ".exe" if os.name == "nt" else ""
 
 
@@ -84,7 +87,8 @@ def main():
                 failures.append(name)
                 continue
             run = subprocess.run([str(scryer), str(elf), "--target=" + TRIPLE,
-                                  "--machine-mode", f"--timeout={args.timeout}"],
+                                  "--machine-mode", f"--timeout={args.timeout}",
+                                  "--stack-buffer", str(STACK_BUFFER)],
                                  capture_output=True, text=True)
             code = run.returncode
             if code != expected:
