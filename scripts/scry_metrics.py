@@ -316,7 +316,6 @@ def main():
     ap.add_argument("--timeout", type=int, default=0, help="seconds (0 = none)")
     ap.add_argument("--stack-base")
     ap.add_argument("--stack-buffer", type=int)
-    ap.add_argument("--buffered", type=int, default=1000, help="steps per event flush")
     args = ap.parse_args()
 
     root = pathlib.Path(__file__).resolve().parent.parent
@@ -333,8 +332,7 @@ def main():
         return int(spec, 0)
     start, stop = resolve(args.window_start), resolve(args.window_stop)
 
-    cmd = [str(scryer), args.program, "--target=" + args.target,
-           f"--print-events-buffered={args.buffered}"]
+    cmd = [str(scryer), args.program, "--target=" + args.target]
     if args.timeout:
         cmd += [f"--timeout={args.timeout}"]
     if args.stack_base:

@@ -151,7 +151,7 @@ compressed.
 
 ### Status
 
-With llvm-project 22.1.8 and scryer revision `eb7d2b5`:
+With llvm-project 22.1.8 and scryer revision `459c71b`:
 
 * the four lit tests and the 17 C programs in `tests/c/` (at `-O0` and
   `-O2`) pass;

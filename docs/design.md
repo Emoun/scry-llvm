@@ -408,7 +408,7 @@ per block.
 ## 5. Notes on the scryer simulator
 
 Observations that matter for anyone running the generated code (revision
-eb7d2b5 of scryer, scry_sim 9487398):
+459c71b of scryer, scry_sim 9487398):
 
 * The stack is a buffer at `--stack-base` (default 1 MiB, 0x100000; an
   address or an ELF symbol) of `--stack-buffer` bytes (default 4 KiB);
@@ -447,13 +447,13 @@ eb7d2b5 of scryer, scry_sim 9487398):
   forward and discard with an id per operand, control issue and trigger
   with an id per jump, call and return, stack base, split and top, and
   loads and stores with address, stack index and size, one `STEP_END` per
-  instruction.  `--print-events-buffered N` flushes every N steps (0 keeps
-  everything until the end); in `--machine-mode` the last buffer is not
-  flushed at exit, and the instruction-count timeout counts only the
-  buffered steps, so `scripts/scry_metrics.py` runs without machine mode
-  and takes the program's result from the printed returned operand.  The
-  stream is about 100 bytes per executed instruction and triples the
-  running time; the script reads it through a pipe as it is produced.
+  instruction.  Events are written as each step completes
+  (`--print-events-buffered` keeps them all until the end instead); in
+  `--machine-mode` the events of the final step are never written, so
+  `scripts/scry_metrics.py` runs without machine mode and takes the
+  program's result from the printed returned operand.  The stream is
+  about 100 bytes per executed instruction and triples the running time;
+  the script reads it through a pipe as it is produced.
 * The trigger events give the distance in *executed* instructions
   between a jump and its trigger (a callee executed in between counts),
   the trigger immediate the distance in the code; `scry_metrics.py`
