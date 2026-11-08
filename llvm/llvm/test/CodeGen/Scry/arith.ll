@@ -3,7 +3,7 @@
 ; RUN: llc -mtriple=scry32-unknown-none-elf -O2 -filetype=obj < %s -o %t.o
 ; RUN: llvm-readelf -h %t.o | FileCheck %s --check-prefix=ELF
 
-; ELF: Machine: {{.*}}264
+; ELF: Machine: {{.*}}108
 
 ; CHECK-LABEL: add32:
 ; The arguments are spread by the entry echo straight to the add (which is

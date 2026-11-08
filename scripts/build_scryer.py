@@ -16,7 +16,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 REPO = "https://github.com/Scry-arch/scryer.git"
 # Revision known to work with this toolchain (update deliberately).
-DEFAULT_REV = "459c71b6c4e5cf40e322183640b9bac78bc55516"
+DEFAULT_REV = "01216f000711d2e1e7a5741407c934a6418486d7"
 
 
 def run(cmd, **kw):

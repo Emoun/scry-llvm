@@ -30,8 +30,9 @@ symbol and the first execution of the stop symbol after it:
   yet consumed after each step, in the current frame and in all frames;
 * loads, stores and their bytes.
 
-The program's result is the low byte of the first returned operand, as in
-scryer --machine-mode; it is this script's exit status too.
+scryer runs in --machine-mode, so its exit status is the program's result
+(the low byte of the first returned operand; 123 on a timeout or error) and
+it is this script's exit status too.
 """
 import argparse
 import collections
@@ -332,7 +333,7 @@ def main():
         return int(spec, 0)
     start, stop = resolve(args.window_start), resolve(args.window_stop)
 
-    cmd = [str(scryer), args.program, "--target=" + args.target]
+    cmd = [str(scryer), args.program, "--target=" + args.target, "--machine-mode"]
     if args.timeout:
         cmd += [f"--timeout={args.timeout}"]
     if args.stack_base:
@@ -363,15 +364,11 @@ def main():
             with open(path, "r", buffering=1 << 20) as stream:
                 whole, window = parse_stream(stream, start, stop, symbols, args.trace, args.trace_limit, profile)
 
-    # The program's result: low byte of the first returned operand.
-    code = 123
-    m = re.search(r"Returned Operands\s+-+\s*\n(-?\d+)[ui]\d+", result["out"])
-    if m:
-        code = int(m.group(1)) & 0xff
-    elif "Timeout" in result["out"]:
-        sys.stderr.write("scryer: timeout\n")
-    else:
-        sys.stderr.write(result["out"][-2000:] + result["err"][-2000:])
+    # Machine mode: the exit status is the program's result (123 on a
+    # timeout or a simulation error, 101 when the simulator panics).
+    code = proc.returncode
+    if code in (101, 123):
+        sys.stderr.write(f"scryer: exit {code}\n" + result["out"][-2000:] + result["err"][-2000:])
 
     whole.write_text("Code Metrics (whole run)", sys.stdout)
     if start is not None:

@@ -151,7 +151,7 @@ compressed.
 
 ### Status
 
-With llvm-project 22.1.8 and scryer revision `459c71b`:
+With llvm-project 22.1.8 and scryer revision `01216f0`:
 
 * the four lit tests and the 17 C programs in `tests/c/` (at `-O0` and
   `-O2`) pass;
@@ -161,7 +161,8 @@ With llvm-project 22.1.8 and scryer revision `459c71b`:
 
 Each benchmark takes between 15 s and 70 s to simulate, so a full run takes
 about 10 minutes; with `--metrics` the simulator also writes its event
-stream, which roughly triples the time.
+stream and `scripts/scry_metrics.py` parses it, which roughly triples the
+time.
 
 ## Developing the backend
 

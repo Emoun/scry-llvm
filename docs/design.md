@@ -159,7 +159,8 @@ register file for Scry, so the backend keeps values in memory instead.
    in section 2.3.
 
 6. **MC layer**: real instructions are printed in the syntax of the reference
-   `scry_asm` assembler and encoded to ELF objects (`e_machine` 0x264).  The
+   `scry_asm` assembler and encoded to ELF objects (`e_machine` 264, the
+   value of `EM_SCRY` in the simulator's `rust-object` fork).  The
    only relocations in code are byte-wise absolute addresses in `const`/`grow`
    immediates (`R_SCRY_IMM8_B0..B3`); data uses `R_SCRY_8/16/32/64`.  lld
    links the objects with image base 0x10000, below the simulator's
@@ -376,9 +377,10 @@ per block.
   callee reads it with `va_start`/`va_arg`.  This is the WebAssembly scheme
   and avoids the callee having to know where the caller's stack arguments
   live.
-* Zero-initialised globals are placed in `.data`, not `.bss` (the driver
-  adds `-fno-zero-initialized-in-bss`): the scryer ELF loader marks bytes
-  that are not present in the file as uninitialised and traps on reads.
+* Zero-initialised globals live in `.bss` as usual: the ELF loader
+  zero-fills a segment's `memsz` beyond its `filesz` (since scry_sim
+  8269ecf those bytes count as initialised; before that the driver had to
+  keep such globals in a file-backed `.data`).
 * The ELF entry is `_start` (in `crt0`), which calls `main` and returns its
   value; the simulator uses the low byte as the exit code.  `exit()` cannot
   unwind the Scry call stack and therefore records the status and traps.
@@ -408,7 +410,7 @@ per block.
 ## 5. Notes on the scryer simulator
 
 Observations that matter for anyone running the generated code (revision
-459c71b of scryer, scry_sim 9487398):
+01216f0 of scryer, scry_sim 8269ecf):
 
 * The stack is a buffer at `--stack-base` (default 1 MiB, 0x100000; an
   address or an ELF symbol) of `--stack-buffer` bytes (default 4 KiB);
@@ -416,11 +418,12 @@ Observations that matter for anyone running the generated code (revision
   exit code is 101.  The test and benchmark scripts pass a 256 KiB
   buffer, which is what huffbench and wikisort need; the linker places
   images at 0x10000, below the default stack.
-* The ELF loader (`add_block_zeroed`) marks bytes that have no file
-  contents as *uninitialised* and reading them panics (`todo!()` in
-  `perform_load`), hence the `.data` placement of zero-initialised globals.
-  Uninitialised stack memory is the same, which is why every slot is
-  written before it is read.
+* Memory that no segment covers does not exist (`MemError`), and stack
+  memory is *uninitialised* until written: reading it panics (`todo!()`
+  in `perform_load`), which is why every slot is written before it is
+  read.  `.bss` is zero-filled and initialised by the loader.
+* Only ELF files whose `e_machine` is `EM_SCRY` (264) are accepted; a
+  wrong value reads as "Unable to determine target".
 * An access must be aligned to its size (`MemError::UnalignedAddr`); the
   runtime's eight-byte copy loops align their pointers first.
 * `rsrv` and `free` panic if they receive an operand; the prologue therefore
@@ -440,20 +443,28 @@ Observations that matter for anyone running the generated code (revision
   are therefore tagged signed.
 * `pick` with an immediate (`PickI`) is unimplemented; the backend only
   uses the register form.
-* `--target=scry32-unknown-none-elf` must be given explicitly; target
-  detection from the ELF header is unimplemented.
+* The target is detected from the file (ELF32, ELF64, then textual
+  assembly); the scripts still pass `--target=scry32-unknown-none-elf`,
+  which skips the probing.  An unknown `--stack-base` symbol is an error,
+  but under detection it is reported as "Unable to determine target".
+* In `--machine-mode` a simulation error exits 123, like a timeout, and a
+  simulator panic (stack exhausted, unaligned access, stack overlapping
+  the image) exits 101 with a Rust backtrace instead of a message.
 * `--print-events[=FILE]` writes every simulation event: the executed
   instruction with its address and disassembly, operand produce, consume,
   forward and discard with an id per operand, control issue and trigger
   with an id per jump, call and return, stack base, split and top, and
   loads and stores with address, stack index and size, one `STEP_END` per
   instruction.  Events are written as each step completes
-  (`--print-events-buffered` keeps them all until the end instead); in
-  `--machine-mode` the events of the final step are never written, so
-  `scripts/scry_metrics.py` runs without machine mode and takes the
-  program's result from the printed returned operand.  The stream is
-  about 100 bytes per executed instruction and triples the running time;
-  the script reads it through a pipe as it is produced.
+  (`--print-events-buffered` keeps them all until the end instead), in
+  machine mode too, so `scripts/scry_metrics.py` runs scryer in
+  `--machine-mode` and takes the program's result from the exit status.
+  The stream is about 100 bytes per executed instruction; writing it to
+  a file costs about a third more simulation time (crc32: 12 s against
+  9 s), and parsing it in Python about as much again (27 s end to end).
+  The script reads it through a pipe as it is produced.  Events carry no
+  frame identity; per-frame in-flight counts are reconstructed from the
+  call and return triggers.
 * The trigger events give the distance in *executed* instructions
   between a jump and its trigger (a callee executed in between counts),
   the trigger immediate the distance in the code; `scry_metrics.py`

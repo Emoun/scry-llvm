@@ -75,7 +75,7 @@ index db06584d7..e0b8ed583 100644
  createNVPTXTargetCodeGenInfo(CodeGenModule &CGM);
  
 diff --git a/clang/lib/Driver/ToolChains/BareMetal.cpp b/clang/lib/Driver/ToolChains/BareMetal.cpp
-index 6574651b7..acfe2a2f4 100644
+index 6574651b7..7cd7d78be 100644
 --- a/clang/lib/Driver/ToolChains/BareMetal.cpp
 +++ b/clang/lib/Driver/ToolChains/BareMetal.cpp
 @@ -46,6 +46,10 @@ static bool isRISCVBareMetal(const llvm::Triple &Triple) {
@@ -98,18 +98,7 @@ index 6574651b7..acfe2a2f4 100644
  }
  
  Tool *BareMetal::buildLinker() const {
-@@ -434,6 +438,10 @@ void BareMetal::addClangTargetOptions(const ArgList &DriverArgs,
-                                       ArgStringList &CC1Args,
-                                       Action::OffloadKind) const {
-   CC1Args.push_back("-nostdsysteminc");
-+  // The scryer simulator treats zero-filled (memsz > filesz) memory as
-+  // uninitialised, so keep zero-initialised globals in file-backed .data.
-+  if (getTriple().isScry())
-+    CC1Args.push_back("-fno-zero-initialized-in-bss");
- }
- 
- void BareMetal::addLibStdCxxIncludePaths(
-@@ -641,6 +649,12 @@ void baremetal::Linker::ConstructJob(Compilation &C, const JobAction &JA,
+@@ -641,6 +645,12 @@ void baremetal::Linker::ConstructJob(Compilation &C, const JobAction &JA,
      CmdArgs.push_back(Arch == llvm::Triple::aarch64_be ? "-EB" : "-EL");
    }
  
@@ -243,14 +232,14 @@ index fcbfed495..3672a459d 100644
  )
  
 diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
-index bfcf5dab4..d1064fad9 100644
+index bfcf5dab4..13d9a4552 100644
 --- a/llvm/include/llvm/BinaryFormat/ELF.h
 +++ b/llvm/include/llvm/BinaryFormat/ELF.h
 @@ -214,6 +214,7 @@ enum {
    EM_ARC_COMPACT = 93,   // ARC International ARCompact processor (old
                           // spelling/synonym: EM_ARC_A5)
    EM_XTENSA = 94,        // Tensilica Xtensa Architecture
-+  EM_SCRY = 0x264,       // Scry forward-temporal-referencing architecture
++  EM_SCRY = 264,         // Scry forward-temporal-referencing architecture
    EM_VIDEOCORE = 95,     // Alphamosaic VideoCore processor
    EM_TMM_GPP = 96,       // Thompson Multimedia General Purpose Processor
    EM_NS32K = 97,         // National Semiconductor 32000 series
