@@ -31,7 +31,7 @@ counts to it.
 | matmult-int | 22,864,569 | 3,935,333 | 0.17 | 2,160,901 | 0.11 | 45% | 378 | 16.2 | 73.6 / 113 | 3,237,508 | 1.2 | 0.7 |
 | md5sum | 26,396,891 | 9,551,541 | 0.36 | 4,707,594 | 0.21 | 51% | 20 | 16.9 | 7.2 / 18 | 3,121,844 | 3.1 | 1.5 |
 | nettle-aes | 31,484,596 | 8,349,155 | 0.27 | 4,120,582 | 0.16 | 51% | 126 | 23.1 | 15.8 / 27 | 4,382,897 | 1.9 | 0.9 |
-| nettle-sha256 | 69,905,081 | 10,678,847 | 0.15 | 6,312,064 | 0.11 | 41% | 346 | 16.8 | 30.7 / 54 | 5,155,822 | 2.1 | 1.2 |
+| nettle-sha256 | 69,905,081 | 10,836,207 | 0.16 | 6,426,712 | 0.11 | 41% | 327 | 15.4 | 30.3 / 54 | 5,155,822 | 2.1 | 1.2 |
 | nsichneu | 17,034,943 | 6,140,403 | 0.36 | 5,510,842 | 0.37 | 10% | 0 | 0.5 | 0.2 / 3 | 2,242,272 | 2.7 | 2.5 |
 | picojpeg | 35,334,763 | 8,204,717 | 0.23 | 5,039,423 | 0.17 | 39% | 44 | 5.8 | 12.7 / 33 | 3,209,092 | 2.6 | 1.6 |
 | qrduino | 35,476,913 | 7,658,528 | 0.22 | 4,425,624 | 0.15 | 42% | 6 | 3.9 | 4.9 / 66 | 2,816,424 | 2.7 | 1.6 |
@@ -42,8 +42,8 @@ counts to it.
 | ud | 64,761,665 | 7,022,696 | 0.11 | 4,027,457 | 0.07 | 43% | 17 | 6.5 | 4.2 / 16 | 2,607,928 | 2.7 | 1.5 |
 | wikisort | - | 5,142,692 | - | 3,351,313 | - | 35% | 6 | 1.1 | 3.0 / 11 | 2,386,003 | 2.2 | 1.4 |
 | xgboost | 32,029,599 | 8,713,233 | 0.27 | 4,149,881 | 0.15 | 52% | 7 | 2.8 | 4.0 / 19 | 3,559,528 | 2.4 | 1.2 |
-| **total, 17 recorded** | 554,828,370 | 134,366,518 | 0.24 | 84,649,376 | 0.18 | | | | | | | |
-| **total** | - | 150,264,364 | - | 94,403,625 | - | 37% | | | | 61,776,643 | 2.43 | 1.53 |
+| **total, 17 recorded** | 554,828,370 | 134,523,878 | 0.24 | 84,764,024 | 0.18 | | | | | | | |
+| **total** | - | 150,421,724 | - | 94,518,273 | - | 37% | | | | 61,776,643 | 2.43 | 1.53 |
 
 Geometric means of the per-benchmark ratios: current/baseline 0.250
 (non-dataflow 0.181); current/rv32imac 2.40
@@ -71,7 +71,7 @@ their ratio.
 | matmult-int | 7,870,666 | 9,226,478 | 0.85 | 58% | 7,726 | 9,774 | 0.79 |
 | md5sum | 19,103,082 | 9,174,638 | 2.08 | 53% | 5,314 | 10,294 | 0.52 |
 | nettle-aes | 16,698,310 | 14,398,330 | 1.16 | 36% | 6,998 | 3,192 | 2.19 |
-| nettle-sha256 | 21,357,694 | 17,813,228 | 1.20 | 27% | 12,158 | 15,234 | 0.80 |
+| nettle-sha256 | 21,672,414 | 17,813,228 | 1.22 | 27% | 12,158 | 15,234 | 0.80 |
 | nsichneu | 12,280,806 | 8,074,614 | 1.52 | 20% | 21,450 | 16,144 | 1.33 |
 | picojpeg | 16,409,434 | 10,154,170 | 1.62 | 42% | 55,448 | 22,296 | 2.49 |
 | qrduino | 15,317,056 | 9,280,310 | 1.65 | 35% | 33,622 | 18,394 | 1.83 |
@@ -82,7 +82,7 @@ their ratio.
 | ud | 14,045,392 | 7,743,432 | 1.81 | 52% | 4,268 | 10,206 | 0.42 |
 | wikisort | 10,285,384 | 6,995,868 | 1.47 | 53% | 16,334 | 25,102 | 0.65 |
 | xgboost | 17,426,466 | 12,098,218 | 1.44 | 30% | 1,036 | 562 | 1.84 |
-| **total** | 300,528,728 | 196,731,492 | 1.53 | 41% | 222,524 | 206,044 | 1.08 |
+| **total** | 300,843,448 | 196,731,492 | 1.53 | 41% | 222,524 | 206,044 | 1.08 |
 
 How the count was reduced, in the order the work was done (each step's
 own figure is in its commit message, measured on the window with the
@@ -151,6 +151,15 @@ one (image base just above the simulator's stack, heap last) was
 considered and not adopted.  The ISA's compares convert a mixed
 signed/unsigned pair to unsigned in the simulator, so a signed compare
 cannot leave a known non-negative operand untagged.
+
+With scryer 01216f0 zero-initialised globals moved from `.data` to
+`.bss`, which changed no code (static bytes identical) but shifted the
+data layout: in nettle-sha256 the message buffer landed at an odd
+address and `memcpy` fell back from eight-byte words to bytes, +157,360
+executed instructions (+1.5%; everything else identical).  Aligning
+byte arrays of eight bytes or more to eight, as other targets do for
+large arrays, would remove this sensitivity and is a candidate for a
+later round.
 
 What remains is largely inherent to the instruction set as the simulator
 implements it: an immediate costs a `const` (plus a `grow` per further
