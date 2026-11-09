@@ -29,11 +29,14 @@ symbol and the first execution of the stop symbol after it:
 * inflight_frame_mean/max, inflight_all_mean/max: operands produced and not
   yet consumed after each step, in the current frame and in all frames;
 * loads, stores and their bytes, and how many of them are stack-slot
-  accesses (ld [i], st [i]); produced: operands produced; jmp_taken and
-  jmp_not_taken: a jmp whose condition holds issues a control event and
-  later triggers, one whose condition fails issues nothing, so the taken
-  count is the issued jumps and the rest of the executed jmps were not
-  taken; call_depth_max: deepest call nesting seen.
+  accesses (ld [i], st [i]); produced: operands produced; jmp_issued,
+  jmp_taken, jmp_not_taken and jmp_overridden: a jmp whose condition holds
+  issues a control event, one whose condition fails issues nothing (not
+  taken), and an issued jump whose trigger point a later jump of the same
+  frame takes over never triggers (overridden: the backend issues a block's
+  unconditional jump first and a conditional one with the same trigger
+  overrides it), so the taken jumps are the ones that trigger;
+  call_depth_max: deepest call nesting seen.
 
 scryer runs in --machine-mode, so its exit status is the program's result
 (the low byte of the first returned operand; 123 on a timeout or error) and
@@ -97,7 +100,7 @@ class Scope:
         self.loads = self.load_bytes = self.stores = self.store_bytes = 0
         self.stack_loads = self.stack_load_bytes = self.stack_stores = self.stack_store_bytes = 0
         self.produced = 0
-        self.jmp_taken = 0
+        self.jmp_issued = self.jmp_taken = 0
         self.call_depth_max = 0
         self.inflight_frame_sum = self.inflight_frame_max = 0
         self.inflight_all_sum = self.inflight_all_max = 0
@@ -118,8 +121,9 @@ class Scope:
             "stores": self.stores, "store_bytes": self.store_bytes,
             "stack_loads": self.stack_loads, "stack_load_bytes": self.stack_load_bytes,
             "stack_stores": self.stack_stores, "stack_store_bytes": self.stack_store_bytes,
-            "produced": self.produced, "jmp_taken": self.jmp_taken,
-            "jmp_not_taken": self.opcodes.get("jmp", 0) - self.jmp_taken,
+            "produced": self.produced, "jmp_issued": self.jmp_issued, "jmp_taken": self.jmp_taken,
+            "jmp_not_taken": self.opcodes.get("jmp", 0) - self.jmp_issued,
+            "jmp_overridden": self.jmp_issued - self.jmp_taken,
             "call_depth_max": self.call_depth_max,
             "inflight_frame_mean": round(self.inflight_frame_sum / self.steps, 3) if self.steps else 0.0,
             "inflight_frame_max": self.inflight_frame_max,
@@ -142,7 +146,8 @@ class Scope:
         out.write(f"Loads: {self.loads} ({self.load_bytes} bytes, {self.stack_loads} from stack slots), "
                   f"Stores: {self.stores} ({self.store_bytes} bytes, {self.stack_stores} to stack slots)\n")
         out.write(f"Produced: {self.produced} operands ({self.produced / max(self.instructions, 1):.2f} per instruction), "
-                  f"Jumps taken: {self.jmp_taken}, not taken: {self.opcodes.get('jmp', 0) - self.jmp_taken}, "
+                  f"Jumps taken: {self.jmp_taken}, not taken: {self.opcodes.get('jmp', 0) - self.jmp_issued}, "
+                  f"overridden: {self.jmp_issued - self.jmp_taken}, "
                   f"CallDepth: max={self.call_depth_max}\n")
         out.write(f"InFlightFrame: mean={self.inflight_frame_sum / max(self.steps, 1):.2f} max={self.inflight_frame_max}\n")
         out.write(f"InFlightAll: mean={self.inflight_all_sum / max(self.steps, 1):.2f} max={self.inflight_all_max}\n")
@@ -303,15 +308,19 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
             kind = line[7:k]
             issued[int(line[k + 1:line.index(")")])] = (step, kind, None)
             if kind == "Jump":
-                whole.jmp_taken += 1
+                whole.jmp_issued += 1
                 if in_win:
-                    window.jmp_taken += 1
+                    window.jmp_issued += 1
             continue
         if c == "T":  # Trigger: Kind(id)
             k = line.index("(")
             cid = int(line[k + 1:line.index(")")])
             kind = line[9:k]
             rec = issued.pop(cid, None)
+            if kind == "Jump":
+                whole.jmp_taken += 1
+                if in_win:
+                    window.jmp_taken += 1
             if rec is not None:
                 d = step - rec[0]
                 h = {"Jump": whole.jmp_dynamic, "Call": whole.call_dynamic, "Return": whole.ret_dynamic}.get(kind)

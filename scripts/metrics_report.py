@@ -82,8 +82,9 @@ def pooled(scopes, static):
     """One pseudo-benchmark whose counts and histograms are the sums."""
     p = {"instructions": 0, "dataflow": 0, "produced": 0, "discards": 0, "forwards": 0,
          "loads": 0, "load_bytes": 0, "stores": 0, "store_bytes": 0, "stack_loads": 0,
-         "stack_load_bytes": 0, "stack_stores": 0, "stack_store_bytes": 0, "jmp_taken": 0,
-         "jmp_not_taken": 0, "call_depth_max": 0, "steps": 0, "inflight_frame_sum": 0.0,
+         "stack_load_bytes": 0, "stack_stores": 0, "stack_store_bytes": 0, "jmp_issued": 0,
+         "jmp_taken": 0, "jmp_not_taken": 0, "jmp_overridden": 0, "call_depth_max": 0,
+         "steps": 0, "inflight_frame_sum": 0.0,
          "inflight_all_sum": 0.0, "inflight_frame_max": 0, "inflight_all_max": 0,
          "opcodes": {}}
     hists = ("value_ref", "load_dynamic", "load_ref", "jmp_trigger", "jmp_dynamic",
@@ -93,7 +94,8 @@ def pooled(scopes, static):
     for w in scopes:
         for k in ("instructions", "dataflow", "produced", "discards", "forwards", "loads",
                   "load_bytes", "stores", "store_bytes", "stack_loads", "stack_load_bytes",
-                  "stack_stores", "stack_store_bytes", "jmp_taken", "jmp_not_taken", "steps"):
+                  "stack_stores", "stack_store_bytes", "jmp_issued", "jmp_taken", "jmp_not_taken",
+                  "jmp_overridden", "steps"):
             p[k] += w.get(k, 0)
         p["call_depth_max"] = max(p["call_depth_max"], w.get("call_depth_max", 0))
         p["inflight_frame_max"] = max(p["inflight_frame_max"], w["inflight_frame_max"])
@@ -214,8 +216,9 @@ def main():
 
     # 5. Control flow
     out.append("\n### Control-flow lifetime\n")
-    hdr = ["benchmark", "jmp per 1000", "taken", "trigger field mean", "issue→trigger mean",
-           "median", "at 0", "≥ 32", "calls per 1000", "call/ret trigger mean", "max depth"]
+    hdr = ["benchmark", "jmp per 1000", "taken", "overridden", "trigger field mean",
+           "issue→trigger mean", "median", "at 0", "≥ 32", "calls per 1000",
+           "call/ret trigger mean", "max depth"]
     t = []
     for n, w, s, r in all_rows:
         jd = w["jmp_dynamic"]
@@ -223,7 +226,7 @@ def main():
         cr = {}
         add_hist(cr, w["call_dynamic"])
         add_hist(cr, w["ret_dynamic"])
-        t.append([n, per_k(jm, w["instructions"]), pct(w["jmp_taken"], jm),
+        t.append([n, per_k(jm, w["instructions"]), pct(w["jmp_taken"], jm), pct(w["jmp_overridden"], jm),
                   f"{h_mean(w['jmp_trigger']):.1f}", f"{h_mean(jd):.1f}", h_quantile(jd, 0.5),
                   f"{h_share(jd, lambda d: d == 0):.0f}%", f"{h_share(jd, lambda d: d >= 32):.0f}%",
                   per_k(w["opcodes"].get("call", 0), w["instructions"]), f"{h_mean(cr):.2f}",
