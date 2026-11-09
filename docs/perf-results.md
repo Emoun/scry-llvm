@@ -8,7 +8,8 @@ between `start_trigger` and `stop_trigger`, runtime library included.
 The raw data is `perf-results.json`; `scripts/compare_metrics.py
 docs/perf-results.json new.json` compares a new build against it.  A
 second table below gives the executed instruction bytes and the static
-code size against rv32imac.
+code size against rv32imac.  `perf-metrics.md` breaks the same run down
+by instruction class and lifetime.
 
 Columns: baseline and current executed instructions and their ratio;
 current non-dataflow instructions (everything but `echo`, `dup` and
