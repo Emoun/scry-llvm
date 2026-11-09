@@ -7,10 +7,12 @@ for comparison with the Scry figures of run_embench.py.
 For every image the script runs Spike with instruction logging and counts,
 for the whole run and for the window between the first execution of
 start_trigger and the first execution of stop_trigger after it: executed
-instructions, executed bytes and compressed (2-byte) instructions.  An
-instruction is compressed when the low two bits of its encoding are not
-11.  Static instructions and bytes are read from objdump's disassembly of
-the executable sections.
+instructions, executed bytes and compressed (2-byte) instructions, and for
+the window the control-flow instructions (branches, jumps, calls and
+returns), loads and stores, from the mnemonic in the log.  An instruction
+is compressed when the low two bits of its encoding are not 11.  Static
+instructions and bytes are read from objdump's disassembly of the
+executable sections.
 
 The images are expected to be built from the same sources as the Scry
 ones (benchmark, Embench support files, the runtime's libc) with the
@@ -35,14 +37,33 @@ def symbol(nm, elf, name):
     sys.exit(f"{elf}: symbol {name} not found")
 
 
+CONTROL = {"beq", "bne", "blt", "bge", "bltu", "bgeu", "beqz", "bnez", "blez", "bgez", "bltz",
+           "bgtz", "bgt", "ble", "bgtu", "bleu", "jal", "jalr", "j", "jr", "ret", "call", "tail",
+           "mret", "sret", "uret", "ecall", "ebreak"}
+LOADS = {"lb", "lh", "lw", "lbu", "lhu", "lwsp", "lr.w"}
+STORES = {"sb", "sh", "sw", "swsp", "sc.w"}
+
+
+def classify(mnemonic):
+    m = mnemonic[2:] if mnemonic.startswith("c.") else mnemonic
+    if m in CONTROL:
+        return "control"
+    if m in LOADS:
+        return "load"
+    if m in STORES or m.startswith("amo"):
+        return "store"
+    return "other"
+
+
 def dynamic(spike, elf, start, stop, isa):
     """Count the Spike log: lines look like 'core   0: 0x80000f2a (0x4501) li a0, 0'."""
     p = subprocess.Popen([spike, f"--isa={isa}", "-l", str(elf)], stdout=subprocess.DEVNULL,
                          stderr=subprocess.PIPE, text=True)
     total = tbytes = tc16 = win = wbytes = wc16 = 0
+    wclass = {"control": 0, "load": 0, "store": 0, "other": 0}
     in_win = done = False
     for line in p.stderr:
-        m = re.match(r"core\s+\d+: 0x([0-9a-f]+) \(0x([0-9a-f]+)\)", line)
+        m = re.match(r"core\s+\d+: 0x([0-9a-f]+) \(0x([0-9a-f]+)\)\s*(\S*)", line)
         if not m:
             continue
         pc, enc = int(m.group(1), 16), int(m.group(2), 16)
@@ -55,9 +76,12 @@ def dynamic(spike, elf, start, stop, isa):
                 in_win = False; done = True
             if in_win:
                 win += 1; wbytes += n; wc16 += n == 2
+                wclass[classify(m.group(3))] += 1
     code = p.wait()
     return dict(exit=code, instructions=total, bytes=tbytes, compressed=tc16,
-                window_instructions=win, window_bytes=wbytes, window_compressed=wc16)
+                window_instructions=win, window_bytes=wbytes, window_compressed=wc16,
+                window_control=wclass["control"], window_loads=wclass["load"],
+                window_stores=wclass["store"])
 
 
 def static(objdump, elf):
@@ -82,7 +106,8 @@ def main():
     args = ap.parse_args()
 
     results = {}
-    print(f"{'benchmark':18} {'instrs':>11} {'bytes':>12} {'c16%':>5} {'static':>8} {'bytes':>8}")
+    print(f"{'benchmark':18} {'instrs':>11} {'bytes':>12} {'c16%':>5} {'ctrl%':>5} {'ld%':>5} {'st%':>5} "
+          f"{'static':>8} {'bytes':>8}")
     for img in args.images:
         elf = pathlib.Path(img)
         name = elf.stem
@@ -93,6 +118,9 @@ def main():
         results[name] = d
         print(f"{name:18} {d['window_instructions']:11,d} {d['window_bytes']:12,d} "
               f"{100 * d['window_compressed'] / max(d['window_instructions'], 1):5.1f} "
+              f"{100 * d['window_control'] / max(d['window_instructions'], 1):5.1f} "
+              f"{100 * d['window_loads'] / max(d['window_instructions'], 1):5.1f} "
+              f"{100 * d['window_stores'] / max(d['window_instructions'], 1):5.1f} "
               f"{d['static_instructions']:8,d} {d['static_bytes']:8,d}"
               + ("" if d["exit"] == 0 else f"  (exit {d['exit']})"))
     tot = sum(r["window_instructions"] for r in results.values())

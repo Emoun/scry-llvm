@@ -28,7 +28,12 @@ symbol and the first execution of the stop symbol after it:
   and values passed on by const/grow;
 * inflight_frame_mean/max, inflight_all_mean/max: operands produced and not
   yet consumed after each step, in the current frame and in all frames;
-* loads, stores and their bytes.
+* loads, stores and their bytes, and how many of them are stack-slot
+  accesses (ld [i], st [i]); produced: operands produced; jmp_taken and
+  jmp_not_taken: a jmp whose condition holds issues a control event and
+  later triggers, one whose condition fails issues nothing, so the taken
+  count is the issued jumps and the rest of the executed jmps were not
+  taken; call_depth_max: deepest call nesting seen.
 
 scryer runs in --machine-mode, so its exit status is the program's result
 (the low byte of the first returned operand; 123 on a timeout or error) and
@@ -90,6 +95,10 @@ class Scope:
         self.discards = 0
         self.forwards = 0
         self.loads = self.load_bytes = self.stores = self.store_bytes = 0
+        self.stack_loads = self.stack_load_bytes = self.stack_stores = self.stack_store_bytes = 0
+        self.produced = 0
+        self.jmp_taken = 0
+        self.call_depth_max = 0
         self.inflight_frame_sum = self.inflight_frame_max = 0
         self.inflight_all_sum = self.inflight_all_max = 0
         self.steps = 0
@@ -107,6 +116,11 @@ class Scope:
             "value_ref": hist(self.value_ref), "discards": self.discards, "forwards": self.forwards,
             "loads": self.loads, "load_bytes": self.load_bytes,
             "stores": self.stores, "store_bytes": self.store_bytes,
+            "stack_loads": self.stack_loads, "stack_load_bytes": self.stack_load_bytes,
+            "stack_stores": self.stack_stores, "stack_store_bytes": self.stack_store_bytes,
+            "produced": self.produced, "jmp_taken": self.jmp_taken,
+            "jmp_not_taken": self.opcodes.get("jmp", 0) - self.jmp_taken,
+            "call_depth_max": self.call_depth_max,
             "inflight_frame_mean": round(self.inflight_frame_sum / self.steps, 3) if self.steps else 0.0,
             "inflight_frame_max": self.inflight_frame_max,
             "inflight_all_mean": round(self.inflight_all_sum / self.steps, 3) if self.steps else 0.0,
@@ -125,7 +139,11 @@ class Scope:
                   f"CallTrigger: mean={mean(self.call_trigger):.2f}, RetTrigger: mean={mean(self.ret_trigger):.2f}\n")
         out.write(f"LoadRef: mean={mean(self.load_ref):.2f} (dynamic {mean(self.load_dynamic):.2f}), "
                   f"ValueRef: mean={mean(self.value_ref):.2f}, discards={self.discards}, forwards={self.forwards}\n")
-        out.write(f"Loads: {self.loads} ({self.load_bytes} bytes), Stores: {self.stores} ({self.store_bytes} bytes)\n")
+        out.write(f"Loads: {self.loads} ({self.load_bytes} bytes, {self.stack_loads} from stack slots), "
+                  f"Stores: {self.stores} ({self.store_bytes} bytes, {self.stack_stores} to stack slots)\n")
+        out.write(f"Produced: {self.produced} operands ({self.produced / max(self.instructions, 1):.2f} per instruction), "
+                  f"Jumps taken: {self.jmp_taken}, not taken: {self.opcodes.get('jmp', 0) - self.jmp_taken}, "
+                  f"CallDepth: max={self.call_depth_max}\n")
         out.write(f"InFlightFrame: mean={self.inflight_frame_sum / max(self.steps, 1):.2f} max={self.inflight_frame_max}\n")
         out.write(f"InFlightAll: mean={self.inflight_all_sum / max(self.steps, 1):.2f} max={self.inflight_all_max}\n")
 
@@ -196,11 +214,18 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                 step += 1
             elif line[2] == "o":
                 n = int(line[line.rindex(":") + 2:])
+                stack = line[5] == "S"
                 whole.stores += 1
                 whole.store_bytes += n
+                if stack:
+                    whole.stack_stores += 1
+                    whole.stack_store_bytes += n
                 if in_win:
                     window.stores += 1
                     window.store_bytes += n
+                    if stack:
+                        window.stack_stores += 1
+                        window.stack_store_bytes += n
             continue
         if c == "I" and line[1] == "n":  # Instruction: (0x....) text
             p = line.index(")")
@@ -243,6 +268,9 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                 i = line.index("(") + 1
                 oid = int(line[i:line.index(",", i)])
                 outstanding += 1
+                whole.produced += 1
+                if in_win:
+                    window.produced += 1
                 pending[oid] = (step, op == "ld" and "[" not in text, in_win)
             elif k == "C":
                 consumes += 1
@@ -272,7 +300,12 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
             continue
         if c == "I":  # Issue: Kind(id)
             k = line.index("(")
-            issued[int(line[k + 1:line.index(")")])] = (step, line[7:k], None)
+            kind = line[7:k]
+            issued[int(line[k + 1:line.index(")")])] = (step, kind, None)
+            if kind == "Jump":
+                whole.jmp_taken += 1
+                if in_win:
+                    window.jmp_taken += 1
             continue
         if c == "T":  # Trigger: Kind(id)
             k = line.index("(")
@@ -288,16 +321,28 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                         {"Jump": window.jmp_dynamic, "Call": window.call_dynamic, "Return": window.ret_dynamic}[kind][d] += 1
             if kind == "Call":
                 frame_base.append(outstanding)
+                depth = len(frame_base) - 1
+                if depth > whole.call_depth_max:
+                    whole.call_depth_max = depth
+                if in_win and depth > window.call_depth_max:
+                    window.call_depth_max = depth
             elif kind == "Return" and len(frame_base) > 1:
                 frame_base.pop()
             continue
         if c == "L":  # Load(addr): n | LoadStack(addr,idx): n
             n = int(line[line.rindex(":") + 2:])
+            stack = line[4] == "S"
             whole.loads += 1
             whole.load_bytes += n
+            if stack:
+                whole.stack_loads += 1
+                whole.stack_load_bytes += n
             if in_win:
                 window.loads += 1
                 window.load_bytes += n
+                if stack:
+                    window.stack_loads += 1
+                    window.stack_load_bytes += n
             continue
     return whole, window
 

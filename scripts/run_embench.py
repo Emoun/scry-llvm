@@ -10,7 +10,10 @@ exit code is 0, i.e. verify_benchmark() accepted the result.  With
 simulator's event stream), which reports, for the window between
 start_trigger and stop_trigger: executed instructions, non-dataflow
 instructions, the dataflow share, the mean jmp issue-to-trigger distance,
-the mean ld output reference and the in-flight operand count (mean/max).
+the mean ld output reference and the in-flight operand count (mean/max);
+the static view of the image from scripts/scry_static.py (instruction
+classes, output references, and with --profile coverage and hotness) is
+stored under "static" in the JSON written by --json.
 
 Usage:
     run_embench.py [--embench <dir>] [--clang <clang>] [--scryer <scryer>]
@@ -114,6 +117,7 @@ def main():
     warn_if_runtime_stale(clang)
 
     metrics_script = ROOT / "scripts" / "scry_metrics.py"
+    static_script = ROOT / "scripts" / "scry_static.py"
 
     embench = pathlib.Path(args.embench)
     if not (embench / "src").exists():
@@ -166,14 +170,25 @@ def main():
                    "--target", TRIPLE, f"--timeout={args.timeout}",
                    "--stack-buffer", str(STACK_BUFFER), "--window-start", "start_trigger",
                    "--window-stop", "stop_trigger", "--json", str(jpath)]
+            ppath = outdir / (name + ".profile.json")
             if args.profile:
-                cmd += ["--profile", str(outdir / (name + ".profile.json"))]
+                cmd += ["--profile", str(ppath)]
             subprocess.run(cmd, capture_output=True, text=True)
             if jpath.exists():
                 with open(jpath) as f:
                     metrics = json.load(f)
                 metrics["static_text_bytes"] = text
                 metrics["static_instructions"] = text // 2
+                spath = outdir / (name + ".static.json")
+                cmd = [sys.executable, str(static_script), str(elf), "--json", str(spath)]
+                if args.profile:
+                    cmd += ["--profile", str(ppath)]
+                subprocess.run(cmd, capture_output=True, text=True)
+                if spath.exists():
+                    with open(spath) as f:
+                        metrics["static"] = json.load(f)
+                    if not args.keep:
+                        spath.unlink()
                 w = metrics["window"]
                 instrs = w["instructions"]
                 metrics_text = (f" {instrs:11,d} {instrs - w['dataflow']:11,d} "
