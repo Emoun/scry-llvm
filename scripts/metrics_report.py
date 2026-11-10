@@ -11,8 +11,10 @@ pooled counts and histograms (means and medians over all benchmarks'
 events, not averages of the per-benchmark figures).
 
 Tables: code size, dynamic instruction mix, static instruction mix,
-operand lifetime, control-flow lifetime, memory traffic, operands in
-flight.
+operand lifetime, control-flow lifetime, jump distance quantiles (trigger
+field as written and issue-to-trigger as executed), memory traffic, load
+distance quantiles (output reference as written and load-to-use as
+executed), operands in flight.
 """
 import argparse
 import json
@@ -46,6 +48,20 @@ def h_quantile(h, q):
         if acc >= q * n:
             return int(k)
     return 0
+
+
+def h_max(h):
+    return max((int(k) for k in h), default=0)
+
+
+QUANTILE_HDR = ["mean", "p10", "p25", "median", "p75", "p90", "p99", "max"]
+
+
+def quantile_row(h):
+    """mean, p10, p25, median, p75, p90, p99, max of a {value: count} histogram."""
+    if not h_n(h):
+        return ["-"] * len(QUANTILE_HDR)
+    return [f"{h_mean(h):.1f}"] + [h_quantile(h, q) for q in (0.1, 0.25, 0.5, 0.75, 0.9, 0.99)] + [h_max(h)]
 
 
 def h_share(h, pred):
@@ -217,7 +233,7 @@ def main():
     # 5. Control flow
     out.append("\n### Control-flow lifetime\n")
     hdr = ["benchmark", "jmp per 1000", "taken", "overridden", "trigger field mean",
-           "issue→trigger mean", "median", "at 0", "≥ 32", "calls per 1000",
+           "issue→trigger mean", "at 0", "≥ 32", "calls per 1000",
            "call/ret trigger mean", "max depth"]
     t = []
     for n, w, s, r in all_rows:
@@ -227,16 +243,22 @@ def main():
         add_hist(cr, w["call_dynamic"])
         add_hist(cr, w["ret_dynamic"])
         t.append([n, per_k(jm, w["instructions"]), pct(w["jmp_taken"], jm), pct(w["jmp_overridden"], jm),
-                  f"{h_mean(w['jmp_trigger']):.1f}", f"{h_mean(jd):.1f}", h_quantile(jd, 0.5),
+                  f"{h_mean(w['jmp_trigger']):.1f}", f"{h_mean(jd):.1f}",
                   f"{h_share(jd, lambda d: d == 0):.0f}%", f"{h_share(jd, lambda d: d >= 32):.0f}%",
                   per_k(w["opcodes"].get("call", 0), w["instructions"]), f"{h_mean(cr):.2f}",
                   w["call_depth_max"]])
     out.append(table(hdr, t))
+    out.append("\n#### Jump distance as written (trigger field)\n")
+    out.append(table(["benchmark"] + QUANTILE_HDR,
+                     [[n] + quantile_row(w["jmp_trigger"]) for n, w, s, r in all_rows]))
+    out.append("\n#### Jump distance as executed (issue to trigger)\n")
+    out.append(table(["benchmark"] + QUANTILE_HDR,
+                     [[n] + quantile_row(w["jmp_dynamic"]) for n, w, s, r in all_rows]))
 
     # 6. Memory
     out.append("\n### Memory traffic\n")
     hdr = ["benchmark", "loads per 1000", "bytes per load", "from frame slots", "stores per 1000",
-           "bytes per store", "to frame slots", "load→use mean", "median", "rv32 loads per 1000",
+           "bytes per store", "to frame slots", "load→use mean", "rv32 loads per 1000",
            "rv32 stores per 1000"]
     t = []
     for n, w, s, r in all_rows:
@@ -245,10 +267,16 @@ def main():
                   f"{w['load_bytes'] / w['loads']:.1f}" if w["loads"] else "-",
                   pct(w["stack_loads"], w["loads"]), per_k(w["stores"], w["instructions"]),
                   f"{w['store_bytes'] / w['stores']:.1f}" if w["stores"] else "-",
-                  pct(w["stack_stores"], w["stores"]), f"{h_mean(ld):.1f}", h_quantile(ld, 0.5),
+                  pct(w["stack_stores"], w["stores"]), f"{h_mean(ld):.1f}",
                   per_k(r["window_loads"], r["window_instructions"]) if r else "-",
                   per_k(r["window_stores"], r["window_instructions"]) if r else "-"])
     out.append(table(hdr, t))
+    out.append("\n#### Load distance as written (output reference)\n")
+    out.append(table(["benchmark"] + QUANTILE_HDR,
+                     [[n] + quantile_row(w["load_ref"]) for n, w, s, r in all_rows]))
+    out.append("\n#### Load distance as executed (load to use)\n")
+    out.append(table(["benchmark"] + QUANTILE_HDR,
+                     [[n] + quantile_row(w["load_dynamic"]) for n, w, s, r in all_rows]))
 
     # 7. In flight
     out.append("\n### Operands in flight\n")

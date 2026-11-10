@@ -232,28 +232,91 @@ instructions ahead; only 3.7% of the executed jumps carry a distance over
 unused: every call and return triggers immediately, which is the one
 lifetime the backend does not yet exploit.
 
-| benchmark | jmp per 1000 | taken | overridden | trigger field mean | issue→trigger mean | median | at 0 | ≥ 32 | calls per 1000 | call/ret trigger mean | max depth |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| aha-mont64 | 19.9 | 70.1% | 0.0% | 39.8 | 52.9 | 90 | 0% | 57% | 0.0 | 0.00 | 3 |
-| crc32 | 21.8 | 99.6% | 0.0% | 13.9 | 40.0 | 40 | 0% | 100% | 21.7 | 0.00 | 4 |
-| depthconv | 1.8 | 88.9% | 0.0% | 486.5 | 1098.8 | 547 | 0% | 100% | 0.2 | 0.00 | 4 |
-| edn | 14.4 | 93.0% | 0.1% | 56.8 | 55.5 | 30 | 1% | 20% | 0.0 | 0.00 | 4 |
-| huffbench | 40.6 | 54.1% | 0.3% | 7.5 | 54.0 | 4 | 16% | 1% | 0.0 | 0.00 | 5 |
-| matmult-int | 2.4 | 87.4% | 0.4% | 378.3 | 350.1 | 45 | 4% | 86% | 0.0 | 0.00 | 4 |
-| md5sum | 30.8 | 47.8% | 0.0% | 19.7 | 11.7 | 9 | 37% | 15% | 0.0 | 0.00 | 5 |
-| nettle-aes | 7.0 | 69.6% | 0.0% | 126.1 | 354.5 | 197 | 10% | 80% | 0.0 | 0.00 | 4 |
-| nettle-sha256 | 2.9 | 67.9% | 1.8% | 327.4 | 805.3 | 34 | 18% | 68% | 0.2 | 0.00 | 4 |
-| nsichneu | 126.0 | 20.4% | 0.2% | 0.0 | 0.0 | 0 | 99% | 0% | 0.0 | 0.00 | 3 |
-| picojpeg | 22.0 | 62.8% | 1.2% | 44.5 | 44.2 | 8 | 17% | 26% | 0.7 | 0.00 | 7 |
-| qrduino | 47.6 | 44.3% | 2.1% | 5.8 | 54.2 | 2 | 23% | 3% | 0.0 | 0.00 | 6 |
-| sglib-combined | 60.5 | 42.4% | 6.8% | 5.3 | 6.1 | 2 | 36% | 2% | 2.8 | 0.00 | 12 |
-| slre | 69.3 | 46.1% | 4.8% | 2.3 | 34.0 | 1 | 40% | 1% | 1.6 | 0.00 | 8 |
-| statemate | 24.0 | 59.2% | 1.4% | 25.7 | 90.6 | 0 | 71% | 14% | 2.0 | 0.00 | 5 |
-| tarfind | 31.1 | 58.5% | 6.2% | 14.9 | 31.7 | 53 | 18% | 54% | 10.7 | 0.00 | 4 |
-| ud | 34.1 | 52.2% | 8.2% | 16.8 | 21.3 | 11 | 0% | 9% | 5.3 | 0.00 | 4 |
-| wikisort | 40.1 | 48.9% | 0.1% | 6.5 | 52.6 | 5 | 37% | 9% | 4.5 | 0.00 | 6 |
-| xgboost | 27.1 | 77.7% | 0.1% | 6.5 | 7.8 | 3 | 0% | 0% | 0.0 | 0.00 | 4 |
-| **total** | 32.4 | 50.1% | 2.4% | 16.8 | 53.6 | 5 | 27% | 18% | 2.3 | 0.00 | 12 |
+The quantile tables separate the field from the tail.  As written, three
+quarters of the executed jumps carry a trigger distance of at most 12 and
+90% at most 27, well inside the 6-bit near field; the top percent is the
+far form, loop-exit jumps issued at the head of a long body and
+triggering at its end (depthconv 547, matmult-int 854, edn 1,425,
+nettle-sha256 2,180).  As executed the quartiles are 0, 5 and 22 and the
+90th percentile 40, the same shape stretched by callees: a jump issued
+before a call and triggering after the return carries the whole callee,
+which is where the maxima of up to 1.5 million instructions (qrduino,
+huffbench, nettle-aes, slre, xgboost) come from and why huffbench,
+qrduino, slre and wikisort have an executed mean of 34 to 54 against a
+written mean below 8.
+
+| benchmark | jmp per 1000 | taken | overridden | trigger field mean | issue→trigger mean | at 0 | ≥ 32 | calls per 1000 | call/ret trigger mean | max depth |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 19.9 | 70.1% | 0.0% | 39.8 | 52.9 | 0% | 57% | 0.0 | 0.00 | 3 |
+| crc32 | 21.8 | 99.6% | 0.0% | 13.9 | 40.0 | 0% | 100% | 21.7 | 0.00 | 4 |
+| depthconv | 1.8 | 88.9% | 0.0% | 486.5 | 1098.8 | 0% | 100% | 0.2 | 0.00 | 4 |
+| edn | 14.4 | 93.0% | 0.1% | 56.8 | 55.5 | 1% | 20% | 0.0 | 0.00 | 4 |
+| huffbench | 40.6 | 54.1% | 0.3% | 7.5 | 54.0 | 16% | 1% | 0.0 | 0.00 | 5 |
+| matmult-int | 2.4 | 87.4% | 0.4% | 378.3 | 350.1 | 4% | 86% | 0.0 | 0.00 | 4 |
+| md5sum | 30.8 | 47.8% | 0.0% | 19.7 | 11.7 | 37% | 15% | 0.0 | 0.00 | 5 |
+| nettle-aes | 7.0 | 69.6% | 0.0% | 126.1 | 354.5 | 10% | 80% | 0.0 | 0.00 | 4 |
+| nettle-sha256 | 2.9 | 67.9% | 1.8% | 327.4 | 805.3 | 18% | 68% | 0.2 | 0.00 | 4 |
+| nsichneu | 126.0 | 20.4% | 0.2% | 0.0 | 0.0 | 99% | 0% | 0.0 | 0.00 | 3 |
+| picojpeg | 22.0 | 62.8% | 1.2% | 44.5 | 44.2 | 17% | 26% | 0.7 | 0.00 | 7 |
+| qrduino | 47.6 | 44.3% | 2.1% | 5.8 | 54.2 | 23% | 3% | 0.0 | 0.00 | 6 |
+| sglib-combined | 60.5 | 42.4% | 6.8% | 5.3 | 6.1 | 36% | 2% | 2.8 | 0.00 | 12 |
+| slre | 69.3 | 46.1% | 4.8% | 2.3 | 34.0 | 40% | 1% | 1.6 | 0.00 | 8 |
+| statemate | 24.0 | 59.2% | 1.4% | 25.7 | 90.6 | 71% | 14% | 2.0 | 0.00 | 5 |
+| tarfind | 31.1 | 58.5% | 6.2% | 14.9 | 31.7 | 18% | 54% | 10.7 | 0.00 | 4 |
+| ud | 34.1 | 52.2% | 8.2% | 16.8 | 21.3 | 0% | 9% | 5.3 | 0.00 | 4 |
+| wikisort | 40.1 | 48.9% | 0.1% | 6.5 | 52.6 | 37% | 9% | 4.5 | 0.00 | 6 |
+| xgboost | 27.1 | 77.7% | 0.1% | 6.5 | 7.8 | 0% | 0% | 0.0 | 0.00 | 4 |
+| **total** | 32.4 | 50.1% | 2.4% | 16.8 | 53.6 | 27% | 18% | 2.3 | 0.00 | 12 |
+
+#### Jump distance as written (trigger field)
+
+| benchmark | mean | p10 | p25 | median | p75 | p90 | p99 | max |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 39.8 | 1 | 1 | 2 | 90 | 90 | 91 | 153 |
+| crc32 | 13.9 | 14 | 14 | 14 | 14 | 14 | 14 | 21 |
+| depthconv | 486.5 | 3 | 547 | 547 | 547 | 547 | 547 | 547 |
+| edn | 56.8 | 30 | 30 | 30 | 30 | 199 | 199 | 1425 |
+| huffbench | 7.5 | 0 | 0 | 4 | 12 | 15 | 33 | 183 |
+| matmult-int | 378.3 | 4 | 45 | 45 | 854 | 854 | 854 | 854 |
+| md5sum | 19.7 | 0 | 0 | 6 | 35 | 60 | 60 | 116 |
+| nettle-aes | 126.1 | 0 | 12 | 197 | 198 | 198 | 257 | 257 |
+| nettle-sha256 | 327.4 | 0 | 3 | 34 | 116 | 2180 | 2180 | 2180 |
+| nsichneu | 0.0 | 0 | 0 | 0 | 0 | 0 | 0 | 74 |
+| picojpeg | 44.5 | 0 | 3 | 9 | 24 | 273 | 334 | 335 |
+| qrduino | 5.8 | 0 | 1 | 2 | 7 | 14 | 51 | 915 |
+| sglib-combined | 5.3 | 0 | 0 | 1 | 6 | 17 | 38 | 183 |
+| slre | 2.3 | 0 | 0 | 0 | 2 | 8 | 25 | 95 |
+| statemate | 25.7 | 0 | 0 | 0 | 7 | 28 | 695 | 695 |
+| tarfind | 14.9 | 0 | 2 | 10 | 27 | 27 | 116 | 116 |
+| ud | 16.8 | 5 | 10 | 11 | 12 | 15 | 367 | 458 |
+| wikisort | 6.5 | 0 | 0 | 2 | 8 | 18 | 45 | 112 |
+| xgboost | 6.5 | 3 | 3 | 3 | 3 | 19 | 19 | 28 |
+| **total** | 16.8 | 0 | 0 | 2 | 12 | 27 | 280 | 2180 |
+
+#### Jump distance as executed (issue to trigger)
+
+| benchmark | mean | p10 | p25 | median | p75 | p90 | p99 | max |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 52.9 | 1 | 1 | 90 | 90 | 90 | 91 | 153 |
+| crc32 | 40.0 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| depthconv | 1098.8 | 547 | 547 | 547 | 547 | 4964 | 4964 | 4964 |
+| edn | 55.5 | 30 | 30 | 30 | 30 | 183 | 199 | 6173 |
+| huffbench | 54.0 | 0 | 4 | 4 | 15 | 15 | 41 | 977709 |
+| matmult-int | 350.1 | 4 | 45 | 45 | 854 | 854 | 854 | 854 |
+| md5sum | 11.7 | 0 | 0 | 9 | 11 | 35 | 60 | 3317 |
+| nettle-aes | 354.5 | 0 | 88 | 197 | 198 | 198 | 257 | 108187 |
+| nettle-sha256 | 805.3 | 0 | 6 | 34 | 116 | 2180 | 19223 | 19223 |
+| nsichneu | 0.0 | 0 | 0 | 0 | 0 | 0 | 0 | 74 |
+| picojpeg | 44.2 | 0 | 3 | 8 | 42 | 273 | 334 | 1005 |
+| qrduino | 54.2 | 0 | 1 | 2 | 7 | 18 | 51 | 1531667 |
+| sglib-combined | 6.1 | 0 | 0 | 2 | 7 | 17 | 38 | 1409 |
+| slre | 34.0 | 0 | 0 | 1 | 2 | 8 | 32 | 78513 |
+| statemate | 90.6 | 0 | 0 | 0 | 4 | 88 | 2459 | 2459 |
+| tarfind | 31.7 | 0 | 2 | 53 | 53 | 53 | 53 | 116 |
+| ud | 21.3 | 5 | 11 | 11 | 15 | 22 | 535 | 535 |
+| wikisort | 52.6 | 0 | 0 | 5 | 6 | 19 | 301 | 34337 |
+| xgboost | 7.8 | 3 | 3 | 3 | 19 | 19 | 19 | 66281 |
+| **total** | 53.6 | 0 | 0 | 5 | 22 | 40 | 547 | 1531667 |
 
 ## Memory traffic
 
@@ -274,33 +337,92 @@ whole (aha-mont64: 96% of its loads are frame slots of 8 bytes).  The
 addressed loads alone, 9.9 million, are fewer than the rv32imac total,
 which also contains its stack traffic.  Loads move 3.4 bytes and stores
 3.3 bytes on average; the runtime's eight-byte copy loops lift wikisort
-and aha-mont64 above 6.  The load-to-use distance has a mean of 48 and a
-median of 4: the scheduler issues loads early in their block, and the
-long distances are the loop bodies of matmult-int, depthconv and
-nettle-sha256 (median 87 to 185 instructions).
+and aha-mont64 above 6.
 
-| benchmark | loads per 1000 | bytes per load | from frame slots | stores per 1000 | bytes per store | to frame slots | load→use mean | median | rv32 loads per 1000 | rv32 stores per 1000 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| aha-mont64 | 17.0 | 7.9 | 96.4% | 3.3 | 7.8 | 94.6% | 93.1 | 55 | 2.5 | 1.2 |
-| crc32 | 87.0 | 4.0 | 50.1% | 21.8 | 4.0 | 0.2% | 3.0 | 2 | 86.9 | 43.5 |
-| depthconv | 88.5 | 2.3 | 27.3% | 9.5 | 2.0 | 31.9% | 208.5 | 181 | 168.5 | 17.0 |
-| edn | 128.5 | 2.8 | 36.7% | 7.8 | 3.2 | 11.8% | 34.3 | 14 | 256.0 | 31.3 |
-| huffbench | 56.6 | 3.3 | 0.3% | 30.1 | 3.4 | 0.2% | 6.8 | 2 | 188.8 | 74.3 |
-| matmult-int | 161.0 | 4.1 | 19.8% | 8.2 | 5.9 | 0.8% | 260.2 | 185 | 231.3 | 139.7 |
-| md5sum | 79.9 | 4.0 | 72.2% | 52.1 | 3.7 | 83.0% | 25.8 | 28 | 89.4 | 68.6 |
-| nettle-aes | 97.6 | 3.8 | 8.2% | 4.9 | 4.0 | 33.3% | 90.0 | 92 | 179.6 | 13.5 |
-| nettle-sha256 | 21.1 | 3.7 | 16.0% | 10.2 | 3.3 | 28.1% | 340.6 | 87 | 102.9 | 52.7 |
-| nsichneu | 400.9 | 4.0 | 50.2% | 1.0 | 4.0 | 40.1% | 1.3 | 0 | 547.2 | 1.7 |
-| picojpeg | 70.4 | 2.1 | 36.7% | 55.1 | 2.0 | 26.3% | 23.2 | 9 | 144.1 | 130.0 |
-| qrduino | 139.3 | 2.9 | 54.6% | 29.8 | 2.7 | 64.7% | 5.6 | 4 | 180.2 | 25.4 |
-| sglib-combined | 89.8 | 3.7 | 6.7% | 33.8 | 3.7 | 16.3% | 2.5 | 1 | 245.2 | 121.2 |
-| slre | 105.4 | 2.9 | 61.3% | 64.2 | 3.7 | 68.1% | 6.6 | 1 | 200.3 | 116.4 |
-| statemate | 168.3 | 3.1 | 31.3% | 123.4 | 2.3 | 14.5% | 26.7 | 1 | 172.1 | 320.8 |
-| tarfind | 62.9 | 4.4 | 74.4% | 47.4 | 4.3 | 17.6% | 2.7 | 4 | 27.7 | 240.3 |
-| ud | 126.8 | 4.1 | 51.3% | 29.7 | 4.6 | 47.0% | 12.7 | 5 | 165.6 | 64.3 |
-| wikisort | 46.7 | 6.3 | 39.0% | 29.6 | 6.8 | 34.8% | 4.5 | 1 | 164.7 | 93.3 |
-| xgboost | 212.9 | 2.6 | 54.8% | 24.4 | 3.5 | 99.2% | 3.5 | 4 | 235.7 | 14.8 |
-| **total** | 110.9 | 3.4 | 40.8% | 32.7 | 3.3 | 36.6% | 47.7 | 4 | 166.7 | 75.3 |
+The load-to-use distance has a mean of 48 and a median of 4.  As
+written, the output reference of a load runs up against its 5-bit field:
+half of the loads deliver within one instruction, but the 90th percentile
+is 26 and the maximum 30, and in the loop kernels of depthconv, md5sum,
+nettle-aes, nettle-sha256 and matmult-int the median reference is 24 to
+26, i.e. the scheduler issues the load as early as the field allows.  As
+executed, the distance follows the value through the echo and dup hops
+that carry it to its consumer and through any callee in between, so the
+upper quantiles stretch to 142 (p90) and 642 (p99): the loop bodies of
+matmult-int, depthconv and nettle-sha256 (median 87 to 185 instructions)
+and the 64-bit arithmetic of aha-mont64 (p75 of 173 for a written 26).
+
+| benchmark | loads per 1000 | bytes per load | from frame slots | stores per 1000 | bytes per store | to frame slots | load→use mean | rv32 loads per 1000 | rv32 stores per 1000 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 17.0 | 7.9 | 96.4% | 3.3 | 7.8 | 94.6% | 93.1 | 2.5 | 1.2 |
+| crc32 | 87.0 | 4.0 | 50.1% | 21.8 | 4.0 | 0.2% | 3.0 | 86.9 | 43.5 |
+| depthconv | 88.5 | 2.3 | 27.3% | 9.5 | 2.0 | 31.9% | 208.5 | 168.5 | 17.0 |
+| edn | 128.5 | 2.8 | 36.7% | 7.8 | 3.2 | 11.8% | 34.3 | 256.0 | 31.3 |
+| huffbench | 56.6 | 3.3 | 0.3% | 30.1 | 3.4 | 0.2% | 6.8 | 188.8 | 74.3 |
+| matmult-int | 161.0 | 4.1 | 19.8% | 8.2 | 5.9 | 0.8% | 260.2 | 231.3 | 139.7 |
+| md5sum | 79.9 | 4.0 | 72.2% | 52.1 | 3.7 | 83.0% | 25.8 | 89.4 | 68.6 |
+| nettle-aes | 97.6 | 3.8 | 8.2% | 4.9 | 4.0 | 33.3% | 90.0 | 179.6 | 13.5 |
+| nettle-sha256 | 21.1 | 3.7 | 16.0% | 10.2 | 3.3 | 28.1% | 340.6 | 102.9 | 52.7 |
+| nsichneu | 400.9 | 4.0 | 50.2% | 1.0 | 4.0 | 40.1% | 1.3 | 547.2 | 1.7 |
+| picojpeg | 70.4 | 2.1 | 36.7% | 55.1 | 2.0 | 26.3% | 23.2 | 144.1 | 130.0 |
+| qrduino | 139.3 | 2.9 | 54.6% | 29.8 | 2.7 | 64.7% | 5.6 | 180.2 | 25.4 |
+| sglib-combined | 89.8 | 3.7 | 6.7% | 33.8 | 3.7 | 16.3% | 2.5 | 245.2 | 121.2 |
+| slre | 105.4 | 2.9 | 61.3% | 64.2 | 3.7 | 68.1% | 6.6 | 200.3 | 116.4 |
+| statemate | 168.3 | 3.1 | 31.3% | 123.4 | 2.3 | 14.5% | 26.7 | 172.1 | 320.8 |
+| tarfind | 62.9 | 4.4 | 74.4% | 47.4 | 4.3 | 17.6% | 2.7 | 27.7 | 240.3 |
+| ud | 126.8 | 4.1 | 51.3% | 29.7 | 4.6 | 47.0% | 12.7 | 165.6 | 64.3 |
+| wikisort | 46.7 | 6.3 | 39.0% | 29.6 | 6.8 | 34.8% | 4.5 | 164.7 | 93.3 |
+| xgboost | 212.9 | 2.6 | 54.8% | 24.4 | 3.5 | 99.2% | 3.5 | 235.7 | 14.8 |
+| **total** | 110.9 | 3.4 | 40.8% | 32.7 | 3.3 | 36.6% | 47.7 | 166.7 | 75.3 |
+
+#### Load distance as written (output reference)
+
+| benchmark | mean | p10 | p25 | median | p75 | p90 | p99 | max |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 11.1 | 0 | 0 | 0 | 26 | 27 | 27 | 27 |
+| crc32 | 3.0 | 2 | 2 | 2 | 4 | 4 | 4 | 4 |
+| depthconv | 22.2 | 0 | 25 | 26 | 26 | 27 | 28 | 28 |
+| edn | 13.3 | 0 | 5 | 11 | 25 | 27 | 29 | 29 |
+| huffbench | 2.3 | 0 | 0 | 0 | 1 | 13 | 26 | 26 |
+| matmult-int | 16.2 | 0 | 0 | 24 | 26 | 27 | 27 | 27 |
+| md5sum | 16.9 | 0 | 0 | 26 | 26 | 26 | 26 | 26 |
+| nettle-aes | 23.1 | 11 | 25 | 26 | 26 | 26 | 27 | 27 |
+| nettle-sha256 | 15.4 | 0 | 0 | 25 | 25 | 26 | 27 | 27 |
+| nsichneu | 0.5 | 0 | 0 | 0 | 0 | 2 | 2 | 2 |
+| picojpeg | 5.8 | 0 | 0 | 0 | 9 | 25 | 27 | 27 |
+| qrduino | 3.9 | 0 | 0 | 3 | 6 | 8 | 24 | 28 |
+| sglib-combined | 1.1 | 0 | 0 | 0 | 1 | 4 | 14 | 26 |
+| slre | 1.5 | 0 | 0 | 0 | 1 | 1 | 24 | 25 |
+| statemate | 3.8 | 0 | 0 | 0 | 0 | 26 | 30 | 30 |
+| tarfind | 2.5 | 0 | 0 | 4 | 4 | 4 | 4 | 14 |
+| ud | 6.5 | 0 | 2 | 4 | 6 | 22 | 27 | 28 |
+| wikisort | 1.1 | 0 | 0 | 0 | 1 | 2 | 26 | 26 |
+| xgboost | 2.8 | 0 | 1 | 3 | 4 | 8 | 8 | 24 |
+| **total** | 7.4 | 0 | 0 | 1 | 13 | 26 | 28 | 30 |
+
+#### Load distance as executed (load to use)
+
+| benchmark | mean | p10 | p25 | median | p75 | p90 | p99 | max |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 93.1 | 0 | 0 | 55 | 173 | 275 | 275 | 275 |
+| crc32 | 3.0 | 2 | 2 | 2 | 4 | 4 | 4 | 4 |
+| depthconv | 208.5 | 25 | 83 | 181 | 311 | 419 | 506 | 506 |
+| edn | 34.3 | 0 | 5 | 14 | 44 | 122 | 162 | 237 |
+| huffbench | 6.8 | 0 | 1 | 2 | 2 | 18 | 61 | 113 |
+| matmult-int | 260.2 | 0 | 0 | 185 | 489 | 657 | 818 | 944 |
+| md5sum | 25.8 | 22 | 22 | 28 | 30 | 30 | 30 | 30 |
+| nettle-aes | 90.0 | 12 | 34 | 92 | 142 | 175 | 192 | 203 |
+| nettle-sha256 | 340.6 | 1 | 2 | 87 | 492 | 1510 | 1555 | 1555 |
+| nsichneu | 1.3 | 0 | 0 | 0 | 2 | 5 | 5 | 5 |
+| picojpeg | 23.2 | 0 | 1 | 9 | 29 | 59 | 204 | 423 |
+| qrduino | 5.6 | 0 | 1 | 4 | 7 | 9 | 36 | 483 |
+| sglib-combined | 2.5 | 0 | 0 | 1 | 3 | 6 | 15 | 113 |
+| slre | 6.6 | 0 | 0 | 1 | 2 | 5 | 94 | 104 |
+| statemate | 26.7 | 0 | 0 | 1 | 5 | 109 | 311 | 316 |
+| tarfind | 2.7 | 0 | 1 | 4 | 4 | 4 | 4 | 15 |
+| ud | 12.7 | 0 | 2 | 5 | 19 | 31 | 89 | 102 |
+| wikisort | 4.5 | 0 | 1 | 1 | 4 | 12 | 41 | 41 |
+| xgboost | 3.5 | 1 | 1 | 4 | 5 | 8 | 8 | 66 |
+| **total** | 47.7 | 0 | 1 | 4 | 23 | 142 | 642 | 1555 |
 
 ## Operands in flight
 
