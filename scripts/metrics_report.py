@@ -14,7 +14,8 @@ mean** row over the benchmarks instead, with the pooled sums in a
 sentence after it.
 
 Tables: code size, dynamic instruction mix, static instruction mix,
-operand lifetime, control-flow lifetime, jump distance quantiles (trigger
+constant groups (what the immediates built by const/grow are used for,
+executed and in the code), operand lifetime, control-flow lifetime, jump distance quantiles (trigger
 field as written and issue-to-trigger as executed), memory traffic, load
 distance quantiles (output reference as written and load-to-use as
 executed), operands in flight.
@@ -25,6 +26,12 @@ import math
 import sys
 
 CLASSES = ("control", "dataflow", "alu", "cast", "pick", "const", "memory", "frame", "stack", "trap")
+
+
+def add_counts(acc, h):
+    """Merge a {name: count} dict into acc."""
+    for k, v in h.items():
+        acc[k] = acc.get(k, 0) + v
 
 
 def add_hist(acc, h):
@@ -105,7 +112,8 @@ def pooled(scopes, static):
          "jmp_taken": 0, "jmp_not_taken": 0, "jmp_overridden": 0, "call_depth_max": 0,
          "steps": 0, "inflight_frame_sum": 0.0,
          "inflight_all_sum": 0.0, "inflight_frame_max": 0, "inflight_all_max": 0,
-         "opcodes": {}}
+         "opcodes": {}, "const_groups": 0, "const_consumer": {}, "const_direct": {},
+         "const_length": {}}
     hists = ("value_ref", "load_dynamic", "load_ref", "jmp_trigger", "jmp_dynamic",
              "call_trigger", "call_dynamic", "ret_trigger", "ret_dynamic")
     for h in hists:
@@ -125,13 +133,22 @@ def pooled(scopes, static):
             add_hist(p[h], w[h])
         for k, v in w["opcodes"].items():
             p["opcodes"][k] = p["opcodes"].get(k, 0) + v
+        p["const_groups"] += w.get("const_groups", 0)
+        add_counts(p["const_consumer"], w.get("const_consumer", {}))
+        add_counts(p["const_direct"], w.get("const_direct", {}))
+        add_hist(p["const_length"], w.get("const_length", {}))
     p["inflight_frame_mean"] = p["inflight_frame_sum"] / p["steps"] if p["steps"] else 0.0
     p["inflight_all_mean"] = p["inflight_all_sum"] / p["steps"] if p["steps"] else 0.0
     s = {"static_instructions": 0, "static_bytes": 0, "executed": 0, "covered_instructions": 0,
          "hot50": 0, "hot90": 0, "hot99": 0, "classes": {c: 0 for c in CLASSES},
          "executed_classes": {c: 0 for c in CLASSES}, "ref_static": {}, "ref_executed": {},
-         "jmp_trigger_field": {}}
+         "jmp_trigger_field": {},
+         "const_groups": {"groups": 0, "instructions": 0, "by_class": {}}}
     for st in static:
+        g = st.get("const_groups", {})
+        s["const_groups"]["groups"] += g.get("groups", 0)
+        s["const_groups"]["instructions"] += g.get("instructions", 0)
+        add_counts(s["const_groups"]["by_class"], g.get("by_class", {}))
         for k in ("static_instructions", "static_bytes", "executed", "covered_instructions",
                   "hot50", "hot90", "hot99"):
             s[k] += st.get(k, 0)
@@ -242,6 +259,34 @@ def main():
                   pct(c["frame"], k), pct(c["stack"], k), pct(s["covered_instructions"], k),
                   f"{s['hot90']:,} ({pct(s['hot90'], k)})"])
     out.append(table(hdr, t))
+
+    # 3b. Constant groups
+    if all("const_groups" in r[1] for r in rows):
+        out.append("\n### Constant groups\n")
+        hdr = ["benchmark", "groups", "per 1000 instrs", "instrs per group", "alu", "control",
+               "ld/st", "to slot", "cast/pick", "discarded", "via echo/dup"]
+        t = []
+        for n, w, s, r in all_rows:
+            g = w["const_groups"]
+            c = w["const_consumer"]
+            length = sum(int(k) * v for k, v in w["const_length"].items())
+            t.append([n, f"{g:,}", per_k(g, w["instructions"]), f"{length / g:.2f}" if g else "-",
+                      pct(c.get("alu", 0), g), pct(c.get("control", 0), g), pct(c.get("memory", 0), g),
+                      pct(c.get("frame", 0), g), pct(c.get("cast", 0) + c.get("pick", 0), g),
+                      pct(c.get("discarded", 0), g), pct(w["const_direct"].get("dataflow", 0), g)])
+        out.append(table(hdr, t))
+        out.append("\n#### Constant groups in the code\n")
+        hdr = ["benchmark", "groups", "instrs", "of the code", "alu", "control", "ld/st", "to slot",
+               "echo/dup", "other"]
+        t = []
+        for n, w, s, r in all_rows:
+            g = s["const_groups"]
+            k, c = g["groups"], g["by_class"]
+            other = k - sum(c.get(x, 0) for x in ("alu", "control", "memory", "frame", "dataflow"))
+            t.append([n, f"{k:,}", f"{g['instructions']:,}", pct(g["instructions"], s["static_instructions"]),
+                      pct(c.get("alu", 0), k), pct(c.get("control", 0), k), pct(c.get("memory", 0), k),
+                      pct(c.get("frame", 0), k), pct(c.get("dataflow", 0), k), pct(other, k)])
+        out.append(table(hdr, t))
 
     # 4. Operand lifetime
     out.append("\n### Operand lifetime\n")

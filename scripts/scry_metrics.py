@@ -105,6 +105,14 @@ class Scope:
         self.inflight_frame_sum = self.inflight_frame_max = 0
         self.inflight_all_sum = self.inflight_all_max = 0
         self.steps = 0
+        # Constant groups (a const and its grows) by the class of the
+        # instruction that finally consumes the value, by the class of the
+        # first instruction that touches it after the group (a forwarding
+        # echo/dup/const, else the consumer), and by length.
+        self.const_groups = 0
+        self.const_consumer = collections.Counter()
+        self.const_direct = collections.Counter()
+        self.const_length = collections.Counter()
 
     def to_json(self):
         def hist(h):
@@ -129,6 +137,10 @@ class Scope:
             "inflight_frame_max": self.inflight_frame_max,
             "inflight_all_mean": round(self.inflight_all_sum / self.steps, 3) if self.steps else 0.0,
             "inflight_all_max": self.inflight_all_max, "steps": self.steps,
+            "const_groups": self.const_groups,
+            "const_consumer": dict(sorted(self.const_consumer.items())),
+            "const_direct": dict(sorted(self.const_direct.items())),
+            "const_length": hist(self.const_length),
         }
 
     def write_text(self, title, out):
@@ -151,9 +163,27 @@ class Scope:
                   f"CallDepth: max={self.call_depth_max}\n")
         out.write(f"InFlightFrame: mean={self.inflight_frame_sum / max(self.steps, 1):.2f} max={self.inflight_frame_max}\n")
         out.write(f"InFlightAll: mean={self.inflight_all_sum / max(self.steps, 1):.2f} max={self.inflight_all_max}\n")
+        out.write(f"ConstGroups: {self.const_groups}; consumer "
+                  + ", ".join(f"{k}={v}" for k, v in self.const_consumer.most_common())
+                  + "; first touched by " + ", ".join(f"{k}={v}" for k, v in self.const_direct.most_common()) + "\n")
 
 
 JMP_RE = re.compile(r"jmp (-?\d+), (\d+)")
+CONSUMER_CLASS = {
+    "jmp": "control", "call": "control", "ret": "control",
+    "echo": "dataflow", "dup": "dataflow", "nop": "dataflow",
+    "add": "alu", "sub": "alu", "mul": "alu", "div": "alu", "sh": "alu", "and": "alu",
+    "or": "alu", "xor": "alu", "eq": "alu", "lt": "alu", "gt": "alu", "isnar": "alu",
+    "narto": "alu", "cast": "cast", "pick": "pick", "const": "const", "grow": "const",
+    "saddr": "frame", "rsrv": "stack", "free": "stack", "trap": "trap",
+}
+
+
+def consumer_class(op, text):
+    """Instruction class as in scry_static.py; ld/st with a slot index are frame accesses."""
+    if op in ("ld", "st"):
+        return "frame" if "[" in text else "memory"
+    return CONSUMER_CLASS.get(op, op)
 CALL_RE = re.compile(r"(?:call|ret) (\d+)")
 LD_RE = re.compile(r"=>(\d+)")
 
@@ -169,6 +199,9 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
     issued = {}
     # Operand ids produced and not yet consumed: id -> (step, is load, in window).
     pending = {}
+    # Constant values in flight: id -> [in window, length, first-touch class or None].
+    cvals = {}
+    grow_src = None  # the constant value a grow is extending in this step
     outstanding = 0
     frame_base = [0]
     sym_by_addr = sorted((a, n) for n, a in symbols.items()) if trace else None
@@ -277,10 +310,28 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                 if in_win:
                     window.produced += 1
                 pending[oid] = (step, op == "ld" and "[" not in text, in_win)
+                if op == "const":
+                    cvals[oid] = [in_win, 1, None]
+                elif op == "grow" and grow_src is not None:
+                    grow_src[1] += 1
+                    cvals[oid] = grow_src
+                    grow_src = None
             elif k == "C":
                 consumes += 1
                 oid = int(line[17:line.index(")")])
                 outstanding -= 1
+                cv = cvals.pop(oid, None)
+                if cv is not None:
+                    if op == "grow":
+                        grow_src = cv
+                    else:
+                        cls = consumer_class(op, text)
+                        for sc, active in ((whole, True), (window, cv[0])):
+                            if active:
+                                sc.const_groups += 1
+                                sc.const_consumer[cls] += 1
+                                sc.const_direct[cv[2] or cls] += 1
+                                sc.const_length[cv[1]] += 1
                 p = pending.pop(oid, None)
                 if p is not None:
                     d = step - p[0] - 1
@@ -298,10 +349,22 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                 whole.discards += 1
                 if p is not None and p[2]:
                     window.discards += 1
+                cv = cvals.pop(oid, None)
+                if cv is not None:
+                    for sc, active in ((whole, True), (window, cv[0])):
+                        if active:
+                            sc.const_groups += 1
+                            sc.const_consumer["discarded"] += 1
+                            sc.const_direct[cv[2] or "dataflow"] += 1
+                            sc.const_length[cv[1]] += 1
             else:  # Forward
                 whole.forwards += 1
                 if in_win:
                     window.forwards += 1
+                oid = int(line[17:line.index(")")])
+                cv = cvals.get(oid)
+                if cv is not None and cv[2] is None:
+                    cv[2] = consumer_class(op, text)
             continue
         if c == "I":  # Issue: Kind(id)
             k = line.index("(")

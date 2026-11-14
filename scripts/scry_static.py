@@ -175,6 +175,8 @@ def analyse(path, profile=None, dump=None):
                jmp_trigger_field={str(k): v for k, v in sorted(jmp_trig.items())},
                call_trigger_field={str(k): v for k, v in sorted(call_trig.items())},
                ret_trigger_field={str(k): v for k, v in sorted(ret_trig.items())})
+    groups = const_groups(instrs)
+    res["const_groups"] = group_summary(groups)
 
     if profile is not None:
         xclasses, xopcodes, xrefs = hist(), hist(), hist()
@@ -201,6 +203,7 @@ def analyse(path, profile=None, dump=None):
                 hot[targets.pop(0)[1]] = i
         for _, name in targets:
             hot[name] = len(counts)
+        res["executed_const_groups"] = group_summary(groups, profile)
         res.update(executed=total, profile_unmatched=unknown,
                    executed_classes={c: xclasses.get(c, 0) for c in CLASSES},
                    executed_opcodes=dict(sorted(xopcodes.items())),
@@ -208,6 +211,60 @@ def analyse(path, profile=None, dump=None):
                    covered_instructions=len(counts),
                    coverage=round(len(counts) / max(len(instrs), 1), 4), **hot)
     return res
+
+
+def const_groups(instrs):
+    """The constant groups of the code: a `const` and the `grow`s that follow
+    it build one immediate, delivered to the next instruction.  When that
+    instruction starts another group, the value is forwarded behind the
+    new group's own value to that group's consumer (several constants for
+    one instruction are built back to back), so the consumer of a group is
+    the first instruction after the run of groups it belongs to.
+
+    Returns [(address of the const, length in instructions, consumer op or
+    None at the end of a section)]."""
+    out = []
+    i, n = 0, len(instrs)
+    while i < n:
+        if instrs[i][1] != "const":
+            i += 1
+            continue
+        # The run of groups starting here.
+        starts = []
+        j = i
+        while j < n and instrs[j][1] == "const" and instrs[j][0] == instrs[i][0] + 2 * (j - i):
+            k = j + 1
+            while k < n and instrs[k][1] == "grow" and instrs[k][0] == instrs[j][0] + 2 * (k - j):
+                k += 1
+            starts.append((j, k - j))
+            j = k
+        consumer = instrs[j][1] if j < n and instrs[j][0] == instrs[i][0] + 2 * (j - i) else None
+        for j0, length in starts:
+            out.append((instrs[j0][0], length, consumer))
+        i = j
+    return out
+
+
+def group_summary(groups, weights=None):
+    """Groups and their instructions by the class of the consumer
+    ("none" for a group at the end of a section), optionally weighted by
+    the execution count of the group's const."""
+    count, instrs, by_op = collections.Counter(), collections.Counter(), collections.Counter()
+    lengths = collections.Counter()
+    for addr, length, consumer in groups:
+        w = weights.get(addr, 0) if weights is not None else 1
+        if not w:
+            continue
+        c = CLASS_OF[consumer] if consumer else "none"
+        count[c] += w
+        instrs[c] += w * length
+        by_op[consumer or "none"] += w
+        lengths[length] += w
+    return {"groups": sum(count.values()), "instructions": sum(instrs.values()),
+            "by_class": {c: count[c] for c in sorted(count)},
+            "instructions_by_class": {c: instrs[c] for c in sorted(instrs)},
+            "by_op": {o: by_op[o] for o in sorted(by_op)},
+            "lengths": {str(k): lengths[k] for k in sorted(lengths)}}
 
 
 def hist_stats(h):
@@ -236,8 +293,14 @@ def write_text(res, out):
     out.write(f"OutputRef: mean={m:.2f} median={md}, JmpTriggerField: mean={hist_stats(res['jmp_trigger_field'])[0]:.2f}, "
               f"CallTriggerField: mean={hist_stats(res['call_trigger_field'])[0]:.2f}, "
               f"RetTriggerField: mean={hist_stats(res['ret_trigger_field'])[0]:.2f}\n")
+    g = res["const_groups"]
+    out.write(f"ConstGroups: {g['groups']} groups, {g['instructions']} instructions; consumer "
+              + ", ".join(f"{c}={v}" for c, v in g["by_class"].items()) + "\n")
     if "executed" in res:
         t = res["executed"]
+        g = res["executed_const_groups"]
+        out.write(f"ExecutedConstGroups: {g['groups']} groups, {g['instructions']} instructions; consumer "
+                  + ", ".join(f"{c}={v}" for c, v in g["by_class"].items()) + "\n")
         out.write(f"Executed: {t} (profile counts outside the code: {res['profile_unmatched']})\n")
         out.write("ExecutedClasses: " + ", ".join(f"{c}={v} ({100.0 * v / max(t, 1):.1f}%)"
                                                   for c, v in res["executed_classes"].items() if v) + "\n")
