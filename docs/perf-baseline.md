@@ -33,10 +33,11 @@ number of operands in flight in the current frame.
 | tarfind | 25,816,534 | 3,636,393 | 14.1 | 51.1% | 19.0% | 0.0 | 0.0 | 0.94 / 4 |
 | ud | 64,761,665 | 6,952,588 | 10.7 | 34.9% | 33.7% | 0.0 | 0.0 | 1.65 / 3 |
 | xgboost | 32,029,599 | 4,687,372 | 14.6 | 54.5% | 14.9% | 0.0 | 0.0 | 1.11 / 4 |
-| **total** | 554,828,370 | 76,256,976 | 13.7 | | | | | |
+| **pooled** | 554,828,370 | 76,256,976 | 13.7 | | | | | |
 
-For reference, the same benchmark windows execute 56,943,645 instructions
-on rv32imac (Spike), a geometric-mean ratio of 9.3x (range 4.8x to 24.8x).
+For reference, the same benchmark windows execute 51,262,616 instructions
+on rv32imac (Spike, the clang 22.1.8 images of `perf-rv32.json`), a
+geometric-mean ratio of 10.9x (range 3.9x to 24.5x; pooled 10.8x).
 The jump distance is 0 because every jump of the baseline triggers at once,
 and the load reference is 0 because every load delivers to the next
 instruction.

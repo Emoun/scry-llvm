@@ -25,8 +25,12 @@ python3 scripts/build_rv32.py --spike build/spike/bin/spike --json docs/perf-rv3
 python3 scripts/metrics_report.py docs/perf-results.json --rv32 docs/perf-rv32.json
 ```
 
-Every total row pools the counts and histograms of all benchmarks, so its
-means and medians are over all events, not averages of the rows.
+Every **pooled** row sums the counts and histograms of all benchmarks,
+so its means, shares and quantiles are over all events, not averages of
+the rows.  The code-size table, which compares the two ISAs, ends in a
+**geometric mean** row instead: the mean over the benchmarks of each
+column, so that its ratio cells are also the mean of the per-benchmark
+ratios; the pooled sums follow that table in a sentence.
 
 Instruction classes: **control** `jmp`, `call`, `ret`; **dataflow**
 `echo`, `dup`, `nop` (the instructions that only move or pad, the
@@ -41,18 +45,19 @@ branch, jump, call and return and **ld/st** every load and store.
 
 Scry instructions are two bytes, rv32imac mixes two-byte compressed and
 four-byte instructions (45% of them compressed over the window, 3.1 bytes
-per executed instruction).  The linked images are 2.9 times the rv32imac
-ones in bytes (geometric mean of the per-benchmark ratios 2.80), so Scry
-needs 4.2 instructions for every rv32imac instruction in the code:
-111,262 against 26,375 static instructions.  The ratio is smallest where
+per executed instruction).  The linked images are 2.8 times the rv32imac
+ones in bytes (geometric mean over the benchmarks; pooled 2.87), so Scry
+needs 4.0 instructions for every rv32imac instruction in the code
+(pooled 4.2: 111,262 against 26,375 static instructions).  The ratio is
+smallest where
 the code is straight-line or 64-bit (aha-mont64 1.3, nsichneu 1.9) and
 largest in the loop kernels that the backend unrolls by four and whose
 bodies carry their deliveries (matmult-int 6.0, edn 4.8, depthconv 4.3):
 depthconv's convolution kernel is 1,704 bytes against 286 on rv32imac,
 edn's `jpegdct` 3,348 against 516.  The runtime weighs in the same way:
 the eight-byte `memcpy` is 2,332 bytes on Scry and 296 on rv32imac.
-Executed bytes are 1.75x rv32imac because 2.71x the instructions are
-executed.
+Executed bytes are 1.8x rv32imac because 2.8x the instructions are
+executed (geometric means; pooled 1.75x and 2.71x).
 
 | benchmark | Scry text bytes | Scry instrs | rv32imac text bytes | ratio | Scry executed bytes | rv32imac executed bytes | ratio |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -75,9 +80,9 @@ executed.
 | ud | 4,268 | 2,134 | 1,304 | 3.27 | 14,045,392 | 7,811,304 | 1.80 |
 | wikisort | 16,334 | 8,167 | 6,966 | 2.34 | 10,285,384 | 4,998,950 | 2.06 |
 | xgboost | 1,036 | 518 | 752 | 1.38 | 17,426,466 | 10,920,064 | 1.60 |
-| **total** | 222,524 | 111,262 | 77,472 | 2.87 | 300,843,448 | 171,813,730 | 1.75 |
+| **geometric mean** | 6,897 | 3,449 | 2,460 | 2.80 | 15,118,850 | 8,307,525 | 1.82 |
 
-Geometric means of the per-benchmark ratios: static bytes 2.80, executed bytes 1.82.
+Pooled over the benchmarks: 222,524 against 77,472 bytes of code (ratio 2.87), 111,262 against 26,375 static instructions (4.22), 300,843,448 against 171,813,730 executed bytes (1.75).
 
 ## Dynamic instruction mix
 
@@ -125,7 +130,7 @@ rv32imac.
 | ud | 7,022,696 | 4.5% | 42.7% | 23.1% | 1.1% | 11.7% | 7.8% | 9.3% | 0.0% | 12.2% | 22.7% |
 | wikisort | 5,142,692 | 4.9% | 34.8% | 18.5% | 5.2% | 26.6% | 4.8% | 4.5% | 0.6% | 15.3% | 23.1% |
 | xgboost | 8,713,233 | 2.7% | 52.4% | 12.3% | 4.8% | 4.0% | 9.6% | 14.1% | 0.0% | 16.4% | 24.9% |
-| **total** | 150,421,724 | 3.7% | 37.2% | 21.1% | 4.7% | 16.8% | 8.6% | 7.7% | 0.2% | 13.0% | 24.2% |
+| **pooled** | 150,421,724 | 3.7% | 37.2% | 21.1% | 4.7% | 16.8% | 8.6% | 7.7% | 0.2% | 13.0% | 24.2% |
 
 ## Static instruction mix
 
@@ -159,7 +164,7 @@ for 90% of the executed ones, 7% in md5sum and 9% in picojpeg.
 | ud | 2,134 | 4.0% | 30.4% | 13.8% | 0.3% | 30.1% | 10.2% | 10.4% | 0.7% | 59.8% | 378 (17.7%) |
 | wikisort | 8,167 | 5.1% | 38.5% | 16.7% | 1.3% | 28.1% | 4.3% | 5.0% | 1.1% | 41.6% | 1,169 (14.3%) |
 | xgboost | 518 | 6.4% | 35.5% | 8.3% | 4.2% | 24.9% | 6.6% | 12.5% | 1.5% | 84.9% | 71 (13.7%) |
-| **total** | 111,262 | 4.2% | 34.6% | 16.9% | 4.2% | 23.1% | 9.4% | 7.2% | 0.4% | 54.6% | 22,404 (20.1%) |
+| **pooled** | 111,262 | 4.2% | 34.6% | 16.9% | 4.2% | 23.1% | 9.4% | 7.2% | 0.4% | 54.6% | 22,404 (20.1%) |
 
 ## Operand lifetime
 
@@ -206,7 +211,7 @@ both successors of a block.
 | ud | 4,557,521 | 0.65 | 8.7 | 1 | 22 | 42% | 5.7% | 4.9 | 41% | 5.7% | 0.40 |
 | wikisort | 3,556,124 | 0.69 | 10.7 | 0 | 24 | 54% | 6.0% | 3.8 | 53% | 2.9% | 0.37 |
 | xgboost | 5,267,106 | 0.60 | 9.0 | 2 | 31 | 18% | 9.7% | 3.5 | 38% | 11.9% | 0.52 |
-| **total** | 105,238,408 | 0.70 | 20.1 | 1 | 33 | 46% | 10.5% | 11.8 | 47% | 4.2% | 0.39 |
+| **pooled** | 105,238,408 | 0.70 | 20.1 | 1 | 33 | 46% | 10.5% | 11.8 | 47% | 4.2% | 0.39 |
 
 ## Control-flow lifetime
 
@@ -270,7 +275,7 @@ written mean below 8.
 | ud | 34.1 | 52.2% | 8.2% | 16.8 | 21.3 | 0% | 9% | 5.3 | 0.00 | 4 |
 | wikisort | 40.1 | 48.9% | 0.1% | 6.5 | 52.6 | 37% | 9% | 4.5 | 0.00 | 6 |
 | xgboost | 27.1 | 77.7% | 0.1% | 6.5 | 7.8 | 0% | 0% | 0.0 | 0.00 | 4 |
-| **total** | 32.4 | 50.1% | 2.4% | 16.8 | 53.6 | 27% | 18% | 2.3 | 0.00 | 12 |
+| **pooled** | 32.4 | 50.1% | 2.4% | 16.8 | 53.6 | 27% | 18% | 2.3 | 0.00 | 12 |
 
 #### Jump distance as written (trigger field)
 
@@ -295,7 +300,7 @@ written mean below 8.
 | ud | 16.8 | 5 | 10 | 11 | 12 | 15 | 367 | 458 |
 | wikisort | 6.5 | 0 | 0 | 2 | 8 | 18 | 45 | 112 |
 | xgboost | 6.5 | 3 | 3 | 3 | 3 | 19 | 19 | 28 |
-| **total** | 16.8 | 0 | 0 | 2 | 12 | 27 | 280 | 2180 |
+| **pooled** | 16.8 | 0 | 0 | 2 | 12 | 27 | 280 | 2180 |
 
 #### Jump distance as executed (issue to trigger)
 
@@ -320,7 +325,7 @@ written mean below 8.
 | ud | 21.3 | 5 | 11 | 11 | 15 | 22 | 535 | 535 |
 | wikisort | 52.6 | 0 | 0 | 5 | 6 | 19 | 301 | 34337 |
 | xgboost | 7.8 | 3 | 3 | 3 | 19 | 19 | 19 | 66281 |
-| **total** | 53.6 | 0 | 0 | 5 | 22 | 40 | 547 | 1531667 |
+| **pooled** | 53.6 | 0 | 0 | 5 | 22 | 40 | 547 | 1531667 |
 
 ## Memory traffic
 
@@ -376,7 +381,7 @@ and the 64-bit arithmetic of aha-mont64 (p75 of 173 for a written 26).
 | ud | 126.8 | 4.1 | 51.3% | 29.7 | 4.6 | 47.0% | 12.7 | 164.1 | 62.8 |
 | wikisort | 46.7 | 6.3 | 39.0% | 29.6 | 6.8 | 34.8% | 4.5 | 128.5 | 102.4 |
 | xgboost | 212.9 | 2.6 | 54.8% | 24.4 | 3.5 | 99.2% | 3.5 | 247.9 | 0.9 |
-| **total** | 110.9 | 3.4 | 40.8% | 32.7 | 3.3 | 36.6% | 47.7 | 176.4 | 65.4 |
+| **pooled** | 110.9 | 3.4 | 40.8% | 32.7 | 3.3 | 36.6% | 47.7 | 176.4 | 65.4 |
 
 #### Load distance as written (output reference)
 
@@ -401,7 +406,7 @@ and the 64-bit arithmetic of aha-mont64 (p75 of 173 for a written 26).
 | ud | 6.5 | 0 | 2 | 4 | 6 | 22 | 27 | 28 |
 | wikisort | 1.1 | 0 | 0 | 0 | 1 | 2 | 26 | 26 |
 | xgboost | 2.8 | 0 | 1 | 3 | 4 | 8 | 8 | 24 |
-| **total** | 7.4 | 0 | 0 | 1 | 13 | 26 | 28 | 30 |
+| **pooled** | 7.4 | 0 | 0 | 1 | 13 | 26 | 28 | 30 |
 
 #### Load distance as executed (load to use)
 
@@ -426,7 +431,7 @@ and the 64-bit arithmetic of aha-mont64 (p75 of 173 for a written 26).
 | ud | 12.7 | 0 | 2 | 5 | 19 | 31 | 89 | 102 |
 | wikisort | 4.5 | 0 | 1 | 1 | 4 | 12 | 41 | 41 |
 | xgboost | 3.5 | 1 | 1 | 4 | 5 | 8 | 8 | 66 |
-| **total** | 47.7 | 0 | 1 | 4 | 23 | 142 | 642 | 1555 |
+| **pooled** | 47.7 | 0 | 1 | 4 | 23 | 142 | 642 | 1555 |
 
 ## Operands in flight
 
@@ -457,13 +462,14 @@ branchy state machines (nsichneu 0.2, slre 0.4).
 | ud | 4.2 | 16 | 6.6 | 18 |
 | wikisort | 3.0 | 11 | 8.4 | 21 |
 | xgboost | 4.0 | 19 | 6.0 | 21 |
-| **total** | 11.9 | 113 | 15.5 | 115 |
+| **pooled** | 11.9 | 113 | 15.5 | 115 |
 
 ## Reading the figures
 
-For the ISA: the images are 2.9 times the size of rv32imac's, with 4.2
-two-byte instructions per rv32imac instruction, and 2.7 times as many
-are executed (1.75 times the bytes); the difference is the dataflow and
+For the ISA (geometric means over the benchmarks): the images are 2.8
+times the size of rv32imac's, with 4.0 two-byte instructions per
+rv32imac instruction, and 2.8 times as many are executed (1.8 times the
+bytes); the difference is the dataflow and
 constant instructions, 54% of the dynamic count, and the unrolled loop
 bodies that carry their deliveries.  Half of the operand lifetimes fit the next
 instruction and 90% fit the 5-bit reference; the remaining tenth, and

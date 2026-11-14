@@ -153,11 +153,11 @@ JSON into the tables of `docs/perf-metrics.md`.
 `docs/perf-results.md` records the numbers of the current backend per
 benchmark, next to those of the correctness-first baseline
 (`docs/perf-baseline.md`) and of rv32imac: on the Embench window the
-current code executes 0.24 of the baseline's instructions (0.18 of its
-non-dataflow instructions) and 2.7 times the rv32imac count (1.7 times
-for non-dataflow instructions); in instruction bytes it is 1.75 times
-rv32imac, whose instructions average 3.1 bytes with 45% of them
-compressed.
+current code executes 0.25 of the baseline's instructions (0.18 of its
+non-dataflow instructions) and 2.8 times the rv32imac count (1.75 times
+for non-dataflow instructions), as geometric means over the benchmarks;
+in instruction bytes it is 1.8 times rv32imac, whose instructions
+average 3.1 bytes with 45% of them compressed.
 `docs/perf-metrics.md` looks at the same run from the ISA's side: code
 size, the dynamic and static instruction mix, operand and control-flow
 lifetimes, memory traffic and operands in flight.

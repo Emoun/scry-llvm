@@ -6,9 +6,12 @@
 metrics.json is written by run_embench.py --metrics --profile --json (the
 static view under "static" needs --profile for the execution-weighted
 figures); rv32.json by rv32_metrics.py --json for the same benchmarks.
-Every table has one row per benchmark and a total row computed from the
-pooled counts and histograms (means and medians over all benchmarks'
-events, not averages of the per-benchmark figures).
+Every table has one row per benchmark and a **pooled** row computed from
+the summed counts and histograms (means, shares and quantiles over all
+benchmarks' events, not averages of the per-benchmark figures); the
+code-size table, which compares the two ISAs, ends in a **geometric
+mean** row over the benchmarks instead, with the pooled sums in a
+sentence after it.
 
 Tables: code size, dynamic instruction mix, static instruction mix,
 operand lifetime, control-flow lifetime, jump distance quantiles (trigger
@@ -166,7 +169,7 @@ def main():
         tot_rv = {k: sum(r[3][k] for r in rows) for k in
                   ("window_instructions", "window_bytes", "static_bytes", "static_instructions",
                    "window_control", "window_loads", "window_stores")}
-    all_rows = rows + [("**total**", tot_w, tot_s, tot_rv)]
+    all_rows = rows + [("**pooled**", tot_w, tot_s, tot_rv)]
     out = []
 
     # 1. Code size
@@ -174,17 +177,42 @@ def main():
     hdr = ["benchmark", "Scry text bytes", "Scry instrs", "rv32imac text bytes", "ratio",
            "Scry executed bytes", "rv32imac executed bytes", "ratio"]
     t = []
-    for n, w, s, r in all_rows:
+    for n, w, s, r in rows:
         xb = 2 * w["instructions"]
         t.append([n, f"{s['static_bytes']:,}", f"{s['static_instructions']:,}",
                   f"{r['static_bytes']:,}" if r else "-", ratio(s["static_bytes"], r["static_bytes"]) if r else "-",
                   f"{xb:,}", f"{r['window_bytes']:,}" if r else "-",
                   ratio(xb, r["window_bytes"]) if r else "-"])
-    out.append(table(hdr, t))
+    # This table compares the two ISAs, so its summary row is the geometric
+    # mean of every column (the ratio cells are then also the ratio of the
+    # mean counts); the pooled sums follow in a sentence.
+    gm = [gmean([r[2]["static_bytes"] for r in rows]), gmean([r[2]["static_instructions"] for r in rows])]
     if tot_rv:
-        out.append(f"\nGeometric means of the per-benchmark ratios: static bytes "
-                   f"{gmean([r[2]['static_bytes'] / r[3]['static_bytes'] for r in rows]):.2f}, "
-                   f"executed bytes {gmean([2 * r[1]['instructions'] / r[3]['window_bytes'] for r in rows]):.2f}.")
+        gm += [gmean([r[3]["static_bytes"] for r in rows]),
+               gmean([r[2]["static_bytes"] / r[3]["static_bytes"] for r in rows])]
+    else:
+        gm += [None, None]
+    gm.append(gmean([2 * r[1]["instructions"] for r in rows]))
+    if tot_rv:
+        gm += [gmean([r[3]["window_bytes"] for r in rows]),
+               gmean([2 * r[1]["instructions"] / r[3]["window_bytes"] for r in rows])]
+    else:
+        gm += [None, None]
+    t.append(["**geometric mean**"] + [("-" if g is None else f"{g:.2f}" if i in (3, 6) else f"{round(g):,}")
+                                      for i, g in enumerate(gm)])
+    out.append(table(hdr, t))
+    xb = 2 * tot_w["instructions"]
+    if tot_rv:
+        out.append(f"\nPooled over the benchmarks: {tot_s['static_bytes']:,} against "
+                   f"{tot_rv['static_bytes']:,} bytes of code (ratio "
+                   f"{ratio(tot_s['static_bytes'], tot_rv['static_bytes'])}), "
+                   f"{tot_s['static_instructions']:,} against {tot_rv['static_instructions']:,} static "
+                   f"instructions ({ratio(tot_s['static_instructions'], tot_rv['static_instructions'])}), "
+                   f"{xb:,} against {tot_rv['window_bytes']:,} executed bytes "
+                   f"({ratio(xb, tot_rv['window_bytes'])}).")
+    else:
+        out.append(f"\nPooled over the benchmarks: {tot_s['static_bytes']:,} bytes of code, "
+                   f"{tot_s['static_instructions']:,} static instructions, {xb:,} executed bytes.")
 
     # 2. Dynamic mix
     out.append("\n### Dynamic instruction mix\n")
