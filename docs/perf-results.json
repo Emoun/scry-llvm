@@ -16,6 +16,46 @@
     "stack": 6,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 115,
+     "control": 27,
+     "dataflow": 20,
+     "frame": 3,
+     "memory": 15,
+     "pick": 38
+    },
+    "by_op": {
+     "add": 6,
+     "and": 5,
+     "call": 11,
+     "echo": 20,
+     "eq": 1,
+     "jmp": 16,
+     "ld": 3,
+     "pick": 38,
+     "sh": 103,
+     "st": 12,
+     "st.s": 3
+    },
+    "groups": 218,
+    "instructions": 325,
+    "instructions_by_class": {
+     "alu": 130,
+     "control": 52,
+     "dataflow": 28,
+     "frame": 16,
+     "memory": 33,
+     "pick": 66
+    },
+    "lengths": {
+     "1": 181,
+     "2": 4,
+     "3": 20,
+     "4": 7,
+     "8": 6
+    }
+   },
    "coverage": 0.9397,
    "covered_instructions": 1464,
    "executed": 5324355,
@@ -30,6 +70,46 @@
     "pick": 186916,
     "stack": 4,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 438028,
+     "control": 72693,
+     "dataflow": 5668,
+     "frame": 3,
+     "memory": 5,
+     "pick": 184088
+    },
+    "by_op": {
+     "add": 45312,
+     "and": 5,
+     "call": 3,
+     "echo": 5668,
+     "eq": 472,
+     "jmp": 72690,
+     "ld": 3,
+     "pick": 184088,
+     "sh": 392239,
+     "st": 2,
+     "st.s": 3
+    },
+    "groups": 700485,
+    "instructions": 705276,
+    "instructions_by_class": {
+     "alu": 438043,
+     "control": 74115,
+     "dataflow": 8973,
+     "frame": 16,
+     "memory": 13,
+     "pick": 184116
+    },
+    "lengths": {
+     "1": 698577,
+     "2": 1417,
+     "3": 7,
+     "4": 7,
+     "8": 477
+    }
    },
    "executed_opcodes": {
     "add": 78828,
@@ -215,6 +295,31 @@
    "call_trigger": {
     "0": 11
    },
+   "const_consumer": {
+    "alu": 545393,
+    "cast": 473,
+    "control": 72857,
+    "discarded": 82314,
+    "frame": 964,
+    "memory": 20
+   },
+   "const_direct": {
+    "alu": 438968,
+    "const": 5694,
+    "control": 67179,
+    "dataflow": 87994,
+    "frame": 6,
+    "memory": 12,
+    "pick": 102168
+   },
+   "const_groups": 702021,
+   "const_length": {
+    "1": 700081,
+    "2": 1420,
+    "3": 23,
+    "4": 14,
+    "8": 483
+   },
    "dataflow": 1900115,
    "discards": 248811,
    "forwards": 2212317,
@@ -379,6 +484,31 @@
    },
    "call_trigger": {
     "0": 3
+   },
+   "const_consumer": {
+    "alu": 544228,
+    "cast": 472,
+    "control": 72693,
+    "discarded": 82133,
+    "frame": 953,
+    "memory": 6
+   },
+   "const_direct": {
+    "alu": 438028,
+    "const": 5671,
+    "control": 67028,
+    "dataflow": 87799,
+    "frame": 3,
+    "memory": 4,
+    "pick": 101952
+   },
+   "const_groups": 700485,
+   "const_length": {
+    "1": 698577,
+    "2": 1417,
+    "3": 7,
+    "4": 7,
+    "8": 477
    },
    "dataflow": 1896055,
    "discards": 248277,
@@ -553,6 +683,42 @@
     "stack": 4,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 8,
+     "control": 11,
+     "dataflow": 12,
+     "frame": 3,
+     "memory": 9
+    },
+    "by_op": {
+     "add": 1,
+     "and": 3,
+     "call": 11,
+     "echo": 12,
+     "eq": 1,
+     "ld": 1,
+     "mul": 1,
+     "sh": 2,
+     "st": 8,
+     "st.s": 3
+    },
+    "groups": 43,
+    "instructions": 99,
+    "instructions_by_class": {
+     "alu": 17,
+     "control": 33,
+     "dataflow": 16,
+     "frame": 12,
+     "memory": 21
+    },
+    "lengths": {
+     "1": 16,
+     "2": 4,
+     "3": 17,
+     "4": 6
+    }
+   },
    "coverage": 0.6625,
    "covered_instructions": 159,
    "executed": 8016581,
@@ -567,6 +733,41 @@
     "pick": 0,
     "stack": 2,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 1044481,
+     "control": 3,
+     "dataflow": 684,
+     "frame": 3,
+     "memory": 348332
+    },
+    "by_op": {
+     "add": 174080,
+     "and": 348161,
+     "call": 3,
+     "echo": 684,
+     "ld": 174080,
+     "mul": 174080,
+     "sh": 348160,
+     "st": 174252,
+     "st.s": 3
+    },
+    "groups": 1393503,
+    "instructions": 3309421,
+    "instructions_by_class": {
+     "alu": 2263042,
+     "control": 9,
+     "dataflow": 1364,
+     "frame": 12,
+     "memory": 1044994
+    },
+    "lengths": {
+     "1": 522585,
+     "2": 174251,
+     "3": 348334,
+     "4": 348333
+    }
    },
    "executed_opcodes": {
     "add": 174420,
@@ -669,6 +870,28 @@
    "call_trigger": {
     "0": 175286
    },
+   "const_consumer": {
+    "alu": 1050969,
+    "control": 11,
+    "discarded": 4,
+    "frame": 183,
+    "memory": 350556
+   },
+   "const_direct": {
+    "alu": 1050627,
+    "const": 5,
+    "control": 11,
+    "dataflow": 692,
+    "frame": 6,
+    "memory": 350382
+   },
+   "const_groups": 1401723,
+   "const_length": {
+    "1": 525667,
+    "2": 175278,
+    "3": 350393,
+    "4": 350385
+   },
    "dataflow": 1754496,
    "discards": 175793,
    "forwards": 1578366,
@@ -765,6 +988,28 @@
    },
    "call_trigger": {
     "0": 174253
+   },
+   "const_consumer": {
+    "alu": 1044821,
+    "control": 3,
+    "discarded": 1,
+    "frame": 176,
+    "memory": 348502
+   },
+   "const_direct": {
+    "alu": 1044481,
+    "const": 2,
+    "control": 3,
+    "dataflow": 683,
+    "frame": 3,
+    "memory": 348331
+   },
+   "const_groups": 1393503,
+   "const_length": {
+    "1": 522585,
+    "2": 174251,
+    "3": 348334,
+    "4": 348333
    },
    "dataflow": 1744212,
    "discards": 174761,
@@ -870,6 +1115,45 @@
     "stack": 7,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 41,
+     "control": 12,
+     "dataflow": 41,
+     "frame": 23,
+     "memory": 6,
+     "pick": 4
+    },
+    "by_op": {
+     "add": 19,
+     "call": 11,
+     "echo": 41,
+     "jmp": 1,
+     "lt": 4,
+     "pick": 4,
+     "sh": 4,
+     "st": 6,
+     "st.s": 23,
+     "sub": 12,
+     "xor": 2
+    },
+    "groups": 127,
+    "instructions": 318,
+    "instructions_by_class": {
+     "alu": 41,
+     "control": 34,
+     "dataflow": 135,
+     "frame": 92,
+     "memory": 12,
+     "pick": 4
+    },
+    "lengths": {
+     "1": 58,
+     "2": 1,
+     "3": 14,
+     "4": 54
+    }
+   },
    "coverage": 0.835,
    "covered_instructions": 901,
    "executed": 8144232,
@@ -884,6 +1168,45 @@
     "pick": 104896,
     "stack": 3278,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 511368,
+     "control": 13115,
+     "dataflow": 52451,
+     "frame": 24585,
+     "memory": 2,
+     "pick": 52448
+    },
+    "by_op": {
+     "add": 236016,
+     "call": 3,
+     "echo": 52451,
+     "jmp": 13112,
+     "lt": 52448,
+     "pick": 52448,
+     "sh": 52448,
+     "st": 2,
+     "st.s": 24585,
+     "sub": 157344,
+     "xor": 13112
+    },
+    "groups": 653969,
+    "instructions": 875246,
+    "instructions_by_class": {
+     "alu": 511368,
+     "control": 13121,
+     "dataflow": 199965,
+     "frame": 98340,
+     "memory": 4,
+     "pick": 52448
+    },
+    "lengths": {
+     "1": 580208,
+     "2": 1,
+     "3": 4,
+     "4": 73756
+    }
    },
    "executed_opcodes": {
     "add": 1022736,
@@ -1267,6 +1590,29 @@
    "call_trigger": {
     "0": 1651
    },
+   "const_consumer": {
+    "alu": 562538,
+    "cast": 1640,
+    "control": 13135,
+    "discarded": 52482,
+    "frame": 24608,
+    "memory": 7
+   },
+   "const_direct": {
+    "alu": 511696,
+    "const": 4,
+    "control": 13131,
+    "dataflow": 104968,
+    "frame": 24608,
+    "memory": 3
+   },
+   "const_groups": 654410,
+   "const_length": {
+    "1": 580585,
+    "2": 1,
+    "3": 14,
+    "4": 73810
+   },
    "dataflow": 3368708,
    "discards": 157448,
    "forwards": 3680300,
@@ -1514,6 +1860,29 @@
    },
    "call_trigger": {
     "0": 1642
+   },
+   "const_consumer": {
+    "alu": 562177,
+    "cast": 1639,
+    "control": 13117,
+    "discarded": 52448,
+    "frame": 24585,
+    "memory": 3
+   },
+   "const_direct": {
+    "alu": 511368,
+    "const": 1,
+    "control": 13115,
+    "dataflow": 104899,
+    "frame": 24585,
+    "memory": 1
+   },
+   "const_groups": 653969,
+   "const_length": {
+    "1": 580208,
+    "2": 1,
+    "3": 4,
+    "4": 73756
    },
    "dataflow": 3366517,
    "discards": 157346,
@@ -1765,6 +2134,47 @@
     "stack": 10,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 288,
+     "control": 54,
+     "dataflow": 57,
+     "frame": 31,
+     "memory": 19
+    },
+    "by_op": {
+     "add": 183,
+     "and": 18,
+     "call": 12,
+     "echo": 57,
+     "eq": 6,
+     "gt": 6,
+     "jmp": 42,
+     "ld": 3,
+     "lt": 14,
+     "mul": 3,
+     "sh": 23,
+     "st": 16,
+     "st.s": 31,
+     "sub": 33,
+     "xor": 2
+    },
+    "groups": 449,
+    "instructions": 639,
+    "instructions_by_class": {
+     "alu": 295,
+     "control": 94,
+     "dataflow": 73,
+     "frame": 120,
+     "memory": 57
+    },
+    "lengths": {
+     "1": 365,
+     "2": 22,
+     "3": 18,
+     "4": 44
+    }
+   },
    "coverage": 0.7628,
    "covered_instructions": 3225,
    "executed": 9842737,
@@ -1779,6 +2189,46 @@
     "pick": 0,
     "stack": 490,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 636342,
+     "control": 31757,
+     "dataflow": 26410,
+     "frame": 31,
+     "memory": 12
+    },
+    "by_op": {
+     "add": 436677,
+     "and": 810,
+     "call": 3,
+     "echo": 26410,
+     "eq": 162,
+     "gt": 972,
+     "jmp": 31754,
+     "lt": 21060,
+     "mul": 12150,
+     "sh": 48843,
+     "st": 12,
+     "st.s": 31,
+     "sub": 10368,
+     "xor": 105300
+    },
+    "groups": 694552,
+    "instructions": 712090,
+    "instructions_by_class": {
+     "alu": 636342,
+     "control": 36542,
+     "dataflow": 39046,
+     "frame": 120,
+     "memory": 40
+    },
+    "lengths": {
+     "1": 685516,
+     "2": 4783,
+     "3": 4,
+     "4": 4249
+    }
    },
    "executed_opcodes": {
     "add": 1540626,
@@ -2332,6 +2782,29 @@
    "call_trigger": {
     "0": 258
    },
+   "const_consumer": {
+    "alu": 671253,
+    "cast": 164,
+    "control": 32160,
+    "discarded": 2,
+    "frame": 308,
+    "memory": 118
+   },
+   "const_direct": {
+    "alu": 645009,
+    "const": 255,
+    "control": 31912,
+    "dataflow": 26741,
+    "frame": 62,
+    "memory": 26
+   },
+   "const_groups": 704005,
+   "const_length": {
+    "1": 694797,
+    "2": 4848,
+    "3": 18,
+    "4": 4342
+   },
    "dataflow": 3734874,
    "discards": 173300,
    "forwards": 3575128,
@@ -2812,6 +3285,28 @@
    },
    "call_trigger": {
     "0": 246
+   },
+   "const_consumer": {
+    "alu": 662262,
+    "cast": 162,
+    "control": 31757,
+    "frame": 274,
+    "memory": 97
+   },
+   "const_direct": {
+    "alu": 636342,
+    "const": 246,
+    "control": 31513,
+    "dataflow": 26409,
+    "frame": 31,
+    "memory": 11
+   },
+   "const_groups": 694552,
+   "const_length": {
+    "1": 685516,
+    "2": 4783,
+    "3": 4,
+    "4": 4249
    },
    "dataflow": 3686319,
    "discards": 170587,
@@ -3297,6 +3792,53 @@
     "stack": 22,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 457,
+     "control": 110,
+     "dataflow": 92,
+     "frame": 6,
+     "memory": 14,
+     "pick": 2
+    },
+    "by_op": {
+     "add": 329,
+     "and": 35,
+     "call": 21,
+     "dup": 2,
+     "echo": 90,
+     "eq": 6,
+     "gt": 11,
+     "jmp": 89,
+     "ld": 2,
+     "lt": 21,
+     "mul": 2,
+     "or": 6,
+     "pick": 2,
+     "sh": 36,
+     "st": 12,
+     "st.s": 6,
+     "sub": 5,
+     "xor": 6
+    },
+    "groups": 681,
+    "instructions": 1011,
+    "instructions_by_class": {
+     "alu": 643,
+     "control": 190,
+     "dataflow": 121,
+     "frame": 22,
+     "memory": 33,
+     "pick": 2
+    },
+    "lengths": {
+     "1": 412,
+     "2": 224,
+     "3": 30,
+     "4": 14,
+     "5": 1
+    }
+   },
    "coverage": 0.7552,
    "covered_instructions": 3328,
    "executed": 10755154,
@@ -3311,6 +3853,53 @@
     "pick": 57365,
     "stack": 312,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 1052590,
+     "control": 228968,
+     "dataflow": 27110,
+     "frame": 6,
+     "memory": 90,
+     "pick": 27445
+    },
+    "by_op": {
+     "add": 847616,
+     "and": 1254,
+     "call": 102,
+     "dup": 22,
+     "echo": 27088,
+     "eq": 143,
+     "gt": 1100,
+     "jmp": 228866,
+     "ld": 22,
+     "lt": 28567,
+     "mul": 154,
+     "or": 29216,
+     "pick": 27445,
+     "sh": 45529,
+     "st": 68,
+     "st.s": 6,
+     "sub": 385,
+     "xor": 98626
+    },
+    "groups": 1336209,
+    "instructions": 2133792,
+    "instructions_by_class": {
+     "alu": 1801866,
+     "control": 276912,
+     "dataflow": 27312,
+     "frame": 22,
+     "memory": 235,
+     "pick": 27445
+    },
+    "lengths": {
+     "1": 663382,
+     "2": 610403,
+     "3": 169,
+     "4": 62178,
+     "5": 77
+    }
    },
    "executed_opcodes": {
     "add": 1265055,
@@ -3554,6 +4143,30 @@
    },
    "call_trigger": {
     "0": 156
+   },
+   "const_consumer": {
+    "alu": 1169858,
+    "control": 249792,
+    "discarded": 29090,
+    "frame": 106,
+    "memory": 9367
+   },
+   "const_direct": {
+    "alu": 1148782,
+    "const": 30667,
+    "control": 219216,
+    "dataflow": 55717,
+    "frame": 12,
+    "memory": 87,
+    "pick": 3732
+   },
+   "const_groups": 1458213,
+   "const_length": {
+    "1": 724199,
+    "2": 665897,
+    "3": 195,
+    "4": 67838,
+    "5": 84
    },
    "dataflow": 4749797,
    "discards": 485403,
@@ -3844,6 +4457,30 @@
    },
    "call_trigger": {
     "0": 135
+   },
+   "const_consumer": {
+    "alu": 1071906,
+    "control": 228968,
+    "discarded": 26664,
+    "frame": 88,
+    "memory": 8583
+   },
+   "const_direct": {
+    "alu": 1052590,
+    "const": 28107,
+    "control": 200940,
+    "dataflow": 51067,
+    "frame": 6,
+    "memory": 78,
+    "pick": 3421
+   },
+   "const_groups": 1336209,
+   "const_length": {
+    "1": 663382,
+    "2": 610403,
+    "3": 169,
+    "4": 62178,
+    "5": 77
    },
    "dataflow": 4352218,
    "discards": 444601,
@@ -4145,6 +4782,46 @@
     "stack": 12,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 287,
+     "control": 54,
+     "dataflow": 53,
+     "frame": 34,
+     "memory": 68
+    },
+    "by_op": {
+     "add": 219,
+     "and": 18,
+     "call": 12,
+     "echo": 53,
+     "eq": 3,
+     "gt": 6,
+     "jmp": 42,
+     "lt": 11,
+     "mul": 9,
+     "sh": 14,
+     "st": 68,
+     "st.s": 34,
+     "sub": 1,
+     "xor": 6
+    },
+    "groups": 496,
+    "instructions": 952,
+    "instructions_by_class": {
+     "alu": 357,
+     "control": 93,
+     "dataflow": 107,
+     "frame": 136,
+     "memory": 259
+    },
+    "lengths": {
+     "1": 278,
+     "2": 90,
+     "3": 18,
+     "4": 110
+    }
+   },
    "coverage": 0.6052,
    "covered_instructions": 2338,
    "executed": 3935333,
@@ -4159,6 +4836,43 @@
     "pick": 0,
     "stack": 162,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 164588,
+     "control": 5504,
+     "dataflow": 989,
+     "frame": 32,
+     "memory": 63
+    },
+    "by_op": {
+     "add": 154916,
+     "and": 156,
+     "call": 3,
+     "echo": 989,
+     "gt": 3900,
+     "jmp": 5501,
+     "lt": 156,
+     "mul": 780,
+     "st": 63,
+     "st.s": 32,
+     "xor": 4680
+    },
+    "groups": 171176,
+    "instructions": 213761,
+    "instructions_by_class": {
+     "alu": 205608,
+     "control": 6563,
+     "dataflow": 1214,
+     "frame": 128,
+     "memory": 248
+    },
+    "lengths": {
+     "1": 128879,
+     "2": 42151,
+     "3": 4,
+     "4": 142
+    }
    },
    "executed_opcodes": {
     "add": 783674,
@@ -4764,6 +5478,28 @@
    "call_trigger": {
     "0": 92
    },
+   "const_consumer": {
+    "alu": 174847,
+    "control": 5896,
+    "discarded": 2,
+    "frame": 148,
+    "memory": 216
+   },
+   "const_direct": {
+    "alu": 173936,
+    "const": 209,
+    "control": 5694,
+    "dataflow": 1078,
+    "frame": 66,
+    "memory": 126
+   },
+   "const_groups": 181109,
+   "const_length": {
+    "1": 137574,
+    "2": 43265,
+    "3": 18,
+    "4": 252
+   },
    "dataflow": 1834235,
    "discards": 30836,
    "forwards": 1932423,
@@ -5224,6 +5960,27 @@
    "call_trigger": {
     "0": 81
    },
+   "const_consumer": {
+    "alu": 165417,
+    "control": 5504,
+    "frame": 110,
+    "memory": 145
+   },
+   "const_direct": {
+    "alu": 164588,
+    "const": 198,
+    "control": 5308,
+    "dataflow": 988,
+    "frame": 32,
+    "memory": 62
+   },
+   "const_groups": 171176,
+   "const_length": {
+    "1": 128879,
+    "2": 42151,
+    "3": 4,
+    "4": 142
+   },
    "dataflow": 1774432,
    "discards": 28598,
    "forwards": 1871369,
@@ -5665,6 +6422,52 @@
     "stack": 10,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 235,
+     "control": 67,
+     "dataflow": 47,
+     "frame": 16,
+     "memory": 24,
+     "pick": 2
+    },
+    "by_op": {
+     "add": 145,
+     "and": 35,
+     "call": 12,
+     "dup": 2,
+     "echo": 45,
+     "eq": 7,
+     "gt": 11,
+     "jmp": 55,
+     "ld": 8,
+     "lt": 16,
+     "mul": 2,
+     "or": 3,
+     "pick": 2,
+     "sh": 10,
+     "st": 16,
+     "st.s": 16,
+     "sub": 6
+    },
+    "groups": 391,
+    "instructions": 534,
+    "instructions_by_class": {
+     "alu": 245,
+     "control": 109,
+     "dataflow": 59,
+     "frame": 58,
+     "memory": 61,
+     "pick": 2
+    },
+    "lengths": {
+     "1": 319,
+     "2": 23,
+     "3": 28,
+     "4": 20,
+     "5": 1
+    }
+   },
    "coverage": 0.4998,
    "covered_instructions": 1328,
    "executed": 9551541,
@@ -5679,6 +6482,52 @@
     "pick": 132,
     "stack": 268,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 909679,
+     "control": 241169,
+     "dataflow": 7263,
+     "frame": 16,
+     "memory": 735,
+     "pick": 132
+    },
+    "by_op": {
+     "add": 449857,
+     "and": 51546,
+     "call": 69,
+     "dup": 132,
+     "echo": 7131,
+     "eq": 67782,
+     "gt": 154638,
+     "jmp": 241100,
+     "ld": 268,
+     "lt": 528,
+     "mul": 132,
+     "or": 49500,
+     "pick": 132,
+     "sh": 396,
+     "st": 467,
+     "st.s": 16,
+     "sub": 135300
+    },
+    "groups": 1158994,
+    "instructions": 1202683,
+    "instructions_by_class": {
+     "alu": 910141,
+     "control": 276419,
+     "dataflow": 13995,
+     "frame": 58,
+     "memory": 1938,
+     "pick": 132
+    },
+    "lengths": {
+     "1": 1120819,
+     "2": 35117,
+     "3": 668,
+     "4": 2324,
+     "5": 66
+    }
    },
    "executed_opcodes": {
     "add": 878065,
@@ -5914,6 +6763,30 @@
    "call_trigger": {
     "0": 480
    },
+   "const_consumer": {
+    "alu": 924871,
+    "control": 244833,
+    "discarded": 337,
+    "frame": 5595,
+    "memory": 962
+   },
+   "const_direct": {
+    "alu": 923464,
+    "const": 52736,
+    "control": 192169,
+    "dataflow": 7376,
+    "frame": 32,
+    "memory": 687,
+    "pick": 134
+   },
+   "const_groups": 1176598,
+   "const_length": {
+    "1": 1137811,
+    "2": 35654,
+    "3": 692,
+    "4": 2374,
+    "5": 67
+   },
    "dataflow": 4917361,
    "discards": 294939,
    "forwards": 4875977,
@@ -6133,6 +7006,30 @@
    },
    "call_trigger": {
     "0": 465
+   },
+   "const_consumer": {
+    "alu": 911065,
+    "control": 241169,
+    "discarded": 330,
+    "frame": 5495,
+    "memory": 935
+   },
+   "const_direct": {
+    "alu": 909679,
+    "const": 51945,
+    "control": 189292,
+    "dataflow": 7262,
+    "frame": 16,
+    "memory": 668,
+    "pick": 132
+   },
+   "const_groups": 1158994,
+   "const_length": {
+    "1": 1120819,
+    "2": 35117,
+    "3": 668,
+    "4": 2324,
+    "5": 66
    },
    "dataflow": 4843947,
    "discards": 290533,
@@ -6363,6 +7260,50 @@
     "stack": 20,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 354,
+     "control": 67,
+     "dataflow": 48,
+     "frame": 28,
+     "memory": 25,
+     "pick": 15
+    },
+    "by_op": {
+     "add": 73,
+     "and": 77,
+     "call": 11,
+     "dup": 2,
+     "echo": 46,
+     "eq": 9,
+     "gt": 2,
+     "jmp": 56,
+     "ld": 12,
+     "lt": 5,
+     "or": 1,
+     "pick": 15,
+     "sh": 185,
+     "st": 13,
+     "st.s": 28,
+     "sub": 2
+    },
+    "groups": 537,
+    "instructions": 751,
+    "instructions_by_class": {
+     "alu": 362,
+     "control": 112,
+     "dataflow": 121,
+     "frame": 110,
+     "memory": 31,
+     "pick": 15
+    },
+    "lengths": {
+     "1": 437,
+     "2": 36,
+     "3": 14,
+     "4": 50
+    }
+   },
    "coverage": 0.7474,
    "covered_instructions": 2615,
    "executed": 8349155,
@@ -6377,6 +7318,50 @@
     "pick": 304,
     "stack": 1218,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 815556,
+     "control": 56017,
+     "dataflow": 1144,
+     "frame": 103,
+     "memory": 21966,
+     "pick": 456
+    },
+    "by_op": {
+     "add": 154432,
+     "and": 166896,
+     "call": 3,
+     "dup": 152,
+     "echo": 992,
+     "eq": 5472,
+     "gt": 152,
+     "jmp": 56014,
+     "ld": 14592,
+     "lt": 2660,
+     "or": 76,
+     "pick": 456,
+     "sh": 485716,
+     "st": 7374,
+     "st.s": 103,
+     "sub": 152
+    },
+    "groups": 895242,
+    "instructions": 909617,
+    "instructions_by_class": {
+     "alu": 816164,
+     "control": 68107,
+     "dataflow": 2512,
+     "frame": 410,
+     "memory": 21968,
+     "pick": 456
+    },
+    "lengths": {
+     "1": 881835,
+     "2": 12921,
+     "3": 4,
+     "4": 482
+    }
    },
    "executed_opcodes": {
     "add": 570456,
@@ -6743,6 +7728,29 @@
    },
    "call_trigger": {
     "0": 242
+   },
+   "const_consumer": {
+    "alu": 827139,
+    "control": 56828,
+    "discarded": 823,
+    "frame": 522,
+    "memory": 22414
+   },
+   "const_direct": {
+    "alu": 826351,
+    "const": 4473,
+    "control": 52514,
+    "dataflow": 1847,
+    "frame": 131,
+    "memory": 22256,
+    "pick": 154
+   },
+   "const_groups": 907726,
+   "const_length": {
+    "1": 894089,
+    "2": 13093,
+    "3": 14,
+    "4": 530
    },
    "dataflow": 4289967,
    "discards": 137659,
@@ -7153,6 +8161,29 @@
    "call_trigger": {
     "0": 231
    },
+   "const_consumer": {
+    "alu": 816316,
+    "control": 56017,
+    "discarded": 304,
+    "frame": 486,
+    "memory": 22119
+   },
+   "const_direct": {
+    "alu": 815556,
+    "const": 4411,
+    "control": 51760,
+    "dataflow": 1295,
+    "frame": 103,
+    "memory": 21965,
+    "pick": 152
+   },
+   "const_groups": 895242,
+   "const_length": {
+    "1": 881835,
+    "2": 12921,
+    "3": 4,
+    "4": 482
+   },
    "dataflow": 4228573,
    "discards": 135281,
    "forwards": 4082276,
@@ -7554,6 +8585,46 @@
     "stack": 18,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 803,
+     "control": 60,
+     "dataflow": 40,
+     "memory": 67
+    },
+    "by_op": {
+     "add": 223,
+     "and": 29,
+     "call": 11,
+     "echo": 40,
+     "eq": 5,
+     "gt": 8,
+     "jmp": 49,
+     "ld": 38,
+     "lt": 17,
+     "mul": 2,
+     "or": 1,
+     "sh": 515,
+     "st": 29,
+     "sub": 2,
+     "xor": 1
+    },
+    "groups": 970,
+    "instructions": 1106,
+    "instructions_by_class": {
+     "alu": 810,
+     "control": 97,
+     "dataflow": 49,
+     "memory": 150
+    },
+    "lengths": {
+     "1": 903,
+     "2": 18,
+     "3": 30,
+     "4": 18,
+     "5": 1
+    }
+   },
    "coverage": 0.7304,
    "covered_instructions": 4440,
    "executed": 10836207,
@@ -7568,6 +8639,44 @@
     "pick": 0,
     "stack": 6752,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 1721436,
+     "control": 16865,
+     "dataflow": 9561,
+     "memory": 29241
+    },
+    "by_op": {
+     "add": 202349,
+     "and": 5058,
+     "call": 3,
+     "echo": 9561,
+     "eq": 1124,
+     "jmp": 16862,
+     "ld": 24728,
+     "lt": 7306,
+     "mul": 1124,
+     "or": 1,
+     "sh": 1499978,
+     "st": 4513,
+     "xor": 4496
+    },
+    "groups": 1777103,
+    "instructions": 1783908,
+    "instructions_by_class": {
+     "alu": 1725370,
+     "control": 18557,
+     "dataflow": 10693,
+     "memory": 29288
+    },
+    "lengths": {
+     "1": 1773146,
+     "2": 2812,
+     "3": 4,
+     "4": 579,
+     "5": 562
+    }
    },
    "executed_opcodes": {
     "add": 907659,
@@ -8192,6 +9301,28 @@
    "call_trigger": {
     "0": 2263
    },
+   "const_consumer": {
+    "alu": 1731850,
+    "control": 16907,
+    "discarded": 1128,
+    "frame": 1128,
+    "memory": 29335
+   },
+   "const_direct": {
+    "alu": 1724529,
+    "const": 2259,
+    "control": 15214,
+    "dataflow": 9021,
+    "memory": 29325
+   },
+   "const_groups": 1780348,
+   "const_length": {
+    "1": 1776340,
+    "2": 2818,
+    "3": 30,
+    "4": 597,
+    "5": 563
+   },
    "dataflow": 4417407,
    "discards": 76589,
    "forwards": 4348854,
@@ -8680,6 +9811,28 @@
    "call_trigger": {
     "0": 2251
    },
+   "const_consumer": {
+    "alu": 1728743,
+    "control": 16866,
+    "discarded": 1124,
+    "frame": 1125,
+    "memory": 29245
+   },
+   "const_direct": {
+    "alu": 1721436,
+    "const": 2251,
+    "control": 15178,
+    "dataflow": 8998,
+    "memory": 29240
+   },
+   "const_groups": 1777103,
+   "const_length": {
+    "1": 1773146,
+    "2": 2812,
+    "3": 4,
+    "4": 579,
+    "5": 562
+   },
    "dataflow": 4409495,
    "discards": 76441,
    "forwards": 4340999,
@@ -9159,6 +10312,43 @@
     "stack": 6,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 884,
+     "control": 218,
+     "dataflow": 24,
+     "frame": 14,
+     "memory": 26
+    },
+    "by_op": {
+     "add": 252,
+     "call": 11,
+     "echo": 24,
+     "eq": 2,
+     "gt": 126,
+     "jmp": 207,
+     "ld": 17,
+     "lt": 126,
+     "sh": 378,
+     "st": 9,
+     "st.s": 14
+    },
+    "groups": 1166,
+    "instructions": 1278,
+    "instructions_by_class": {
+     "alu": 884,
+     "control": 247,
+     "dataflow": 25,
+     "frame": 56,
+     "memory": 66
+    },
+    "lengths": {
+     "1": 1113,
+     "2": 8,
+     "3": 31,
+     "4": 14
+    }
+   },
    "coverage": 0.4754,
    "covered_instructions": 5099,
    "executed": 6140403,
@@ -9173,6 +10363,39 @@
     "pick": 0,
     "stack": 4,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 310464,
+     "control": 242709,
+     "dataflow": 4,
+     "frame": 14,
+     "memory": 3698
+    },
+    "by_op": {
+     "call": 3,
+     "echo": 4,
+     "gt": 155232,
+     "jmp": 242706,
+     "lt": 155232,
+     "st": 3698,
+     "st.s": 14
+    },
+    "groups": 556889,
+    "instructions": 564332,
+    "instructions_by_class": {
+     "alu": 310464,
+     "control": 250107,
+     "dataflow": 5,
+     "frame": 56,
+     "memory": 3700
+    },
+    "lengths": {
+     "1": 549478,
+     "2": 7393,
+     "3": 4,
+     "4": 14
+    }
    },
    "executed_opcodes": {
     "add": 1232,
@@ -9295,6 +10518,28 @@
    "call_trigger": {
     "0": 11
    },
+   "const_consumer": {
+    "alu": 310718,
+    "control": 242922,
+    "discarded": 17,
+    "frame": 34,
+    "memory": 3723
+   },
+   "const_direct": {
+    "alu": 310718,
+    "const": 7,
+    "control": 242920,
+    "dataflow": 22,
+    "frame": 28,
+    "memory": 3719
+   },
+   "const_groups": 557414,
+   "const_length": {
+    "1": 549956,
+    "2": 7399,
+    "3": 31,
+    "4": 28
+   },
    "dataflow": 630122,
    "discards": 311969,
    "forwards": 321862,
@@ -9393,6 +10638,27 @@
    },
    "call_trigger": {
     "0": 3
+   },
+   "const_consumer": {
+    "alu": 310464,
+    "control": 242709,
+    "frame": 17,
+    "memory": 3699
+   },
+   "const_direct": {
+    "alu": 310464,
+    "const": 3,
+    "control": 242708,
+    "dataflow": 3,
+    "frame": 14,
+    "memory": 3697
+   },
+   "const_groups": 556889,
+   "const_length": {
+    "1": 549478,
+    "2": 7393,
+    "3": 4,
+    "4": 14
    },
    "dataflow": 629561,
    "discards": 311697,
@@ -9498,6 +10764,52 @@
     "stack": 24,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 2786,
+     "control": 572,
+     "dataflow": 439,
+     "frame": 158,
+     "memory": 470,
+     "pick": 86
+    },
+    "by_op": {
+     "add": 1026,
+     "and": 65,
+     "call": 23,
+     "dup": 35,
+     "echo": 404,
+     "eq": 94,
+     "gt": 539,
+     "jmp": 549,
+     "ld": 158,
+     "lt": 34,
+     "mul": 193,
+     "pick": 86,
+     "sh": 728,
+     "st": 312,
+     "st.s": 158,
+     "sub": 38,
+     "xor": 69
+    },
+    "groups": 4511,
+    "instructions": 6602,
+    "instructions_by_class": {
+     "alu": 2911,
+     "control": 898,
+     "dataflow": 863,
+     "frame": 599,
+     "memory": 1245,
+     "pick": 86
+    },
+    "lengths": {
+     "1": 3399,
+     "2": 451,
+     "3": 344,
+     "4": 316,
+     "5": 1
+    }
+   },
    "coverage": 0.3243,
    "covered_instructions": 8990,
    "executed": 8204717,
@@ -9512,6 +10824,52 @@
     "pick": 115160,
     "stack": 12424,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 868555,
+     "control": 140158,
+     "dataflow": 26349,
+     "frame": 39870,
+     "memory": 78887,
+     "pick": 35950
+    },
+    "by_op": {
+     "add": 404895,
+     "and": 26650,
+     "call": 58,
+     "dup": 3120,
+     "echo": 23229,
+     "eq": 8640,
+     "gt": 119780,
+     "jmp": 140100,
+     "ld": 14440,
+     "lt": 5150,
+     "mul": 84895,
+     "pick": 35950,
+     "sh": 192395,
+     "st": 64447,
+     "st.s": 39870,
+     "sub": 6490,
+     "xor": 19660
+    },
+    "groups": 1189769,
+    "instructions": 1530217,
+    "instructions_by_class": {
+     "alu": 920540,
+     "control": 223004,
+     "dataflow": 50794,
+     "frame": 159480,
+     "memory": 140449,
+     "pick": 35950
+    },
+    "lengths": {
+     "1": 978730,
+     "2": 135975,
+     "3": 20724,
+     "4": 54335,
+     "5": 5
+    }
    },
    "executed_opcodes": {
     "add": 727215,
@@ -10413,6 +11771,31 @@
    "call_trigger": {
     "0": 6806
    },
+   "const_consumer": {
+    "alu": 1049947,
+    "cast": 3642,
+    "control": 168207,
+    "discarded": 49012,
+    "frame": 51904,
+    "memory": 105244
+   },
+   "const_direct": {
+    "alu": 1042272,
+    "const": 52526,
+    "control": 137466,
+    "dataflow": 53260,
+    "frame": 47848,
+    "memory": 94554,
+    "pick": 30
+   },
+   "const_groups": 1427956,
+   "const_length": {
+    "1": 1174688,
+    "2": 163170,
+    "3": 24882,
+    "4": 65210,
+    "5": 6
+   },
    "dataflow": 3801345,
    "discards": 273178,
    "forwards": 3967496,
@@ -10940,6 +12323,31 @@
    },
    "call_trigger": {
     "0": 5663
+   },
+   "const_consumer": {
+    "alu": 874945,
+    "cast": 3035,
+    "control": 140163,
+    "discarded": 40680,
+    "frame": 43248,
+    "memory": 87698
+   },
+   "const_direct": {
+    "alu": 868555,
+    "const": 43767,
+    "control": 114548,
+    "dataflow": 44213,
+    "frame": 39870,
+    "memory": 78791,
+    "pick": 25
+   },
+   "const_groups": 1189769,
+   "const_length": {
+    "1": 978730,
+    "2": 135975,
+    "3": 20724,
+    "4": 54335,
+    "5": 5
    },
    "dataflow": 3165294,
    "discards": 227156,
@@ -11478,6 +12886,53 @@
     "stack": 20,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 1297,
+     "control": 312,
+     "dataflow": 271,
+     "frame": 103,
+     "memory": 216,
+     "pick": 73
+    },
+    "by_op": {
+     "add": 442,
+     "and": 201,
+     "call": 29,
+     "dup": 12,
+     "echo": 259,
+     "eq": 30,
+     "gt": 62,
+     "jmp": 283,
+     "ld": 170,
+     "lt": 90,
+     "mul": 12,
+     "or": 23,
+     "pick": 73,
+     "sh": 291,
+     "st": 46,
+     "st.s": 103,
+     "sub": 129,
+     "xor": 17
+    },
+    "groups": 2272,
+    "instructions": 3368,
+    "instructions_by_class": {
+     "alu": 1335,
+     "control": 503,
+     "dataflow": 464,
+     "frame": 408,
+     "memory": 581,
+     "pick": 77
+    },
+    "lengths": {
+     "1": 1731,
+     "2": 159,
+     "3": 210,
+     "4": 171,
+     "5": 1
+    }
+   },
    "coverage": 0.6799,
    "covered_instructions": 11429,
    "executed": 7658528,
@@ -11492,6 +12947,53 @@
     "pick": 107740,
     "stack": 272,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 440315,
+     "control": 112943,
+     "dataflow": 25669,
+     "frame": 432,
+     "memory": 28192,
+     "pick": 97055
+    },
+    "by_op": {
+     "add": 79810,
+     "and": 83885,
+     "call": 88,
+     "dup": 50,
+     "echo": 25619,
+     "eq": 21140,
+     "gt": 29515,
+     "jmp": 112855,
+     "ld": 2600,
+     "lt": 7465,
+     "mul": 1470,
+     "or": 120,
+     "pick": 97055,
+     "sh": 110055,
+     "st": 25592,
+     "st.s": 432,
+     "sub": 77870,
+     "xor": 28985
+    },
+    "groups": 704606,
+    "instructions": 829463,
+    "instructions_by_class": {
+     "alu": 442410,
+     "control": 157224,
+     "dataflow": 26184,
+     "frame": 1716,
+     "memory": 29869,
+     "pick": 172060
+    },
+    "lengths": {
+     "1": 631940,
+     "2": 46116,
+     "3": 919,
+     "4": 25621,
+     "5": 10
+    }
    },
    "executed_opcodes": {
     "add": 448710,
@@ -12168,6 +13670,31 @@
    "call_trigger": {
     "0": 259
    },
+   "const_consumer": {
+    "alu": 601003,
+    "cast": 12,
+    "control": 135554,
+    "discarded": 62405,
+    "frame": 11676,
+    "memory": 34936
+   },
+   "const_direct": {
+    "alu": 528400,
+    "const": 50694,
+    "control": 114901,
+    "dataflow": 67225,
+    "frame": 528,
+    "memory": 33828,
+    "pick": 50010
+   },
+   "const_groups": 845586,
+   "const_length": {
+    "1": 758361,
+    "2": 55340,
+    "3": 1117,
+    "4": 30756,
+    "5": 12
+   },
    "dataflow": 3879643,
    "discards": 480642,
    "forwards": 3943619,
@@ -12741,6 +14268,31 @@
    },
    "call_trigger": {
     "0": 208
+   },
+   "const_consumer": {
+    "alu": 500815,
+    "cast": 10,
+    "control": 112953,
+    "discarded": 52000,
+    "frame": 9720,
+    "memory": 29108
+   },
+   "const_direct": {
+    "alu": 440315,
+    "const": 42242,
+    "control": 95743,
+    "dataflow": 56013,
+    "frame": 432,
+    "memory": 28186,
+    "pick": 41675
+   },
+   "const_groups": 704606,
+   "const_length": {
+    "1": 631940,
+    "2": 46116,
+    "3": 919,
+    "4": 25621,
+    "5": 10
    },
    "dataflow": 3232904,
    "discards": 400511,
@@ -13325,6 +14877,53 @@
     "stack": 25,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 578,
+     "control": 174,
+     "dataflow": 116,
+     "frame": 3,
+     "memory": 153,
+     "pick": 6
+    },
+    "by_op": {
+     "add": 424,
+     "and": 32,
+     "call": 15,
+     "dup": 1,
+     "echo": 115,
+     "eq": 10,
+     "gt": 11,
+     "jmp": 159,
+     "ld": 58,
+     "lt": 26,
+     "mul": 9,
+     "or": 1,
+     "pick": 6,
+     "sh": 45,
+     "st": 95,
+     "st.s": 3,
+     "sub": 3,
+     "xor": 17
+    },
+    "groups": 1030,
+    "instructions": 1564,
+    "instructions_by_class": {
+     "alu": 850,
+     "control": 280,
+     "dataflow": 134,
+     "frame": 12,
+     "memory": 282,
+     "pick": 6
+    },
+    "lengths": {
+     "1": 614,
+     "2": 344,
+     "3": 27,
+     "4": 44,
+     "5": 1
+    }
+   },
    "coverage": 0.6949,
    "covered_instructions": 4269,
    "executed": 10335282,
@@ -13339,6 +14938,50 @@
     "pick": 50127,
     "stack": 40058,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 780667,
+     "control": 325875,
+     "dataflow": 104008,
+     "memory": 230615,
+     "pick": 22320
+    },
+    "by_op": {
+     "add": 554026,
+     "and": 9796,
+     "call": 16867,
+     "dup": 9300,
+     "echo": 94708,
+     "eq": 12493,
+     "gt": 2418,
+     "jmp": 309008,
+     "ld": 175491,
+     "lt": 22506,
+     "mul": 9362,
+     "or": 12834,
+     "pick": 22320,
+     "sh": 115227,
+     "st": 55124,
+     "sub": 9331,
+     "xor": 32674
+    },
+    "groups": 1463485,
+    "instructions": 2149713,
+    "instructions_by_class": {
+     "alu": 1245876,
+     "control": 462839,
+     "dataflow": 131970,
+     "memory": 286708,
+     "pick": 22320
+    },
+    "lengths": {
+     "1": 840943,
+     "2": 568284,
+     "3": 44861,
+     "4": 9366,
+     "5": 31
+    }
    },
    "executed_opcodes": {
     "add": 802677,
@@ -13579,6 +15222,31 @@
    },
    "call_trigger": {
     "0": 30317
+   },
+   "const_consumer": {
+    "alu": 844053,
+    "cast": 6432,
+    "control": 346197,
+    "discarded": 42188,
+    "frame": 68,
+    "memory": 273282
+   },
+   "const_direct": {
+    "alu": 806607,
+    "const": 65255,
+    "control": 277813,
+    "dataflow": 110741,
+    "frame": 3,
+    "memory": 238361,
+    "pick": 13440
+   },
+   "const_groups": 1512220,
+   "const_length": {
+    "1": 869486,
+    "2": 586670,
+    "3": 46323,
+    "4": 9709,
+    "5": 32
    },
    "dataflow": 3705037,
    "discards": 349734,
@@ -14032,6 +15700,30 @@
    },
    "call_trigger": {
     "0": 29360
+   },
+   "const_consumer": {
+    "alu": 816937,
+    "cast": 6231,
+    "control": 335175,
+    "discarded": 40672,
+    "frame": 62,
+    "memory": 264408
+   },
+   "const_direct": {
+    "alu": 780667,
+    "const": 63211,
+    "control": 268928,
+    "dataflow": 107076,
+    "memory": 230583,
+    "pick": 13020
+   },
+   "const_groups": 1463485,
+   "const_length": {
+    "1": 840943,
+    "2": 568284,
+    "3": 44861,
+    "4": 9366,
+    "5": 31
    },
    "dataflow": 3584632,
    "discards": 338211,
@@ -14496,6 +16188,49 @@
     "stack": 122,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 371,
+     "control": 205,
+     "dataflow": 104,
+     "frame": 11,
+     "memory": 46,
+     "pick": 19
+    },
+    "by_op": {
+     "add": 248,
+     "and": 2,
+     "call": 13,
+     "echo": 104,
+     "eq": 32,
+     "gt": 13,
+     "jmp": 192,
+     "ld": 15,
+     "lt": 26,
+     "pick": 19,
+     "sh": 25,
+     "st": 31,
+     "st.s": 11,
+     "sub": 2,
+     "xor": 23
+    },
+    "groups": 756,
+    "instructions": 1295,
+    "instructions_by_class": {
+     "alu": 570,
+     "control": 344,
+     "dataflow": 233,
+     "frame": 44,
+     "memory": 70,
+     "pick": 34
+    },
+    "lengths": {
+     "1": 369,
+     "2": 302,
+     "3": 18,
+     "4": 67
+    }
+   },
    "coverage": 0.5249,
    "covered_instructions": 2444,
    "executed": 9110952,
@@ -14510,6 +16245,48 @@
     "pick": 18328,
     "stack": 87004,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 639624,
+     "control": 390343,
+     "dataflow": 189549,
+     "frame": 67981,
+     "memory": 35034,
+     "pick": 16704
+    },
+    "by_op": {
+     "add": 244992,
+     "call": 583,
+     "echo": 189549,
+     "eq": 133980,
+     "gt": 58928,
+     "jmp": 389760,
+     "ld": 10672,
+     "lt": 59740,
+     "pick": 16704,
+     "sh": 17864,
+     "st": 24362,
+     "st.s": 67981,
+     "sub": 3480,
+     "xor": 120640
+    },
+    "groups": 1339235,
+    "instructions": 2060668,
+    "instructions_by_class": {
+     "alu": 782188,
+     "control": 654713,
+     "dataflow": 264027,
+     "frame": 271924,
+     "memory": 69372,
+     "pick": 18444
+    },
+    "lengths": {
+     "1": 823952,
+     "2": 405188,
+     "3": 14040,
+     "4": 96055
+    }
    },
    "executed_opcodes": {
     "add": 476528,
@@ -14738,6 +16515,30 @@
    },
    "call_trigger": {
     "0": 14753
+   },
+   "const_consumer": {
+    "alu": 686208,
+    "cast": 27729,
+    "control": 393718,
+    "discarded": 75818,
+    "frame": 115963,
+    "memory": 51369
+   },
+   "const_direct": {
+    "alu": 645139,
+    "const": 53708,
+    "control": 340013,
+    "dataflow": 207451,
+    "frame": 68572,
+    "memory": 35337,
+    "pick": 585
+   },
+   "const_groups": 1350805,
+   "const_length": {
+    "1": 831063,
+    "2": 408681,
+    "3": 14171,
+    "4": 96890
    },
    "dataflow": 2629847,
    "discards": 248283,
@@ -15006,6 +16807,30 @@
    },
    "call_trigger": {
     "0": 14619
+   },
+   "const_consumer": {
+    "alu": 680341,
+    "cast": 27492,
+    "control": 390344,
+    "discarded": 75168,
+    "frame": 114964,
+    "memory": 50926
+   },
+   "const_direct": {
+    "alu": 639624,
+    "const": 53246,
+    "control": 337099,
+    "dataflow": 205672,
+    "frame": 67981,
+    "memory": 35033,
+    "pick": 580
+   },
+   "const_groups": 1339235,
+   "const_length": {
+    "1": 823952,
+    "2": 405188,
+    "3": 14040,
+    "4": 96055
    },
    "dataflow": 2607345,
    "discards": 246155,
@@ -15285,6 +17110,49 @@
     "stack": 43,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 272,
+     "control": 202,
+     "dataflow": 36,
+     "frame": 61,
+     "memory": 642
+    },
+    "by_op": {
+     "add": 181,
+     "and": 12,
+     "call": 12,
+     "dup": 1,
+     "echo": 35,
+     "eq": 36,
+     "gt": 5,
+     "jmp": 190,
+     "ld": 111,
+     "lt": 11,
+     "mul": 2,
+     "sh": 4,
+     "st": 531,
+     "st.s": 61,
+     "sub": 1,
+     "xor": 20
+    },
+    "groups": 1213,
+    "instructions": 2459,
+    "instructions_by_class": {
+     "alu": 363,
+     "control": 337,
+     "dataflow": 43,
+     "frame": 244,
+     "memory": 1472
+    },
+    "lengths": {
+     "1": 559,
+     "2": 197,
+     "3": 323,
+     "4": 133,
+     "5": 1
+    }
+   },
    "coverage": 0.4297,
    "covered_instructions": 2284,
    "executed": 9853681,
@@ -15299,6 +17167,48 @@
     "pick": 0,
     "stack": 53284,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 812521,
+     "control": 53285,
+     "dataflow": 19984,
+     "frame": 89940,
+     "memory": 426244
+    },
+    "by_op": {
+     "add": 709291,
+     "and": 33300,
+     "call": 3,
+     "echo": 19984,
+     "eq": 9990,
+     "gt": 3330,
+     "jmp": 53282,
+     "ld": 19980,
+     "lt": 19980,
+     "mul": 6660,
+     "sh": 13320,
+     "st": 406264,
+     "st.s": 89940,
+     "sub": 3330,
+     "xor": 13320
+    },
+    "groups": 1401974,
+    "instructions": 2840639,
+    "instructions_by_class": {
+     "alu": 1215451,
+     "control": 93251,
+     "dataflow": 19985,
+     "frame": 359760,
+     "memory": 1152192
+    },
+    "lengths": {
+     "1": 632707,
+     "2": 422911,
+     "3": 26644,
+     "4": 316382,
+     "5": 3330
+    }
    },
    "executed_opcodes": {
     "add": 732601,
@@ -15609,6 +17519,29 @@
    "call_trigger": {
     "0": 19998
    },
+   "const_consumer": {
+    "alu": 816192,
+    "control": 53382,
+    "discarded": 6664,
+    "frame": 93333,
+    "memory": 433068
+   },
+   "const_direct": {
+    "alu": 812859,
+    "const": 13334,
+    "control": 50047,
+    "dataflow": 16665,
+    "frame": 90001,
+    "memory": 419733
+   },
+   "const_groups": 1402639,
+   "const_length": {
+    "1": 633008,
+    "2": 423103,
+    "3": 26682,
+    "4": 316514,
+    "5": 3332
+   },
    "dataflow": 1892375,
    "discards": 116598,
    "forwards": 3831034,
@@ -15891,6 +17824,29 @@
    "call_trigger": {
     "0": 19983
    },
+   "const_consumer": {
+    "alu": 815851,
+    "control": 53285,
+    "discarded": 6660,
+    "frame": 93270,
+    "memory": 432908
+   },
+   "const_direct": {
+    "alu": 812521,
+    "const": 13323,
+    "control": 49954,
+    "dataflow": 16653,
+    "frame": 89940,
+    "memory": 419583
+   },
+   "const_groups": 1401974,
+   "const_length": {
+    "1": 632707,
+    "2": 422911,
+    "3": 26644,
+    "4": 316382,
+    "5": 3330
+   },
    "dataflow": 1891449,
    "discards": 116551,
    "forwards": 3829522,
@@ -16151,6 +18107,52 @@
     "stack": 6,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 88,
+     "control": 29,
+     "dataflow": 37,
+     "frame": 20,
+     "memory": 17,
+     "pick": 1
+    },
+    "by_op": {
+     "add": 41,
+     "and": 15,
+     "call": 11,
+     "dup": 1,
+     "echo": 36,
+     "eq": 5,
+     "gt": 3,
+     "jmp": 18,
+     "ld": 3,
+     "lt": 6,
+     "mul": 4,
+     "pick": 1,
+     "sh": 7,
+     "st": 14,
+     "st.s": 20,
+     "sub": 2,
+     "xor": 5
+    },
+    "groups": 192,
+    "instructions": 303,
+    "instructions_by_class": {
+     "alu": 102,
+     "control": 57,
+     "dataflow": 40,
+     "frame": 64,
+     "memory": 39,
+     "pick": 1
+    },
+    "lengths": {
+     "1": 138,
+     "2": 15,
+     "3": 22,
+     "4": 16,
+     "5": 1
+    }
+   },
    "coverage": 0.8814,
    "covered_instructions": 1286,
    "executed": 3484245,
@@ -16165,6 +18167,52 @@
     "pick": 46,
     "stack": 3222,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 395049,
+     "control": 9021,
+     "dataflow": 9618,
+     "frame": 20,
+     "memory": 74384,
+     "pick": 46
+    },
+    "by_op": {
+     "add": 134136,
+     "and": 52808,
+     "call": 3,
+     "dup": 46,
+     "echo": 9572,
+     "eq": 3819,
+     "gt": 3404,
+     "jmp": 9018,
+     "ld": 35512,
+     "lt": 9108,
+     "mul": 74060,
+     "pick": 46,
+     "sh": 111228,
+     "st": 38872,
+     "st.s": 20,
+     "sub": 1472,
+     "xor": 5014
+    },
+    "groups": 488138,
+    "instructions": 892438,
+    "instructions_by_class": {
+     "alu": 654259,
+     "control": 11695,
+     "dataflow": 9756,
+     "frame": 64,
+     "memory": 216618,
+     "pick": 46
+    },
+    "lengths": {
+     "1": 304804,
+     "2": 38096,
+     "3": 71120,
+     "4": 72508,
+     "5": 1610
+    }
    },
    "executed_opcodes": {
     "add": 284783,
@@ -16350,6 +18398,29 @@
    },
    "call_trigger": {
     "0": 37987
+   },
+   "const_consumer": {
+    "alu": 406553,
+    "control": 9227,
+    "discarded": 1367,
+    "frame": 2302,
+    "memory": 79342
+   },
+   "const_direct": {
+    "alu": 403639,
+    "const": 665,
+    "control": 8614,
+    "dataflow": 9878,
+    "frame": 40,
+    "memory": 75955
+   },
+   "const_groups": 498791,
+   "const_length": {
+    "1": 311442,
+    "2": 38932,
+    "3": 72676,
+    "4": 74096,
+    "5": 1645
    },
    "dataflow": 1165338,
    "discards": 61573,
@@ -16549,6 +18620,29 @@
    },
    "call_trigger": {
     "0": 37171
+   },
+   "const_consumer": {
+    "alu": 397901,
+    "control": 9021,
+    "discarded": 1335,
+    "frame": 2231,
+    "memory": 77650
+   },
+   "const_direct": {
+    "alu": 395049,
+    "const": 647,
+    "control": 8422,
+    "dataflow": 9663,
+    "frame": 20,
+    "memory": 74337
+   },
+   "const_groups": 488138,
+   "const_length": {
+    "1": 304804,
+    "2": 38096,
+    "3": 71120,
+    "4": 72508,
+    "5": 1610
    },
    "dataflow": 1140528,
    "discards": 60260,
@@ -16758,6 +18852,48 @@
     "stack": 16,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 181,
+     "control": 31,
+     "dataflow": 29,
+     "frame": 23,
+     "memory": 55
+    },
+    "by_op": {
+     "add": 130,
+     "and": 13,
+     "call": 13,
+     "echo": 29,
+     "eq": 2,
+     "gt": 4,
+     "jmp": 18,
+     "ld": 1,
+     "lt": 7,
+     "mul": 10,
+     "sh": 10,
+     "st": 54,
+     "st.s": 23,
+     "sub": 2,
+     "xor": 3
+    },
+    "groups": 319,
+    "instructions": 643,
+    "instructions_by_class": {
+     "alu": 238,
+     "control": 64,
+     "dataflow": 50,
+     "frame": 105,
+     "memory": 186
+    },
+    "lengths": {
+     "1": 172,
+     "2": 58,
+     "3": 17,
+     "4": 56,
+     "5": 16
+    }
+   },
    "coverage": 0.5984,
    "covered_instructions": 1277,
    "executed": 7022696,
@@ -16772,6 +18908,44 @@
     "pick": 0,
     "stack": 8,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 669408,
+     "control": 16070,
+     "dataflow": 37488,
+     "frame": 23,
+     "memory": 12537
+    },
+    "by_op": {
+     "add": 365958,
+     "call": 3,
+     "echo": 37488,
+     "jmp": 16067,
+     "ld": 1,
+     "mul": 53550,
+     "sh": 185640,
+     "st": 12536,
+     "st.s": 23,
+     "sub": 1785,
+     "xor": 62475
+    },
+    "groups": 735526,
+    "instructions": 823225,
+    "instructions_by_class": {
+     "alu": 715842,
+     "control": 30356,
+     "dataflow": 53554,
+     "frame": 105,
+     "memory": 23368
+    },
+    "lengths": {
+     "1": 665819,
+     "2": 60715,
+     "3": 5,
+     "4": 8974,
+     "5": 13
+    }
    },
    "executed_opcodes": {
     "add": 705108,
@@ -16990,6 +19164,29 @@
    },
    "call_trigger": {
     "0": 37519
+   },
+   "const_consumer": {
+    "alu": 696723,
+    "control": 16095,
+    "discarded": 2,
+    "frame": 8977,
+    "memory": 14384
+   },
+   "const_direct": {
+    "alu": 669929,
+    "const": 1795,
+    "control": 14306,
+    "dataflow": 37518,
+    "frame": 46,
+    "memory": 12587
+   },
+   "const_groups": 736181,
+   "const_length": {
+    "1": 666330,
+    "2": 60774,
+    "3": 18,
+    "4": 9030,
+    "5": 29
    },
    "dataflow": 2997383,
    "discards": 260836,
@@ -17243,6 +19440,28 @@
    "call_trigger": {
     "0": 37488
    },
+   "const_consumer": {
+    "alu": 696183,
+    "control": 16070,
+    "frame": 8948,
+    "memory": 14325
+   },
+   "const_direct": {
+    "alu": 669408,
+    "const": 1788,
+    "control": 14284,
+    "dataflow": 37487,
+    "frame": 23,
+    "memory": 12536
+   },
+   "const_groups": 735526,
+   "const_length": {
+    "1": 665819,
+    "2": 60715,
+    "3": 5,
+    "4": 8974,
+    "5": 13
+   },
    "dataflow": 2995239,
    "discards": 260611,
    "forwards": 2822311,
@@ -17486,6 +19705,54 @@
     "stack": 87,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 726,
+     "control": 194,
+     "dataflow": 151,
+     "frame": 1,
+     "memory": 19,
+     "pick": 6
+    },
+    "by_op": {
+     "add": 315,
+     "and": 126,
+     "call": 22,
+     "dup": 28,
+     "echo": 123,
+     "eq": 12,
+     "gt": 31,
+     "jmp": 172,
+     "ld": 1,
+     "lt": 40,
+     "mul": 11,
+     "or": 16,
+     "pick": 6,
+     "sh": 147,
+     "st": 18,
+     "st.s": 1,
+     "sub": 24,
+     "xor": 4
+    },
+    "groups": 1097,
+    "instructions": 2296,
+    "instructions_by_class": {
+     "alu": 1421,
+     "control": 315,
+     "dataflow": 474,
+     "frame": 4,
+     "memory": 55,
+     "pick": 27
+    },
+    "lengths": {
+     "1": 693,
+     "2": 189,
+     "3": 29,
+     "4": 82,
+     "7": 22,
+     "8": 82
+    }
+   },
    "coverage": 0.4161,
    "covered_instructions": 3398,
    "executed": 5142692,
@@ -17500,6 +19767,54 @@
     "pick": 6412,
     "stack": 31130,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 497159,
+     "control": 91975,
+     "dataflow": 30536,
+     "frame": 1,
+     "memory": 8014,
+     "pick": 944
+    },
+    "by_op": {
+     "add": 230532,
+     "and": 97888,
+     "call": 7747,
+     "dup": 15984,
+     "echo": 14552,
+     "eq": 5282,
+     "gt": 9316,
+     "jmp": 84228,
+     "ld": 4000,
+     "lt": 20308,
+     "mul": 5672,
+     "or": 5257,
+     "pick": 944,
+     "sh": 106920,
+     "st": 4014,
+     "st.s": 1,
+     "sub": 11016,
+     "xor": 4968
+    },
+    "groups": 628629,
+    "instructions": 1370290,
+    "instructions_by_class": {
+     "alu": 1081535,
+     "control": 124895,
+     "dataflow": 138364,
+     "frame": 4,
+     "memory": 24044,
+     "pick": 1448
+    },
+    "lengths": {
+     "1": 346950,
+     "2": 138925,
+     "3": 18378,
+     "4": 69008,
+     "7": 28620,
+     "8": 26748
+    }
    },
    "executed_opcodes": {
     "add": 319658,
@@ -17761,6 +20076,32 @@
    },
    "call_trigger": {
     "0": 34866
+   },
+   "const_consumer": {
+    "alu": 788183,
+    "cast": 108,
+    "control": 138727,
+    "discarded": 4604,
+    "frame": 56,
+    "memory": 14499
+   },
+   "const_direct": {
+    "alu": 748948,
+    "const": 17877,
+    "control": 120809,
+    "dataflow": 45810,
+    "frame": 2,
+    "memory": 12026,
+    "pick": 705
+   },
+   "const_groups": 946177,
+   "const_length": {
+    "1": 523634,
+    "2": 208397,
+    "3": 27576,
+    "4": 103518,
+    "7": 42930,
+    "8": 40122
    },
    "dataflow": 2699109,
    "discards": 159680,
@@ -18120,6 +20461,32 @@
    },
    "call_trigger": {
     "0": 23239
+   },
+   "const_consumer": {
+    "alu": 523313,
+    "cast": 72,
+    "control": 92479,
+    "discarded": 3068,
+    "frame": 37,
+    "memory": 9660
+   },
+   "const_direct": {
+    "alu": 497159,
+    "const": 11915,
+    "control": 80534,
+    "dataflow": 30537,
+    "frame": 1,
+    "memory": 8013,
+    "pick": 470
+   },
+   "const_groups": 628629,
+   "const_length": {
+    "1": 346950,
+    "2": 138925,
+    "3": 18378,
+    "4": 69008,
+    "7": 28620,
+    "8": 26748
    },
    "dataflow": 1791379,
    "discards": 104849,
@@ -18487,6 +20854,47 @@
     "stack": 8,
     "trap": 0
    },
+   "const_groups": {
+    "by_class": {
+     "alu": 12,
+     "control": 14,
+     "dataflow": 15,
+     "frame": 9,
+     "memory": 16,
+     "pick": 8
+    },
+    "by_op": {
+     "add": 2,
+     "and": 1,
+     "call": 11,
+     "echo": 15,
+     "gt": 2,
+     "jmp": 3,
+     "ld": 6,
+     "lt": 1,
+     "or": 3,
+     "pick": 8,
+     "sh": 2,
+     "st": 10,
+     "st.s": 9,
+     "xor": 1
+    },
+    "groups": 74,
+    "instructions": 129,
+    "instructions_by_class": {
+     "alu": 12,
+     "control": 36,
+     "dataflow": 15,
+     "frame": 36,
+     "memory": 22,
+     "pick": 8
+    },
+    "lengths": {
+     "1": 51,
+     "3": 14,
+     "4": 9
+    }
+   },
    "coverage": 0.8494,
    "covered_instructions": 440,
    "executed": 8713233,
@@ -18501,6 +20909,47 @@
     "pick": 185330,
     "stack": 514,
     "trap": 0
+   },
+   "executed_const_groups": {
+    "by_class": {
+     "alu": 238963,
+     "control": 52484,
+     "dataflow": 52100,
+     "frame": 771,
+     "memory": 1155,
+     "pick": 1024
+    },
+    "by_op": {
+     "add": 2560,
+     "and": 51200,
+     "call": 3,
+     "echo": 52100,
+     "gt": 183283,
+     "jmp": 52481,
+     "ld": 768,
+     "lt": 128,
+     "or": 384,
+     "pick": 1024,
+     "sh": 128,
+     "st": 387,
+     "st.s": 771,
+     "xor": 1280
+    },
+    "groups": 346497,
+    "instructions": 348818,
+    "instructions_by_class": {
+     "alu": 238963,
+     "control": 52490,
+     "dataflow": 52100,
+     "frame": 3084,
+     "memory": 1157,
+     "pick": 1024
+    },
+    "lengths": {
+     "1": 345722,
+     "3": 4,
+     "4": 771
+    }
    },
    "executed_opcodes": {
     "add": 598387,
@@ -18660,6 +21109,29 @@
    },
    "call_trigger": {
     "0": 267
+   },
+   "const_consumer": {
+    "alu": 478185,
+    "cast": 206,
+    "control": 104973,
+    "discarded": 1846,
+    "frame": 2570,
+    "memory": 105224
+   },
+   "const_direct": {
+    "alu": 477927,
+    "const": 4,
+    "control": 104973,
+    "dataflow": 105721,
+    "frame": 1542,
+    "memory": 2309,
+    "pick": 528
+   },
+   "const_groups": 693004,
+   "const_length": {
+    "1": 691448,
+    "3": 14,
+    "4": 1542
    },
    "dataflow": 9126715,
    "discards": 1253073,
@@ -18911,6 +21383,29 @@
    },
    "call_trigger": {
     "0": 131
+   },
+   "const_consumer": {
+    "alu": 239092,
+    "cast": 103,
+    "control": 52484,
+    "discarded": 922,
+    "frame": 1285,
+    "memory": 52611
+   },
+   "const_direct": {
+    "alu": 238963,
+    "const": 1,
+    "control": 52484,
+    "dataflow": 52860,
+    "frame": 771,
+    "memory": 1154,
+    "pick": 264
+   },
+   "const_groups": 346497,
+   "const_length": {
+    "1": 345722,
+    "3": 4,
+    "4": 771
    },
    "dataflow": 4563352,
    "discards": 626535,
