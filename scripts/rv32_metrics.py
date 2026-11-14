@@ -2,7 +2,8 @@
 """Executed instructions and bytes of rv32imac Embench images under Spike,
 for comparison with the Scry figures of run_embench.py.
 
-    rv32_metrics.py --spike <spike> [--prefix riscv64-unknown-elf-] [--json out.json] <image.elf>...
+    rv32_metrics.py --spike <spike> [--nm llvm-nm] [--objdump llvm-objdump]
+                    [--json out.json] <image.elf>...
 
 For every image the script runs Spike with instruction logging and counts,
 for the whole run and for the window between the first execution of
@@ -14,11 +15,11 @@ is compressed when the low two bits of its encoding are not 11.  Static
 instructions and bytes are read from objdump's disassembly of the
 executable sections.
 
-The images are expected to be built from the same sources as the Scry
-ones (benchmark, Embench support files, the runtime's libc) with the
-GCC bare-metal toolchain, e.g.
-    riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -O2 -ffreestanding
-    -nostdlib -ffunction-sections -fdata-sections -Wl,--gc-sections ...
+The images are built by scripts/build_rv32.py from the same sources as the
+Scry ones (benchmark, Embench support files, the runtime's libc and
+compiler-rt builtins) with clang for riscv32-unknown-elf; the window
+symbols and the static count come from llvm-nm and llvm-objdump (the GNU
+binutils work as well).
 """
 import argparse
 import json
@@ -85,13 +86,16 @@ def dynamic(spike, elf, start, stop, isa):
 
 
 def static(objdump, elf):
+    """Instructions and bytes in the disassembly: each instruction line is
+    '<address>: <encoding bytes> <tab> <mnemonic>', the encoding one hex
+    word (GNU objdump) or space-separated bytes (llvm-objdump)."""
     out = subprocess.run([objdump, "-d", str(elf)], capture_output=True, text=True, check=True).stdout
     n = b = 0
     for line in out.splitlines():
-        m = re.match(r"^\s*[0-9a-f]+:\s+([0-9a-f]+)\s", line)
+        m = re.match(r"^\s*[0-9a-f]+:\s*([0-9a-f]+(?: [0-9a-f]{2})*)\s*\t", line)
         if m:
             n += 1
-            b += len(m.group(1)) // 2
+            b += len(m.group(1).replace(" ", "")) // 2
     return dict(static_instructions=n, static_bytes=b)
 
 
@@ -100,7 +104,8 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--spike", required=True)
     ap.add_argument("--isa", default="rv32imac")
-    ap.add_argument("--prefix", default="riscv64-unknown-elf-", help="binutils prefix")
+    ap.add_argument("--nm", default="llvm-nm")
+    ap.add_argument("--objdump", default="llvm-objdump")
     ap.add_argument("--json")
     ap.add_argument("images", nargs="+")
     args = ap.parse_args()
@@ -111,10 +116,10 @@ def main():
     for img in args.images:
         elf = pathlib.Path(img)
         name = elf.stem
-        start = symbol(args.prefix + "nm", elf, "start_trigger")
-        stop = symbol(args.prefix + "nm", elf, "stop_trigger")
+        start = symbol(args.nm, elf, "start_trigger")
+        stop = symbol(args.nm, elf, "stop_trigger")
         d = dynamic(args.spike, elf, start, stop, args.isa)
-        d.update(static(args.prefix + "objdump", elf))
+        d.update(static(args.objdump, elf))
         results[name] = d
         print(f"{name:18} {d['window_instructions']:11,d} {d['window_bytes']:12,d} "
               f"{100 * d['window_compressed'] / max(d['window_instructions'], 1):5.1f} "

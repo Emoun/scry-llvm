@@ -4,7 +4,11 @@
 Usage:
     build_llvm.py [--llvm-src <dir>] [--build-dir <dir>] [--prefix <dir>]
                   [--jobs N] [--build-type Release|Debug|RelWithDebInfo]
-                  [--no-assertions] [--configure-only] [--extra=<cmake arg> ...]
+                  [--no-assertions] [--configure-only] [--targets RISCV]
+                  [--extra=<cmake arg> ...]
+
+--targets adds upstream LLVM targets to the Scry backend (comma-separated,
+e.g. RISCV for the rv32imac comparison of scripts/build_rv32.py).
 
 Requires CMake >= 3.20, Ninja, and a C++17 host compiler (clang, gcc or MSVC).
 On Windows run from a "x64 Native Tools" prompt or let CMake find MSVC.
@@ -50,6 +54,8 @@ def main():
     ap.add_argument("--no-assertions", action="store_true")
     ap.add_argument("--configure-only", action="store_true")
     ap.add_argument("--no-install", action="store_true")
+    ap.add_argument("--targets", default="",
+                    help="additional upstream LLVM targets to build, e.g. RISCV (default: Scry only)")
     ap.add_argument("--extra", action="append", default=[], metavar="CMAKE_ARG",
                     help="extra cmake argument, e.g. --extra=-DLLVM_CCACHE_BUILD=ON "
                          "(repeatable; use the = form for arguments starting with -)")
@@ -66,7 +72,7 @@ def main():
         f"-DCMAKE_INSTALL_PREFIX={prefix}",
         "-DLLVM_ENABLE_ASSERTIONS=" + ("OFF" if args.no_assertions else "ON"),
         "-DLLVM_ENABLE_PROJECTS=clang;lld",
-        "-DLLVM_TARGETS_TO_BUILD=",
+        f"-DLLVM_TARGETS_TO_BUILD={args.targets}",
         "-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=Scry",
         "-DLLVM_DEFAULT_TARGET_TRIPLE=scry32-unknown-none-elf",
         "-DLLVM_INCLUDE_TESTS=ON",
