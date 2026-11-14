@@ -7,9 +7,9 @@ next to the same programs compiled for rv32imac by the same LLVM
 (`scripts/build_rv32.py`: clang 22.1.8 with the RISC-V target, lld, this
 repository's libc and compiler-rt builtins, `-O2`) and run under Spike.
 `perf-results.md` gives the instruction counts against the
-baseline; this document looks at code size, the instruction mix, how long
-operands and control flow stay in flight, memory traffic and operands in
-flight.
+baseline; this document looks at code size, the instruction mix, what
+the constants are for, how long operands and control flow stay in
+flight, memory traffic and operands in flight.
 
 The dynamic figures come from the simulator's event stream
 (`scripts/scry_metrics.py`), the static ones from decoding the linked
@@ -167,6 +167,107 @@ for 90% of the executed ones, 7% in md5sum and 9% in picojpeg.
 | wikisort | 8,167 | 5.1% | 38.5% | 16.7% | 1.3% | 28.1% | 4.3% | 5.0% | 1.1% | 41.6% | 1,169 (14.3%) |
 | xgboost | 518 | 6.4% | 35.5% | 8.3% | 4.2% | 24.9% | 6.6% | 12.5% | 1.5% | 84.9% | 71 (13.7%) |
 | **pooled** | 111,262 | 4.2% | 34.6% | 16.9% | 4.2% | 23.1% | 9.4% | 7.2% | 0.4% | 54.6% | 22,404 (20.1%) |
+
+## Constant groups
+
+A constant group is a `const` and the `grow`s that extend it: one
+immediate, delivered to the next instruction (several constants for one
+instruction are built back to back, each forwarded behind the next
+group's value).  The 16.8% of const/grow instructions are 17.6 million
+groups, 117 per 1,000 instructions, 1.43 instructions each: 75% are a
+single `const` (a value or offset that fits a byte), 15% two
+instructions, 6.5% the four of a 32-bit value or an absolute address.
+Following each value through the `echo` and `dup` hops to the
+instruction that consumes it, the groups are used for:
+
+* **ALU, 76%**: the immediates of `add`, `sub`, `and`, the shifts and
+  the compares, which rv32imac folds into `addi`, `andi`, `slli` or a
+  compare-and-branch with zero.  On Scry every immediate is at least one
+  instruction; in the kernels of edn, matmult-int, nettle-sha256 and ud
+  more than 94% of the groups are ALU operands.
+* **control, 12%**: the target of a far-form jump, built by a chain
+  because the near form's field does not reach, the polarity constant
+  of an unconditional far jump, and the callee address of a call.  Calls
+  are few (0.35 million against 2.1 million control groups), so these
+  are almost all jump operands: nsichneu's one large function sends 44%
+  of its groups to jumps, slre 29%, sglib-combined 23%, md5sum 21%.
+* **loads and stores, 8%**: the address of a global and the constants
+  that are stored.  statemate assigns constants to its global state
+  (31% of its groups, 433,000, go to loads and stores), sglib-combined
+  18%, tarfind 16%, xgboost 15%.
+* **to a frame slot, 1.7%**: a hoisted constant the slot allocator gave
+  a slot, built once and stored (slre 8.6%, statemate 6.7%).
+* **discarded, 2.2%**: the operand a `pick` did not select, in
+  aha-mont64 the zero of a `c ? x : 0` in the 64-bit carry code (12% of
+  its groups), in depthconv, qrduino and slre 6 to 8%.
+* **cast/pick, 0.2%**: the selected operand of a `pick` or the input of a
+  `cast`.
+
+4.8% of the groups pass through an `echo` or `dup` before their consumer:
+constants that cannot be glued to it, such as call arguments or a value
+needed on the far side of a jump (aha-mont64 12.5%, depthconv 16%,
+slre 15%, xgboost 15%).  The other 95% are consumed by the instruction
+after the group, as the emitter intends.
+
+In the code, const/grow is 23% of the instructions (16,500 groups in
+25,700 instructions): 59% feed ALU instructions, 15% control flow (every
+call site is a three-instruction address chain, and cold code has far
+jumps), 11.5% loads and stores, 3.3% a frame slot and 10% an `echo` or
+`dup`.  statemate's code is 46% constants, 53% of them stored to
+globals; crc32's small image is 41% constants because its call-address
+chains and table address dominate the little code there is.
+
+| benchmark | groups | per 1000 instrs | instrs per group | alu | control | ld/st | to slot | cast/pick | discarded | via echo/dup |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 700,485 | 131.6 | 1.01 | 77.7% | 10.4% | 0.0% | 0.1% | 0.1% | 11.7% | 12.5% |
+| crc32 | 1,393,503 | 173.8 | 2.37 | 75.0% | 0.0% | 25.0% | 0.0% | 0.0% | 0.0% | 0.0% |
+| depthconv | 653,969 | 80.3 | 1.34 | 86.0% | 2.0% | 0.0% | 3.8% | 0.3% | 8.0% | 16.0% |
+| edn | 694,552 | 70.6 | 1.03 | 95.4% | 4.6% | 0.0% | 0.0% | 0.0% | 0.0% | 3.8% |
+| huffbench | 1,336,209 | 124.2 | 1.60 | 80.2% | 17.1% | 0.6% | 0.0% | 0.0% | 2.0% | 3.8% |
+| matmult-int | 171,176 | 43.5 | 1.25 | 96.6% | 3.2% | 0.1% | 0.1% | 0.0% | 0.0% | 0.6% |
+| md5sum | 1,158,994 | 121.3 | 1.04 | 78.6% | 20.8% | 0.1% | 0.5% | 0.0% | 0.0% | 0.6% |
+| nettle-aes | 895,242 | 107.2 | 1.02 | 91.2% | 6.3% | 2.5% | 0.1% | 0.0% | 0.0% | 0.1% |
+| nettle-sha256 | 1,777,103 | 164.0 | 1.00 | 97.3% | 0.9% | 1.6% | 0.1% | 0.0% | 0.1% | 0.5% |
+| nsichneu | 556,889 | 90.7 | 1.01 | 55.7% | 43.6% | 0.7% | 0.0% | 0.0% | 0.0% | 0.0% |
+| picojpeg | 1,189,769 | 145.0 | 1.29 | 73.5% | 11.8% | 7.4% | 3.6% | 0.3% | 3.4% | 3.7% |
+| qrduino | 704,606 | 92.0 | 1.18 | 71.1% | 16.0% | 4.1% | 1.4% | 0.0% | 7.4% | 7.9% |
+| sglib-combined | 1,463,485 | 141.6 | 1.47 | 55.8% | 22.9% | 18.1% | 0.0% | 0.4% | 2.8% | 7.3% |
+| slre | 1,339,235 | 147.0 | 1.54 | 50.8% | 29.1% | 3.8% | 8.6% | 2.1% | 5.6% | 15.4% |
+| statemate | 1,401,974 | 142.3 | 2.03 | 58.2% | 3.8% | 30.9% | 6.7% | 0.0% | 0.5% | 1.2% |
+| tarfind | 488,138 | 140.1 | 1.83 | 81.5% | 1.8% | 15.9% | 0.5% | 0.0% | 0.3% | 2.0% |
+| ud | 735,526 | 104.7 | 1.12 | 94.7% | 2.2% | 1.9% | 1.2% | 0.0% | 0.0% | 5.1% |
+| wikisort | 628,629 | 122.2 | 2.18 | 83.2% | 14.7% | 1.5% | 0.0% | 0.0% | 0.5% | 4.9% |
+| xgboost | 346,497 | 39.8 | 1.01 | 69.0% | 15.1% | 15.2% | 0.4% | 0.0% | 0.3% | 15.3% |
+| **pooled** | 17,635,981 | 117.2 | 1.43 | 75.8% | 12.0% | 8.1% | 1.7% | 0.2% | 2.2% | 4.8% |
+
+#### Constant groups in the code
+
+Groups in the linked image and their instructions, the share of the code
+they are, and the consumer by the instruction after the group (so
+`echo`/`dup` here is the capture of a constant that is forwarded on).
+
+| benchmark | groups | instrs | of the code | alu | control | ld/st | to slot | echo/dup | other |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 218 | 325 | 20.9% | 52.8% | 12.4% | 6.9% | 1.4% | 9.2% | 17.4% |
+| crc32 | 43 | 99 | 41.2% | 18.6% | 25.6% | 20.9% | 7.0% | 27.9% | 0.0% |
+| depthconv | 127 | 318 | 29.5% | 32.3% | 9.4% | 4.7% | 18.1% | 32.3% | 3.1% |
+| edn | 449 | 639 | 15.1% | 64.1% | 12.0% | 4.2% | 6.9% | 12.7% | 0.0% |
+| huffbench | 681 | 1,011 | 22.9% | 67.1% | 16.2% | 2.1% | 0.9% | 13.5% | 0.3% |
+| matmult-int | 496 | 952 | 24.6% | 57.9% | 10.9% | 13.7% | 6.9% | 10.7% | 0.0% |
+| md5sum | 391 | 534 | 20.1% | 60.1% | 17.1% | 6.1% | 4.1% | 12.0% | 0.5% |
+| nettle-aes | 537 | 751 | 21.5% | 65.9% | 12.5% | 4.7% | 5.2% | 8.9% | 2.8% |
+| nettle-sha256 | 970 | 1,106 | 18.2% | 82.8% | 6.2% | 6.9% | 0.0% | 4.1% | 0.0% |
+| nsichneu | 1,166 | 1,278 | 11.9% | 75.8% | 18.7% | 2.2% | 1.2% | 2.1% | 0.0% |
+| picojpeg | 4,511 | 6,602 | 23.8% | 61.8% | 12.7% | 10.4% | 3.5% | 9.7% | 1.9% |
+| qrduino | 2,272 | 3,368 | 20.0% | 57.1% | 13.7% | 9.5% | 4.5% | 11.9% | 3.2% |
+| sglib-combined | 1,030 | 1,564 | 25.5% | 56.1% | 16.9% | 14.9% | 0.3% | 11.3% | 0.6% |
+| slre | 756 | 1,295 | 27.8% | 49.1% | 27.1% | 6.1% | 1.5% | 13.8% | 2.5% |
+| statemate | 1,213 | 2,459 | 46.3% | 22.4% | 16.7% | 52.9% | 5.0% | 3.0% | 0.0% |
+| tarfind | 192 | 303 | 20.8% | 45.8% | 15.1% | 8.9% | 10.4% | 19.3% | 0.5% |
+| ud | 319 | 643 | 30.1% | 56.7% | 9.7% | 17.2% | 7.2% | 9.1% | 0.0% |
+| wikisort | 1,097 | 2,296 | 28.1% | 66.2% | 17.7% | 1.7% | 0.1% | 13.8% | 0.5% |
+| xgboost | 74 | 129 | 24.9% | 16.2% | 18.9% | 21.6% | 12.2% | 20.3% | 10.8% |
+| **pooled** | 16,542 | 25,672 | 23.1% | 59.1% | 14.6% | 11.5% | 3.3% | 9.9% | 1.6% |
 
 ## Operand lifetime
 
@@ -536,7 +637,9 @@ bytes); the difference is the dataflow and
 constant instructions, 54% of the dynamic count, and the unrolled loop
 bodies that carry their deliveries.  Half of the operand lifetimes fit the next
 instruction and 90% fit the 5-bit reference; the remaining tenth, and
-the 32-bit constants, are where the encoding costs most.  Control flow is
+the constants (17% of the instructions, three quarters of them ALU
+immediates that a register ISA folds into the instruction), are where
+the encoding costs most.  Control flow is
 issued on average 17 instructions ahead of its trigger, a quarter of it
 with no lookahead.
 
