@@ -137,9 +137,13 @@ compilation.  `scry_metrics.py --profile p.json` (or `run_embench.py
 address in the window, which `df_roles.py --profile p.json --elf image
 sources...` uses to weight the roles by how often each instruction ran
 and to report the share executed in the runtime library.
-`scripts/rv32_metrics.py` counts the same window on rv32imac images under
-Spike, in instructions and in bytes (compressed instructions are two) and
-by class (control flow, loads, stores).  `scripts/scry_static.py image.elf
+`scripts/build_rv32.py` builds the same benchmarks for rv32imac with the
+same clang (built with `build_llvm.py --targets RISCV`), this
+repository's libc and the compiler-rt builtins, and
+`scripts/rv32_metrics.py` counts the same window on them under Spike
+(`scripts/build_spike.py` builds it), in instructions and in bytes
+(compressed instructions are two) and by class (control flow, loads,
+stores).  `scripts/scry_static.py image.elf
 [--profile p.json]` decodes the linked image itself: static instruction
 mix by class, output references and trigger fields as written, and with
 the profile the execution-weighted mix, code coverage and hotness.
@@ -150,9 +154,9 @@ JSON into the tables of `docs/perf-metrics.md`.
 benchmark, next to those of the correctness-first baseline
 (`docs/perf-baseline.md`) and of rv32imac: on the Embench window the
 current code executes 0.24 of the baseline's instructions (0.18 of its
-non-dataflow instructions) and 2.4 times the rv32imac count (1.5 times
-for non-dataflow instructions); in instruction bytes it is 1.5 times
-rv32imac, whose instructions average 3.2 bytes with 41% of them
+non-dataflow instructions) and 2.7 times the rv32imac count (1.7 times
+for non-dataflow instructions); in instruction bytes it is 1.75 times
+rv32imac, whose instructions average 3.1 bytes with 45% of them
 compressed.
 `docs/perf-metrics.md` looks at the same run from the ISA's side: code
 size, the dynamic and static instruction mix, operand and control-flow

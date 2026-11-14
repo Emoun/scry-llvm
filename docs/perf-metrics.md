@@ -3,8 +3,10 @@
 How the code the backend generates uses the Scry ISA, measured on the 19
 Embench-IoT benchmarks (window between `start_trigger` and `stop_trigger`,
 runtime library included; scryer 01216f0, llvm-project 22.1.8, `-O2`),
-next to the same programs compiled for rv32imac with GCC `-O2` and run
-under Spike.  `perf-results.md` gives the instruction counts against the
+next to the same programs compiled for rv32imac by the same LLVM
+(`scripts/build_rv32.py`: clang 22.1.8 with the RISC-V target, lld, this
+repository's libc and compiler-rt builtins, `-O2`) and run under Spike.
+`perf-results.md` gives the instruction counts against the
 baseline; this document looks at code size, the instruction mix, how long
 operands and control flow stay in flight, memory traffic and operands in
 flight.
@@ -19,7 +21,7 @@ instruction log (`scripts/rv32_metrics.py`).  The raw data is
 
 ```sh
 python3 scripts/run_embench.py --metrics --profile --json docs/perf-results.json
-python3 scripts/rv32_metrics.py --spike <spike> --json docs/perf-rv32.json <rv32 images>
+python3 scripts/build_rv32.py --spike build/spike/bin/spike --json docs/perf-rv32.json
 python3 scripts/metrics_report.py docs/perf-results.json --rv32 docs/perf-rv32.json
 ```
 
@@ -38,43 +40,44 @@ branch, jump, call and return and **ld/st** every load and store.
 ## Code size
 
 Scry instructions are two bytes, rv32imac mixes two-byte compressed and
-four-byte instructions (41% of them compressed over the window).  The linked
-images are within 8% of each other in bytes (geometric mean of the
-per-benchmark ratios 1.05), so Scry needs 1.6 instructions for every
-rv32imac instruction in the code: 111,262 against 68,556 static
-instructions.  Where Scry is much larger (depthconv 4.5x, picojpeg 2.5x,
-nettle-aes 2.2x) the hot functions are: depthconv's convolution kernel
-is 1,704 bytes against 278 on rv32imac, unrolled loop bodies with their
-deliveries.  Where it is much smaller (tarfind 0.30, ud 0.42, md5sum
-0.52) the rv32 image links libgcc's soft-float and 64-bit division
-routines (`__adddf3`, `__divdf3`, `__muldf3`, `__divdi3`, `__moddi3`:
-over 5 KB in tarfind) that the Scry link does not pull in.  Executed
-bytes are 1.53x rv32imac because 2.43x the instructions are executed.
+four-byte instructions (45% of them compressed over the window, 3.1 bytes
+per executed instruction).  The linked images are 2.9 times the rv32imac
+ones in bytes (geometric mean of the per-benchmark ratios 2.80), so Scry
+needs 4.2 instructions for every rv32imac instruction in the code:
+111,262 against 26,375 static instructions.  The ratio is smallest where
+the code is straight-line or 64-bit (aha-mont64 1.3, nsichneu 1.9) and
+largest in the loop kernels that the backend unrolls by four and whose
+bodies carry their deliveries (matmult-int 6.0, edn 4.8, depthconv 4.3):
+depthconv's convolution kernel is 1,704 bytes against 286 on rv32imac,
+edn's `jpegdct` 3,348 against 516.  The runtime weighs in the same way:
+the eight-byte `memcpy` is 2,332 bytes on Scry and 296 on rv32imac.
+Executed bytes are 1.75x rv32imac because 2.71x the instructions are
+executed.
 
 | benchmark | Scry text bytes | Scry instrs | rv32imac text bytes | ratio | Scry executed bytes | rv32imac executed bytes | ratio |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| aha-mont64 | 3,116 | 1,558 | 1,798 | 1.73 | 10,648,710 | 16,645,756 | 0.64 |
-| crc32 | 480 | 240 | 314 | 1.53 | 16,033,162 | 11,495,140 | 1.39 |
-| depthconv | 2,158 | 1,079 | 482 | 4.48 | 16,288,464 | 11,909,014 | 1.37 |
-| edn | 8,456 | 4,228 | 10,912 | 0.77 | 19,685,474 | 10,179,178 | 1.93 |
-| huffbench | 8,814 | 4,407 | 12,096 | 0.73 | 21,510,308 | 7,197,748 | 2.99 |
-| matmult-int | 7,726 | 3,863 | 9,774 | 0.79 | 7,870,666 | 9,226,478 | 0.85 |
-| md5sum | 5,314 | 2,657 | 10,294 | 0.52 | 19,103,082 | 9,174,638 | 2.08 |
-| nettle-aes | 6,998 | 3,499 | 3,192 | 2.19 | 16,698,310 | 14,398,330 | 1.16 |
-| nettle-sha256 | 12,158 | 6,079 | 15,234 | 0.80 | 21,672,414 | 17,813,228 | 1.22 |
-| nsichneu | 21,450 | 10,725 | 16,144 | 1.33 | 12,280,806 | 8,074,614 | 1.52 |
-| picojpeg | 55,448 | 27,724 | 22,296 | 2.49 | 16,409,434 | 10,154,170 | 1.62 |
-| qrduino | 33,622 | 16,811 | 18,394 | 1.83 | 15,317,056 | 9,280,310 | 1.65 |
-| sglib-combined | 12,286 | 6,143 | 12,096 | 1.02 | 20,670,564 | 8,079,658 | 2.56 |
-| slre | 9,312 | 4,656 | 12,294 | 0.76 | 18,221,904 | 7,756,316 | 2.35 |
-| statemate | 10,630 | 5,315 | 15,026 | 0.71 | 19,707,362 | 11,901,482 | 1.66 |
-| tarfind | 2,918 | 1,459 | 9,828 | 0.30 | 6,968,490 | 6,607,914 | 1.05 |
-| ud | 4,268 | 2,134 | 10,206 | 0.42 | 14,045,392 | 7,743,432 | 1.81 |
-| wikisort | 16,334 | 8,167 | 25,102 | 0.65 | 10,285,384 | 6,995,868 | 1.47 |
-| xgboost | 1,036 | 518 | 562 | 1.84 | 17,426,466 | 12,098,218 | 1.44 |
-| **total** | 222,524 | 111,262 | 206,044 | 1.08 | 300,843,448 | 196,731,492 | 1.53 |
+| aha-mont64 | 3,116 | 1,558 | 2,364 | 1.32 | 10,648,710 | 20,001,766 | 0.53 |
+| crc32 | 480 | 240 | 324 | 1.48 | 16,033,162 | 10,799,840 | 1.48 |
+| depthconv | 2,158 | 1,079 | 506 | 4.26 | 16,288,464 | 9,270,234 | 1.76 |
+| edn | 8,456 | 4,228 | 1,748 | 4.84 | 19,685,474 | 11,744,992 | 1.68 |
+| huffbench | 8,814 | 4,407 | 2,300 | 3.83 | 21,510,308 | 7,062,252 | 3.05 |
+| matmult-int | 7,726 | 3,863 | 1,288 | 6.00 | 7,870,666 | 3,949,258 | 1.99 |
+| md5sum | 5,314 | 2,657 | 1,350 | 3.94 | 19,103,082 | 6,911,360 | 2.76 |
+| nettle-aes | 6,998 | 3,499 | 2,972 | 2.35 | 16,698,310 | 11,813,894 | 1.41 |
+| nettle-sha256 | 12,158 | 6,079 | 6,304 | 1.93 | 21,672,414 | 15,845,124 | 1.37 |
+| nsichneu | 21,450 | 10,725 | 11,142 | 1.93 | 12,280,806 | 6,379,356 | 1.93 |
+| picojpeg | 55,448 | 27,724 | 16,742 | 3.31 | 16,409,434 | 8,747,590 | 1.88 |
+| qrduino | 33,622 | 16,811 | 10,216 | 3.29 | 15,317,056 | 9,208,914 | 1.66 |
+| sglib-combined | 12,286 | 6,143 | 3,142 | 3.91 | 20,670,564 | 7,363,012 | 2.81 |
+| slre | 9,312 | 4,656 | 3,266 | 2.85 | 18,221,904 | 8,363,678 | 2.18 |
+| statemate | 10,630 | 5,315 | 3,724 | 2.85 | 19,707,362 | 6,873,206 | 2.87 |
+| tarfind | 2,918 | 1,459 | 1,062 | 2.75 | 6,968,490 | 3,748,936 | 1.86 |
+| ud | 4,268 | 2,134 | 1,304 | 3.27 | 14,045,392 | 7,811,304 | 1.80 |
+| wikisort | 16,334 | 8,167 | 6,966 | 2.34 | 10,285,384 | 4,998,950 | 2.06 |
+| xgboost | 1,036 | 518 | 752 | 1.38 | 17,426,466 | 10,920,064 | 1.60 |
+| **total** | 222,524 | 111,262 | 77,472 | 2.87 | 300,843,448 | 171,813,730 | 1.75 |
 
-Geometric means of the per-benchmark ratios: static bytes 1.05, executed bytes 1.52.
+Geometric means of the per-benchmark ratios: static bytes 2.80, executed bytes 1.82.
 
 ## Dynamic instruction mix
 
@@ -91,37 +94,38 @@ format (an address or a 32-bit immediate takes `const` plus up to three
 `grow`s).
 
 Control flow is a smaller share than on rv32imac in absolute terms as
-well: 4.9 million `jmp` and 0.35 million calls against 9.1 million
+well: 4.9 million `jmp` and 0.35 million calls against 7.2 million
 rv32imac branches, jumps, calls and returns on the same programs.  The
 backend's jumps are issued once per block and its selective unrolling
 removes loop back-edges, and the rv32 count includes the compare-and-
-branch chains of the 64-bit helper routines (aha-mont64: 10% control on
+branch chains of the 64-bit helper routines (aha-mont64: 7.6% control on
 rv32, 2% on Scry, which has 64-bit operands).  The benchmark with the
 most control flow, nsichneu, is a chain of if-statements on globals: one
-instruction in eight is a `jmp` on Scry, nearly one in two on rv32imac.
+instruction in eight is a `jmp` on Scry, more than one in three on
+rv32imac.
 
 | benchmark | executed | control | dataflow | alu | cast/pick | const/grow | memory | frame | stack | rv32 control | rv32 ld/st |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| aha-mont64 | 5,324,355 | 2.0% | 35.6% | 40.0% | 7.1% | 13.2% | 0.1% | 2.0% | 0.0% | 10.3% | 0.4% |
-| crc32 | 8,016,581 | 6.5% | 21.8% | 19.6% | 0.0% | 41.3% | 6.5% | 4.4% | 0.0% | 13.1% | 13.0% |
-| depthconv | 8,144,232 | 0.2% | 41.3% | 20.5% | 17.4% | 10.7% | 7.1% | 2.7% | 0.0% | 13.8% | 18.6% |
-| edn | 9,842,737 | 1.4% | 37.5% | 23.5% | 16.7% | 7.2% | 8.8% | 4.8% | 0.0% | 10.2% | 28.7% |
-| huffbench | 10,755,154 | 4.1% | 40.5% | 20.9% | 0.7% | 19.8% | 8.6% | 5.4% | 0.0% | 22.3% | 26.3% |
-| matmult-int | 3,935,333 | 0.2% | 45.1% | 28.1% | 0.0% | 5.4% | 13.7% | 7.4% | 0.0% | 14.0% | 37.1% |
-| md5sum | 9,551,541 | 3.1% | 50.7% | 19.2% | 1.2% | 12.6% | 3.1% | 10.1% | 0.0% | 15.3% | 15.8% |
-| nettle-aes | 8,349,155 | 0.7% | 50.6% | 27.1% | 0.4% | 10.9% | 9.3% | 1.0% | 0.0% | 1.7% | 19.3% |
-| nettle-sha256 | 10,836,207 | 0.3% | 40.7% | 38.8% | 0.0% | 16.5% | 2.5% | 1.1% | 0.1% | 3.3% | 15.6% |
-| nsichneu | 6,140,403 | 12.6% | 10.3% | 17.7% | 10.1% | 9.2% | 20.0% | 20.1% | 0.0% | 44.9% | 54.9% |
-| picojpeg | 8,204,717 | 2.3% | 38.6% | 19.5% | 7.7% | 18.7% | 8.5% | 4.5% | 0.2% | 10.7% | 27.4% |
-| qrduino | 7,658,528 | 4.8% | 42.2% | 20.3% | 4.2% | 10.8% | 7.4% | 10.3% | 0.0% | 15.0% | 20.6% |
-| sglib-combined | 10,335,282 | 6.6% | 34.7% | 14.8% | 5.0% | 20.8% | 11.2% | 6.5% | 0.4% | 25.8% | 36.6% |
-| slre | 9,110,952 | 7.2% | 28.6% | 14.7% | 4.6% | 22.6% | 6.1% | 15.1% | 1.0% | 25.9% | 31.7% |
-| statemate | 9,853,681 | 2.8% | 19.2% | 10.0% | 0.1% | 28.8% | 22.1% | 16.4% | 0.5% | 13.2% | 49.3% |
-| tarfind | 3,484,245 | 5.2% | 32.7% | 20.1% | 5.2% | 25.6% | 5.5% | 5.5% | 0.1% | 27.7% | 26.8% |
-| ud | 7,022,696 | 4.5% | 42.7% | 23.1% | 1.1% | 11.7% | 7.8% | 9.3% | 0.0% | 17.0% | 23.0% |
-| wikisort | 5,142,692 | 4.9% | 34.8% | 18.5% | 5.2% | 26.6% | 4.8% | 4.5% | 0.6% | 16.1% | 25.8% |
-| xgboost | 8,713,233 | 2.7% | 52.4% | 12.3% | 4.8% | 4.0% | 9.6% | 14.1% | 0.0% | 14.7% | 25.0% |
-| **total** | 150,421,724 | 3.7% | 37.2% | 21.1% | 4.7% | 16.8% | 8.6% | 7.7% | 0.2% | 14.8% | 24.2% |
+| aha-mont64 | 5,324,355 | 2.0% | 35.6% | 40.0% | 7.1% | 13.2% | 0.1% | 2.0% | 0.0% | 7.6% | 0.2% |
+| crc32 | 8,016,581 | 6.5% | 21.8% | 19.6% | 0.0% | 41.3% | 6.5% | 4.4% | 0.0% | 13.7% | 13.6% |
+| depthconv | 8,144,232 | 0.2% | 41.3% | 20.5% | 17.4% | 10.7% | 7.1% | 2.7% | 0.0% | 9.8% | 22.0% |
+| edn | 9,842,737 | 1.4% | 37.5% | 23.5% | 16.7% | 7.2% | 8.8% | 4.8% | 0.0% | 9.3% | 25.5% |
+| huffbench | 10,755,154 | 4.1% | 40.5% | 20.9% | 0.7% | 19.8% | 8.6% | 5.4% | 0.0% | 20.7% | 23.0% |
+| matmult-int | 3,935,333 | 0.2% | 45.1% | 28.1% | 0.0% | 5.4% | 13.7% | 7.4% | 0.0% | 1.8% | 45.4% |
+| md5sum | 9,551,541 | 3.1% | 50.7% | 19.2% | 1.2% | 12.6% | 3.1% | 10.1% | 0.0% | 13.4% | 12.6% |
+| nettle-aes | 8,349,155 | 0.7% | 50.6% | 27.1% | 0.4% | 10.9% | 9.3% | 1.0% | 0.0% | 2.2% | 24.1% |
+| nettle-sha256 | 10,836,207 | 0.3% | 40.7% | 38.8% | 0.0% | 16.5% | 2.5% | 1.1% | 0.1% | 1.4% | 20.6% |
+| nsichneu | 6,140,403 | 12.6% | 10.3% | 17.7% | 10.1% | 9.2% | 20.0% | 20.1% | 0.0% | 38.5% | 61.3% |
+| picojpeg | 8,204,717 | 2.3% | 38.6% | 19.5% | 7.7% | 18.7% | 8.5% | 4.5% | 0.2% | 11.7% | 28.6% |
+| qrduino | 7,658,528 | 4.8% | 42.2% | 20.3% | 4.2% | 10.8% | 7.4% | 10.3% | 0.0% | 15.1% | 19.1% |
+| sglib-combined | 10,335,282 | 6.6% | 34.7% | 14.8% | 5.0% | 20.8% | 11.2% | 6.5% | 0.4% | 25.6% | 35.2% |
+| slre | 9,110,952 | 7.2% | 28.6% | 14.7% | 4.6% | 22.6% | 6.1% | 15.1% | 1.0% | 25.3% | 34.8% |
+| statemate | 9,853,681 | 2.8% | 19.2% | 10.0% | 0.1% | 28.8% | 22.1% | 16.4% | 0.5% | 15.9% | 72.1% |
+| tarfind | 3,484,245 | 5.2% | 32.7% | 20.1% | 5.2% | 25.6% | 5.5% | 5.5% | 0.1% | 14.3% | 20.1% |
+| ud | 7,022,696 | 4.5% | 42.7% | 23.1% | 1.1% | 11.7% | 7.8% | 9.3% | 0.0% | 12.2% | 22.7% |
+| wikisort | 5,142,692 | 4.9% | 34.8% | 18.5% | 5.2% | 26.6% | 4.8% | 4.5% | 0.6% | 15.3% | 23.1% |
+| xgboost | 8,713,233 | 2.7% | 52.4% | 12.3% | 4.8% | 4.0% | 9.6% | 14.1% | 0.0% | 16.4% | 24.9% |
+| **total** | 150,421,724 | 3.7% | 37.2% | 21.1% | 4.7% | 16.8% | 8.6% | 7.7% | 0.2% | 13.0% | 24.2% |
 
 ## Static instruction mix
 
@@ -328,14 +332,14 @@ are left out).  The rv32imac columns count its loads and stores the same
 way; its stack accesses are ordinary loads and stores and cannot be told
 apart.
 
-In absolute terms Scry executes 16.7 million loads against 10.3 million
-on rv32imac and 4.9 against 4.7 million stores.  41% of the Scry loads
+In absolute terms Scry executes 16.7 million loads against 9.8 million
+on rv32imac and 4.9 against 3.6 million stores.  41% of the Scry loads
 and 37% of the stores are frame slots (6.8 and 1.8 million): without
 registers, a value that is live across a block boundary or a call and
 cannot stay in flight goes through the frame, and 64-bit values go as a
 whole (aha-mont64: 96% of its loads are frame slots of 8 bytes).  The
-addressed loads alone, 9.9 million, are fewer than the rv32imac total,
-which also contains its stack traffic.  Loads move 3.4 bytes and stores
+addressed loads alone, 9.9 million, equal the rv32imac total, which
+also contains its stack traffic.  Loads move 3.4 bytes and stores
 3.3 bytes on average; the runtime's eight-byte copy loops lift wikisort
 and aha-mont64 above 6.
 
@@ -353,26 +357,26 @@ and the 64-bit arithmetic of aha-mont64 (p75 of 173 for a written 26).
 
 | benchmark | loads per 1000 | bytes per load | from frame slots | stores per 1000 | bytes per store | to frame slots | load→use mean | rv32 loads per 1000 | rv32 stores per 1000 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| aha-mont64 | 17.0 | 7.9 | 96.4% | 3.3 | 7.8 | 94.6% | 93.1 | 2.5 | 1.2 |
-| crc32 | 87.0 | 4.0 | 50.1% | 21.8 | 4.0 | 0.2% | 3.0 | 86.9 | 43.5 |
-| depthconv | 88.5 | 2.3 | 27.3% | 9.5 | 2.0 | 31.9% | 208.5 | 168.5 | 17.0 |
-| edn | 128.5 | 2.8 | 36.7% | 7.8 | 3.2 | 11.8% | 34.3 | 256.0 | 31.3 |
-| huffbench | 56.6 | 3.3 | 0.3% | 30.1 | 3.4 | 0.2% | 6.8 | 188.8 | 74.3 |
-| matmult-int | 161.0 | 4.1 | 19.8% | 8.2 | 5.9 | 0.8% | 260.2 | 231.3 | 139.7 |
-| md5sum | 79.9 | 4.0 | 72.2% | 52.1 | 3.7 | 83.0% | 25.8 | 89.4 | 68.6 |
-| nettle-aes | 97.6 | 3.8 | 8.2% | 4.9 | 4.0 | 33.3% | 90.0 | 179.6 | 13.5 |
-| nettle-sha256 | 21.1 | 3.7 | 16.0% | 10.2 | 3.3 | 28.1% | 340.6 | 102.9 | 52.7 |
-| nsichneu | 400.9 | 4.0 | 50.2% | 1.0 | 4.0 | 40.1% | 1.3 | 547.2 | 1.7 |
-| picojpeg | 70.4 | 2.1 | 36.7% | 55.1 | 2.0 | 26.3% | 23.2 | 144.1 | 130.0 |
-| qrduino | 139.3 | 2.9 | 54.6% | 29.8 | 2.7 | 64.7% | 5.6 | 180.2 | 25.4 |
-| sglib-combined | 89.8 | 3.7 | 6.7% | 33.8 | 3.7 | 16.3% | 2.5 | 245.2 | 121.2 |
-| slre | 105.4 | 2.9 | 61.3% | 64.2 | 3.7 | 68.1% | 6.6 | 200.3 | 116.4 |
-| statemate | 168.3 | 3.1 | 31.3% | 123.4 | 2.3 | 14.5% | 26.7 | 172.1 | 320.8 |
-| tarfind | 62.9 | 4.4 | 74.4% | 47.4 | 4.3 | 17.6% | 2.7 | 27.7 | 240.3 |
-| ud | 126.8 | 4.1 | 51.3% | 29.7 | 4.6 | 47.0% | 12.7 | 165.6 | 64.3 |
-| wikisort | 46.7 | 6.3 | 39.0% | 29.6 | 6.8 | 34.8% | 4.5 | 164.7 | 93.3 |
-| xgboost | 212.9 | 2.6 | 54.8% | 24.4 | 3.5 | 99.2% | 3.5 | 235.7 | 14.8 |
-| **total** | 110.9 | 3.4 | 40.8% | 32.7 | 3.3 | 36.6% | 47.7 | 166.7 | 75.3 |
+| aha-mont64 | 17.0 | 7.9 | 96.4% | 3.3 | 7.8 | 94.6% | 93.1 | 1.6 | 0.4 |
+| crc32 | 87.0 | 4.0 | 50.1% | 21.8 | 4.0 | 0.2% | 3.0 | 90.9 | 45.5 |
+| depthconv | 88.5 | 2.3 | 27.3% | 9.5 | 2.0 | 31.9% | 208.5 | 196.3 | 23.4 |
+| edn | 128.5 | 2.8 | 36.7% | 7.8 | 3.2 | 11.8% | 34.3 | 230.6 | 24.3 |
+| huffbench | 56.6 | 3.3 | 0.3% | 30.1 | 3.4 | 0.2% | 6.8 | 157.0 | 72.8 |
+| matmult-int | 161.0 | 4.1 | 19.8% | 8.2 | 5.9 | 0.8% | 260.2 | 409.2 | 44.5 |
+| md5sum | 79.9 | 4.0 | 72.2% | 52.1 | 3.7 | 83.0% | 25.8 | 85.8 | 39.8 |
+| nettle-aes | 97.6 | 3.8 | 8.2% | 4.9 | 4.0 | 33.3% | 90.0 | 223.9 | 16.8 |
+| nettle-sha256 | 21.1 | 3.7 | 16.0% | 10.2 | 3.3 | 28.1% | 340.6 | 118.4 | 87.5 |
+| nsichneu | 400.9 | 4.0 | 50.2% | 1.0 | 4.0 | 40.1% | 1.3 | 611.0 | 1.8 |
+| picojpeg | 70.4 | 2.1 | 36.7% | 55.1 | 2.0 | 26.3% | 23.2 | 148.2 | 137.5 |
+| qrduino | 139.3 | 2.9 | 54.6% | 29.8 | 2.7 | 64.7% | 5.6 | 167.4 | 23.3 |
+| sglib-combined | 89.8 | 3.7 | 6.7% | 33.8 | 3.7 | 16.3% | 2.5 | 244.5 | 107.6 |
+| slre | 105.4 | 2.9 | 61.3% | 64.2 | 3.7 | 68.1% | 6.6 | 205.5 | 142.7 |
+| statemate | 168.3 | 3.1 | 31.3% | 123.4 | 2.3 | 14.5% | 26.7 | 324.8 | 396.6 |
+| tarfind | 62.9 | 4.4 | 74.4% | 47.4 | 4.3 | 17.6% | 2.7 | 46.7 | 154.1 |
+| ud | 126.8 | 4.1 | 51.3% | 29.7 | 4.6 | 47.0% | 12.7 | 164.1 | 62.8 |
+| wikisort | 46.7 | 6.3 | 39.0% | 29.6 | 6.8 | 34.8% | 4.5 | 128.5 | 102.4 |
+| xgboost | 212.9 | 2.6 | 54.8% | 24.4 | 3.5 | 99.2% | 3.5 | 247.9 | 0.9 |
+| **total** | 110.9 | 3.4 | 40.8% | 32.7 | 3.3 | 36.6% | 47.7 | 176.4 | 65.4 |
 
 #### Load distance as written (output reference)
 
@@ -457,10 +461,11 @@ branchy state machines (nsichneu 0.2, slre 0.4).
 
 ## Reading the figures
 
-For the ISA: a two-byte instruction gives images the size of rv32imac's
-with 1.6 instructions per rv32imac instruction, and executes 2.4 times as
-many; the difference is the dataflow and constant instructions, 54% of
-the dynamic count.  Half of the operand lifetimes fit the next
+For the ISA: the images are 2.9 times the size of rv32imac's, with 4.2
+two-byte instructions per rv32imac instruction, and 2.7 times as many
+are executed (1.75 times the bytes); the difference is the dataflow and
+constant instructions, 54% of the dynamic count, and the unrolled loop
+bodies that carry their deliveries.  Half of the operand lifetimes fit the next
 instruction and 90% fit the 5-bit reference; the remaining tenth, and
 the 32-bit constants, are where the encoding costs most.  Control flow is
 issued on average 17 instructions ahead of its trigger, a quarter of it
