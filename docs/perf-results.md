@@ -44,12 +44,15 @@ the current total and non-dataflow counts to it.
 | ud | 64,761,665 | 7,022,696 | 0.11 | 4,027,457 | 0.07 | 43% | 17 | 6.5 | 4.2 / 16 | 2,643,648 | 2.7 | 1.5 |
 | wikisort | - | 5,142,692 | - | 3,351,313 | - | 35% | 6 | 1.1 | 3.0 / 11 | 1,721,254 | 3.0 | 1.9 |
 | xgboost | 32,029,599 | 8,713,233 | 0.27 | 4,149,881 | 0.15 | 52% | 7 | 2.8 | 4.0 / 19 | 3,387,528 | 2.6 | 1.2 |
-| **total, 17 recorded** | 554,828,370 | 134,523,878 | 0.24 | 84,764,024 | 0.18 | | | | | | | |
-| **total** | - | 150,421,724 | - | 94,518,273 | - | 37% | | | | 55,477,965 | 2.71 | 1.70 |
+| **geometric mean, 17 recorded** | 30,309,422 | 7,573,948 | 0.25 | 4,720,323 | 0.18 | | | | | | | |
+| **geometric mean** | - | 7,559,425 | - | 4,710,980 | - | 35% | | | | 2,694,609 | 2.81 | 1.75 |
 
-Geometric means of the per-benchmark ratios: current/baseline 0.250
-(non-dataflow 0.181); current/rv32imac 2.81
-(non-dataflow 1.75).
+The last rows are geometric means over the benchmarks of each column,
+so a ratio in them is both the mean of the per-benchmark ratios and the
+ratio of the two mean counts.  Pooled over the 19 benchmarks the window
+holds 150,421,724 Scry instructions (94,518,273 non-dataflow) against
+55,477,965 on rv32imac, ratios 2.71 and 1.70; over the 17 with a baseline,
+134,523,878 against 554,828,370, ratio 0.24 (non-dataflow 0.18).
 
 An earlier version of this comparison compiled the rv32imac images with
 GCC (riscv64-unknown-elf-gcc -O2, libgcc): 61,776,643 instructions and
@@ -68,7 +71,9 @@ for Scry and rv32imac and their ratio; the compressed share of the
 rv32imac instructions; bytes of executable code in the linked image
 (benchmark, Embench support files and the referenced runtime, both
 toolchains linking with function sections and `--gc-sections`) and
-their ratio.
+their ratio.  The last row is the geometric mean of each column; pooled,
+the window executes 300,843,448 Scry bytes against 171,813,730 (ratio
+1.75) and the images hold 222,524 against 77,472 bytes of code (2.87).
 
 | benchmark | Scry bytes | rv32imac bytes | ratio | rv32 c16 | Scry text | rv32imac text | ratio |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -91,7 +96,7 @@ their ratio.
 | ud | 14,045,392 | 7,811,304 | 1.80 | 52% | 4,268 | 1,304 | 3.27 |
 | wikisort | 10,285,384 | 4,998,950 | 2.06 | 55% | 16,334 | 6,966 | 2.34 |
 | xgboost | 17,426,466 | 10,920,064 | 1.60 | 39% | 1,036 | 752 | 1.38 |
-| **total** | 300,843,448 | 171,813,730 | 1.75 | 45% | 222,524 | 77,472 | 2.87 |
+| **geometric mean** | 15,118,850 | 8,307,525 | 1.82 | 44% | 6,897 | 2,460 | 2.80 |
 
 How the count was reduced, in the order the work was done (each step's
 own figure is in its commit message, measured on the window with the
