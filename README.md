@@ -143,7 +143,9 @@ repository's libc and the compiler-rt builtins, and
 `scripts/rv32_metrics.py` counts the same window on them under Spike
 (`scripts/build_spike.py` builds it), in instructions and in bytes
 (compressed instructions are two) and by class (control flow, loads,
-stores).  `scripts/scry_static.py image.elf
+stores); `scripts/rv32_memory.py` classifies those loads and stores by
+the region they access and by kind (callee-save, spills and locals,
+small data, computed addresses).  `scripts/scry_static.py image.elf
 [--profile p.json]` decodes the linked image itself: static instruction
 mix by class, output references and trigger fields as written, and with
 the profile the execution-weighted mix, code coverage and hotness.

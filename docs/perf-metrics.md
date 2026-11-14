@@ -23,6 +23,8 @@ instruction log (`scripts/rv32_metrics.py`).  The raw data is
 python3 scripts/run_embench.py --metrics --profile --json docs/perf-results.json
 python3 scripts/build_rv32.py --spike build/spike/bin/spike --json docs/perf-rv32.json
 python3 scripts/metrics_report.py docs/perf-results.json --rv32 docs/perf-rv32.json
+python3 scripts/rv32_memory.py --spike build/spike/bin/spike --llvm-bin install/bin \
+    --json docs/perf-rv32-memory.json build/rv32/*.elf
 ```
 
 Every **pooled** row sums the counts and histograms of all benchmarks,
@@ -334,8 +336,7 @@ moves, the share that goes to the private frame slots rather than to an
 address, and the distance from a memory load to the first use of its
 value (frame-slot loads are built in front of their consumer by design and
 are left out).  The rv32imac columns count its loads and stores the same
-way; its stack accesses are ordinary loads and stores and cannot be told
-apart.
+way; what they access is broken down in the last table of this section.
 
 In absolute terms Scry executes 16.7 million loads against 9.8 million
 on rv32imac and 4.9 against 3.6 million stores.  41% of the Scry loads
@@ -359,6 +360,68 @@ that carry it to its consumer and through any callee in between, so the
 upper quantiles stretch to 142 (p90) and 642 (p99): the loop bodies of
 matmult-int, depthconv and nettle-sha256 (median 87 to 185 instructions)
 and the 64-bit arithmetic of aha-mont64 (p75 of 173 for a written 26).
+
+Loads and stores are 24% of the rv32imac instructions (18% loads, 6.5%
+stores), which is ordinary for these kernels: Embench works on arrays,
+tables and global state, and a register machine reaches memory with one
+instruction per element.  The last table (`scripts/rv32_memory.py`, from
+Spike's commit log and the disassembly; raw data `perf-rv32-memory.json`)
+classifies every one by the region of its address and by how the address
+is formed.  77% are computed-address accesses to the programs' own data:
+global arrays and state in .data/.bss (56% of all loads and stores: the
+state flags of nsichneu and statemate, the matrices of matmult-int, the
+image of picojpeg and qrduino), constant tables in .rodata (19%: the
+T-tables of nettle-aes, the model of xgboost, the filter weights of
+depthconv, the crc table) and arrays that live on the stack (huffbench's
+link array, sha256's message schedule, slre's capture structs).  The
+compiler's own stack traffic is 17% of the loads and stores, i.e. 4% of
+all instructions: callee-saved register saves and restores in prologues
+and epilogues (8%; slre's recursive matcher, sglib's tree recursion and
+wikisort's small functions), and sp-relative accesses to spill slots and
+scalar locals (9%, 1.2 million).  The one benchmark where spilling
+matters is matmult-int, whose fully unrolled inner product holds more
+hoisted row and column addresses than there are registers: 29% of its
+loads and stores (13% of its instructions) reload them from the frame.
+In nettle-sha256 the sp-relative accesses are the constant-index
+elements of the message schedule, not spills.  The 5.7% gp-relative
+accesses are the small globals of crc32 (the random seed, read and
+written once per byte), nsichneu and qrduino.  For comparison, Scry's
+addressed loads and stores (9.9 and 3.1 million) match the rv32imac
+data accesses, and its frame-slot traffic (6.8 and 1.8 million, 5.7% of
+its instructions) plays the part of the register file that rv32imac
+spills and saves far less often.
+
+#### rv32imac loads and stores by target
+
+Share of the window's instructions that are loads or stores, then the
+share of those by region (constant tables in .rodata, globals in
+.data/.bss, the stack) and by kind: callee-saved register saves and
+restores, other sp-relative accesses (spills, scalar locals,
+constant-index stack arrays), gp-relative small data, and every access
+through a computed base register.
+
+| benchmark | ld/st | rodata | global | stack | callee-save | sp spills/locals | gp | computed |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 0.2% | 0.0% | 0.0% | 100.0% | 0.2% | 99.7% | 0.0% | 0.0% |
+| crc32 | 13.6% | 33.3% | 66.7% | 0.0% | 0.0% | 0.0% | 66.7% | 33.3% |
+| depthconv | 22.0% | 87.4% | 8.7% | 3.8% | 3.8% | 0.0% | 0.0% | 96.2% |
+| edn | 25.5% | 3.6% | 95.5% | 0.9% | 0.2% | 0.7% | 0.0% | 99.1% |
+| huffbench | 23.0% | 0.2% | 9.4% | 90.4% | 0.0% | 0.0% | 0.0% | 100.0% |
+| matmult-int | 45.4% | 0.0% | 70.7% | 29.3% | 0.0% | 29.3% | 0.0% | 70.7% |
+| md5sum | 12.6% | 41.7% | 57.5% | 0.7% | 0.6% | 0.1% | 0.0% | 99.3% |
+| nettle-aes | 24.1% | 67.4% | 32.0% | 0.7% | 0.5% | 0.1% | 0.0% | 99.3% |
+| nettle-sha256 | 20.6% | 7.5% | 2.8% | 89.6% | 4.1% | 68.5% | 0.0% | 27.4% |
+| nsichneu | 61.3% | 0.0% | 100.0% | 0.0% | 0.0% | 0.0% | 13.2% | 86.8% |
+| picojpeg | 28.6% | 7.6% | 77.9% | 14.5% | 13.7% | 0.7% | 0.1% | 85.5% |
+| qrduino | 19.1% | 0.5% | 99.4% | 0.1% | 0.1% | 0.0% | 45.6% | 54.2% |
+| sglib-combined | 35.2% | 2.0% | 51.5% | 46.5% | 18.1% | 4.7% | 0.0% | 77.1% |
+| slre | 34.8% | 13.7% | 2.0% | 84.3% | 55.7% | 24.0% | 0.0% | 20.3% |
+| statemate | 72.1% | 0.0% | 93.8% | 6.2% | 6.2% | 0.0% | 0.0% | 93.8% |
+| tarfind | 20.1% | 0.0% | 99.8% | 0.2% | 0.0% | 0.2% | 0.0% | 99.8% |
+| ud | 22.7% | 0.0% | 86.6% | 13.4% | 4.2% | 1.5% | 0.0% | 94.3% |
+| wikisort | 23.1% | 0.0% | 68.1% | 31.9% | 20.1% | 0.1% | 2.0% | 77.8% |
+| xgboost | 24.9% | 99.1% | 0.0% | 0.9% | 0.3% | 0.3% | 0.0% | 99.4% |
+| **pooled** | 24.2% | 19.2% | 55.5% | 25.4% | 8.3% | 9.2% | 5.7% | 76.8% |
 
 | benchmark | loads per 1000 | bytes per load | from frame slots | stores per 1000 | bytes per store | to frame slots | load→use mean | rv32 loads per 1000 | rv32 stores per 1000 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|

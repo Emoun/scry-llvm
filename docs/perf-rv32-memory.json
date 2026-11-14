@@ -1,0 +1,552 @@
+{
+ "aha-mont64": {
+  "callee_save_sites": 30,
+  "counts": {
+   "load/global/computed": 3,
+   "load/stack/callee-save": 13,
+   "load/stack/sp-direct": 9912,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 15,
+   "store/stack/sp-direct": 2366
+  },
+  "func": {
+   "load/benchmark_body": 9928,
+   "store/benchmark_body": 2380,
+   "store/main": 1,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 6234278
+ },
+ "crc32": {
+  "callee_save_sites": 18,
+  "counts": {
+   "load/global/gp": 174080,
+   "load/rodata/computed": 174080,
+   "load/stack/callee-save": 8,
+   "store/global/gp": 174251,
+   "store/stack/callee-save": 8,
+   "store/stack/sp-direct": 1
+  },
+  "func": {
+   "load/benchmark_body": 174088,
+   "load/rand_beebs": 174080,
+   "store/benchmark_body": 8,
+   "store/main": 1,
+   "store/rand_beebs": 174080,
+   "store/srand_beebs": 170,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 3832176
+ },
+ "depthconv": {
+  "callee_save_sites": 20,
+  "counts": {
+   "load/rodata/computed": 524480,
+   "load/stack/callee-save": 11476,
+   "store/global/computed": 52448,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 11474,
+   "store/stack/sp-direct": 3
+  },
+  "func": {
+   "load/DepthwiseConvPerChannel": 535953,
+   "load/benchmark": 1,
+   "load/benchmark_body": 2,
+   "store/DepthwiseConvPerChannel": 63921,
+   "store/benchmark": 1,
+   "store/benchmark_body": 2,
+   "store/main": 1,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2730597
+ },
+ "edn": {
+  "callee_save_sites": 62,
+  "counts": {
+   "load/global/computed": 783432,
+   "load/rodata/computed": 32400,
+   "load/stack/callee-save": 1067,
+   "load/stack/sp-direct": 4455,
+   "store/global/computed": 83754,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 1069,
+   "store/stack/sp-direct": 1865
+  },
+  "func": {
+   "load/benchmark": 1,
+   "load/benchmark_body": 790330,
+   "load/jpegdct": 31023,
+   "store/benchmark": 1,
+   "store/benchmark_body": 73483,
+   "store/jpegdct": 13203,
+   "store/main": 1,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 3561390
+ },
+ "huffbench": {
+  "callee_save_sites": 38,
+  "counts": {
+   "load/global/computed": 41888,
+   "load/rodata/computed": 1408,
+   "load/stack/callee-save": 97,
+   "load/stack/computed": 348216,
+   "store/global/computed": 11815,
+   "store/stack/callee-save": 97,
+   "store/stack/computed": 169697,
+   "store/stack/sp-direct": 1
+  },
+  "func": {
+   "load/benchmark": 1,
+   "load/benchmark_body": 8,
+   "load/compdecomp": 390159,
+   "load/malloc_beebs": 33,
+   "load/memcpy": 1408,
+   "store/benchmark": 1,
+   "store/benchmark_body": 8,
+   "store/compdecomp": 158301,
+   "store/init_heap_beebs": 33,
+   "store/main": 1,
+   "store/malloc_beebs": 22,
+   "store/memcpy": 1408,
+   "store/memset": 21835,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2494095
+ },
+ "matmult-int": {
+  "callee_save_sites": 34,
+  "counts": {
+   "load/global/computed": 358800,
+   "load/stack/callee-save": 14,
+   "load/stack/sp-direct": 158535,
+   "store/global/computed": 46801,
+   "store/stack/callee-save": 16,
+   "store/stack/sp-direct": 9440
+  },
+  "func": {
+   "load/benchmark": 1,
+   "load/benchmark_body": 486148,
+   "load/memcpy": 31200,
+   "store/benchmark": 1,
+   "store/benchmark_body": 25054,
+   "store/main": 1,
+   "store/memcpy": 31200,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 1264277
+ },
+ "md5sum": {
+  "callee_save_sites": 48,
+  "counts": {
+   "load/global/computed": 84748,
+   "load/rodata/computed": 135168,
+   "load/stack/callee-save": 999,
+   "load/stack/computed": 264,
+   "store/global/computed": 101508,
+   "store/global/gp": 133,
+   "store/stack/callee-save": 867,
+   "store/stack/sp-direct": 199
+  },
+  "func": {
+   "load/benchmark_body": 13,
+   "load/calloc_beebs": 330,
+   "load/malloc_beebs": 198,
+   "load/md5": 203874,
+   "load/memcpy": 16764,
+   "store/benchmark_body": 66009,
+   "store/calloc_beebs": 264,
+   "store/init_heap_beebs": 198,
+   "store/main": 1,
+   "store/malloc_beebs": 132,
+   "store/md5": 1518,
+   "store/memcpy": 16764,
+   "store/memset": 17820,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2577940
+ },
+ "nettle-aes": {
+  "callee_save_sites": 89,
+  "counts": {
+   "load/global/computed": 213940,
+   "load/rodata/computed": 569544,
+   "load/stack/callee-save": 2598,
+   "load/stack/sp-direct": 228,
+   "store/global/computed": 56392,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 1992,
+   "store/stack/sp-direct": 685
+  },
+  "func": {
+   "load/_aes_set_key": 30096,
+   "load/_nettle_aes_decrypt": 365788,
+   "load/_nettle_aes_encrypt": 365788,
+   "load/aes_set_decrypt_key": 24244,
+   "load/benchmark": 1,
+   "load/benchmark_body": 393,
+   "store/_aes_set_key": 9576,
+   "store/_nettle_aes_decrypt": 20444,
+   "store/_nettle_aes_encrypt": 20444,
+   "store/aes_set_decrypt_key": 8436,
+   "store/benchmark": 1,
+   "store/benchmark_body": 167,
+   "store/main": 1,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 3512553
+ },
+ "nettle-sha256": {
+  "callee_save_sites": 72,
+  "counts": {
+   "load/global/computed": 7868,
+   "load/rodata/computed": 80928,
+   "load/stack/callee-save": 21927,
+   "load/stack/computed": 119706,
+   "load/stack/sp-direct": 386656,
+   "store/global/computed": 22480,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 21927,
+   "store/stack/computed": 62944,
+   "store/stack/sp-direct": 349003
+  },
+  "func": {
+   "load/_nettle_sha256_compress": 572116,
+   "load/benchmark": 1,
+   "load/benchmark_body": 8,
+   "load/memcpy": 16860,
+   "load/sha256_digest": 23604,
+   "load/sha256_update": 4496,
+   "store/_nettle_sha256_compress": 388904,
+   "store/benchmark": 1,
+   "store/benchmark_body": 1694,
+   "store/main": 1,
+   "store/memcpy": 16860,
+   "store/memset": 16298,
+   "store/sha256_digest": 28100,
+   "store/sha256_update": 4496,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 5213716
+ },
+ "nsichneu": {
+  "callee_save_sites": 4,
+  "counts": {
+   "load/global/computed": 1065680,
+   "load/global/gp": 161392,
+   "load/stack/callee-save": 1,
+   "store/global/computed": 2464,
+   "store/global/gp": 1233,
+   "store/stack/callee-save": 1,
+   "store/stack/sp-direct": 1
+  },
+  "func": {
+   "load/benchmark": 1,
+   "load/benchmark_body": 1227072,
+   "store/benchmark": 1,
+   "store/benchmark_body": 3696,
+   "store/main": 1,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2008184
+ },
+ "picojpeg": {
+  "callee_save_sites": 145,
+  "counts": {
+   "load/global/computed": 284895,
+   "load/global/gp": 620,
+   "load/rodata/computed": 58275,
+   "load/stack/callee-save": 54595,
+   "load/stack/computed": 320,
+   "load/stack/sp-direct": 970,
+   "store/global/computed": 314870,
+   "store/global/gp": 16,
+   "store/stack/callee-save": 50890,
+   "store/stack/computed": 330,
+   "store/stack/sp-direct": 4641
+  },
+  "func": {
+   "load/benchmark": 1,
+   "load/benchmark_body": 9,
+   "load/fixInBuffer": 40,
+   "load/getBits": 20890,
+   "load/getOctet": 9345,
+   "load/huffDecode": 54860,
+   "load/memcpy": 735,
+   "load/pjpeg_decode_init": 1025,
+   "load/pjpeg_decode_mcu": 305145,
+   "load/pjpeg_need_bytes_callback": 90,
+   "load/processMarkers": 7535,
+   "store/benchmark": 1,
+   "store/benchmark_body": 14,
+   "store/fixInBuffer": 40,
+   "store/getBits": 20445,
+   "store/getOctet": 8025,
+   "store/huffDecode": 44355,
+   "store/main": 1,
+   "store/memcpy": 735,
+   "store/pjpeg_decode_init": 1160,
+   "store/pjpeg_decode_mcu": 286225,
+   "store/pjpeg_need_bytes_callback": 90,
+   "store/processMarkers": 9655,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2695985
+ },
+ "qrduino": {
+  "callee_save_sites": 118,
+  "counts": {
+   "load/global/computed": 228455,
+   "load/global/gp": 250475,
+   "load/rodata/computed": 2615,
+   "load/stack/callee-save": 329,
+   "load/stack/sp-direct": 60,
+   "store/global/computed": 66751,
+   "store/stack/callee-save": 329,
+   "store/stack/sp-direct": 61
+  },
+  "func": {
+   "load/appendrs": 5505,
+   "load/applymask": 57950,
+   "load/badruns": 51280,
+   "load/benchmark": 1,
+   "load/benchmark_body": 13,
+   "load/calloc_beebs": 50,
+   "load/freeecc": 20,
+   "load/freeframe": 25,
+   "load/initeccsize": 95,
+   "load/initframe": 6420,
+   "load/malloc_beebs": 45,
+   "load/memcpy": 1505,
+   "load/putalign": 340,
+   "load/qrencode": 358575,
+   "load/strlen": 110,
+   "store/appendrs": 1765,
+   "store/applymask": 7710,
+   "store/benchmark": 1,
+   "store/benchmark_body": 8,
+   "store/calloc_beebs": 40,
+   "store/freeecc": 10,
+   "store/freeframe": 10,
+   "store/init_heap_beebs": 15,
+   "store/initeccsize": 95,
+   "store/initframe": 1600,
+   "store/main": 1,
+   "store/malloc_beebs": 30,
+   "store/memcpy": 1505,
+   "store/memset": 245,
+   "store/putalign": 130,
+   "store/qrencode": 53975,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2879462
+ },
+ "sglib-combined": {
+  "callee_save_sites": 60,
+  "counts": {
+   "load/global/computed": 367195,
+   "load/rodata/computed": 18600,
+   "load/stack/callee-save": 84954,
+   "load/stack/computed": 154721,
+   "load/stack/sp-direct": 25203,
+   "store/global/computed": 115352,
+   "store/stack/callee-save": 84954,
+   "store/stack/computed": 66867,
+   "store/stack/sp-direct": 19222
+  },
+  "func": {
+   "load/benchmark_body": 216549,
+   "load/malloc_beebs": 27900,
+   "load/memcpy": 3100,
+   "load/sglib___rbtree_add_recursive": 210273,
+   "load/sglib__rbtree_it_compute_current_elem": 105648,
+   "load/sglib_dllist_sort": 87203,
+   "store/benchmark_body": 107492,
+   "store/init_heap_beebs": 93,
+   "store/main": 1,
+   "store/malloc_beebs": 18600,
+   "store/memcpy": 3100,
+   "store/sglib___rbtree_add_recursive": 77407,
+   "store/sglib__rbtree_it_compute_current_elem": 49786,
+   "store/sglib_dllist_sort": 29915,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2661222
+ },
+ "slre": {
+  "callee_save_sites": 82,
+  "counts": {
+   "load/global/computed": 20532,
+   "load/rodata/computed": 138388,
+   "load/stack/callee-save": 261357,
+   "load/stack/computed": 35380,
+   "load/stack/sp-direct": 141056,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 302072,
+   "store/stack/computed": 10556,
+   "store/stack/sp-direct": 101617
+  },
+  "func": {
+   "load/bar": 441728,
+   "load/benchmark_body": 937,
+   "load/match_op": 128064,
+   "load/memcmp": 1624,
+   "load/slre_match": 14848,
+   "load/strlen": 9512,
+   "store/bar": 320508,
+   "store/benchmark_body": 588,
+   "store/main": 1,
+   "store/match_op": 78880,
+   "store/slre_match": 14268,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2903283
+ },
+ "statemate": {
+  "callee_save_sites": 50,
+  "counts": {
+   "load/global/computed": 589410,
+   "load/stack/callee-save": 43298,
+   "store/global/computed": 729270,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 43298,
+   "store/stack/sp-direct": 1
+  },
+  "func": {
+   "load/FH_DU": 562770,
+   "load/benchmark": 1,
+   "load/benchmark_body": 7,
+   "load/generic_BLOCK_ERKENNUNG_CTRL": 13320,
+   "load/generic_FH_TUERMODUL_CTRL": 13320,
+   "load/generic_KINDERSICHERUNG_CTRL": 6660,
+   "load/interface": 36630,
+   "store/FH_DU": 672660,
+   "store/benchmark": 1,
+   "store/benchmark_body": 26647,
+   "store/main": 1,
+   "store/memset": 73260,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 1948089
+ },
+ "tarfind": {
+  "callee_save_sites": 30,
+  "counts": {
+   "load/global/computed": 56072,
+   "load/stack/callee-save": 13,
+   "load/stack/sp-direct": 322,
+   "store/global/computed": 186117,
+   "store/stack/callee-save": 15,
+   "store/stack/sp-direct": 50
+  },
+  "func": {
+   "load/benchmark_body": 20849,
+   "load/malloc_beebs": 138,
+   "load/rand_beebs": 35420,
+   "store/benchmark_body": 38704,
+   "store/init_heap_beebs": 138,
+   "store/main": 1,
+   "store/malloc_beebs": 92,
+   "store/memset": 111826,
+   "store/rand_beebs": 35420,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 1208288
+ },
+ "ud": {
+  "callee_save_sites": 48,
+  "counts": {
+   "load/global/computed": 378420,
+   "load/global/gp": 1,
+   "load/stack/callee-save": 12508,
+   "load/stack/computed": 37485,
+   "load/stack/sp-direct": 5355,
+   "store/global/computed": 141015,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 12510,
+   "store/stack/computed": 8925,
+   "store/stack/sp-direct": 3571
+  },
+  "func": {
+   "load/benchmark_body": 5369,
+   "load/ludcmp": 428400,
+   "store/benchmark_body": 78555,
+   "store/ludcmp": 87465,
+   "store/main": 1,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 2643648
+ },
+ "wikisort": {
+  "callee_save_sites": 112,
+  "counts": {
+   "load/global/computed": 147466,
+   "load/global/gp": 4000,
+   "load/rodata/computed": 18,
+   "load/stack/callee-save": 39918,
+   "load/stack/computed": 29500,
+   "load/stack/sp-direct": 268,
+   "store/global/computed": 115196,
+   "store/global/gp": 4003,
+   "store/stack/callee-save": 40100,
+   "store/stack/computed": 16800,
+   "store/stack/sp-direct": 83
+  },
+  "func": {
+   "load/Rotate": 240,
+   "load/TestingJittered": 1600,
+   "load/TestingMostlyAscending": 1600,
+   "load/TestingMostlyDescending": 2400,
+   "load/TestingMostlyEqual": 800,
+   "load/__adddf3": 16884,
+   "load/__divdf3": 10800,
+   "load/__muldf3": 5256,
+   "load/benchmark": 1,
+   "load/benchmark_body": 152861,
+   "load/memcpy": 24164,
+   "load/memmove": 60,
+   "load/rand_beebs": 4000,
+   "load/sqrt": 504,
+   "store/Rotate": 240,
+   "store/TestingJittered": 1600,
+   "store/TestingMostlyAscending": 1600,
+   "store/TestingMostlyDescending": 2400,
+   "store/TestingMostlyEqual": 800,
+   "store/__adddf3": 16884,
+   "store/__divdf3": 10800,
+   "store/__muldf3": 5256,
+   "store/benchmark": 1,
+   "store/benchmark_body": 107869,
+   "store/main": 1,
+   "store/memcpy": 24164,
+   "store/memmove": 60,
+   "store/rand_beebs": 4000,
+   "store/sqrt": 504,
+   "store/srand_beebs": 2,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 1721254
+ },
+ "xgboost": {
+  "callee_save_sites": 36,
+  "counts": {
+   "load/rodata/computed": 835656,
+   "load/stack/callee-save": 1160,
+   "load/stack/computed": 1280,
+   "load/stack/sp-direct": 1793,
+   "store/global/gp": 1,
+   "store/stack/callee-save": 1160,
+   "store/stack/computed": 1280,
+   "store/stack/sp-direct": 770
+  },
+  "func": {
+   "load/benchmark_body": 649,
+   "load/predict": 839240,
+   "store/benchmark_body": 137,
+   "store/main": 1,
+   "store/predict": 3072,
+   "store/start_trigger": 1
+  },
+  "window_instructions": 3387528
+ }
+}
