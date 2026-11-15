@@ -162,8 +162,8 @@ in instruction bytes it is 1.8 times rv32imac, whose instructions
 average 3.1 bytes with 45% of them compressed.
 `docs/perf-metrics.md` looks at the same run from the ISA's side: code
 size, the dynamic and static instruction mix, what the const/grow
-groups are used for, operand and control-flow lifetimes, memory traffic
-and operands in flight.
+groups are used for, what feeds the ALU instructions, operand and
+control-flow lifetimes, memory traffic and operands in flight.
 
 ### Status
 

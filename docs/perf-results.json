@@ -288,6 +288,81 @@
   "static_instructions": 1558,
   "static_text_bytes": 3116,
   "whole": {
+   "alu_input": {
+    "alu": 2521138,
+    "argument": 1,
+    "cast": 189200,
+    "const": 547297,
+    "load": 2838,
+    "return": 1,
+    "slot": 334884
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 107860,
+     "const": 48246,
+     "slot": 946
+    },
+    "and": {
+     "alu": 48250,
+     "cast": 7568,
+     "const": 489,
+     "load": 473,
+     "slot": 26488
+    },
+    "div": {
+     "alu": 60071,
+     "const": 473
+    },
+    "eq": {
+     "alu": 218053,
+     "argument": 1,
+     "const": 473,
+     "return": 1,
+     "slot": 946
+    },
+    "gt": {
+     "alu": 2838
+    },
+    "lt": {
+     "alu": 185889,
+     "slot": 183051
+    },
+    "mul": {
+     "alu": 26031,
+     "load": 1419,
+     "slot": 6622
+    },
+    "or": {
+     "alu": 1112027,
+     "slot": 12771
+    },
+    "sh": {
+     "alu": 562405,
+     "cast": 181632,
+     "const": 394975,
+     "load": 473,
+     "slot": 9933
+    },
+    "sub": {
+     "alu": 183051,
+     "const": 102168,
+     "slot": 80883
+    },
+    "xor": {
+     "alu": 14663,
+     "const": 473,
+     "load": 473,
+     "slot": 13244
+    }
+   },
+   "alu_input_route": {
+    "direct": 2396747,
+    "dup": 888793,
+    "echo": 126768,
+    "pick": 183051
+   },
+   "alu_inputs": 3595359,
    "call_depth_max": 3,
    "call_dynamic": {
     "0": 11
@@ -478,6 +553,77 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 2515784,
+    "cast": 188800,
+    "const": 546122,
+    "load": 2832,
+    "slot": 334176
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 107624,
+     "const": 48144,
+     "slot": 944
+    },
+    "and": {
+     "alu": 48146,
+     "cast": 7552,
+     "const": 480,
+     "load": 472,
+     "slot": 26432
+    },
+    "div": {
+     "alu": 59944,
+     "const": 472
+    },
+    "eq": {
+     "alu": 217592,
+     "const": 472,
+     "slot": 944
+    },
+    "gt": {
+     "alu": 2832
+    },
+    "lt": {
+     "alu": 185496,
+     "slot": 182664
+    },
+    "mul": {
+     "alu": 25968,
+     "load": 1416,
+     "slot": 6608
+    },
+    "or": {
+     "alu": 1109674,
+     "slot": 12744
+    },
+    "sh": {
+     "alu": 561212,
+     "cast": 181248,
+     "const": 394130,
+     "load": 472,
+     "slot": 9912
+    },
+    "sub": {
+     "alu": 182664,
+     "const": 101952,
+     "slot": 80712
+    },
+    "xor": {
+     "alu": 14632,
+     "const": 472,
+     "load": 472,
+     "slot": 13216
+    }
+   },
+   "alu_input_route": {
+    "direct": 2391652,
+    "dup": 886901,
+    "echo": 126497,
+    "pick": 182664
+   },
+   "alu_inputs": 3587714,
    "call_depth_max": 3,
    "call_dynamic": {
     "0": 3
@@ -863,6 +1009,56 @@
   "static_instructions": 240,
   "static_text_bytes": 480,
   "whole": {
+   "alu_input": {
+    "alu": 1400834,
+    "argument": 1,
+    "const": 1051140,
+    "load": 350208,
+    "return": 175105,
+    "slot": 855
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 175104,
+     "const": 175104,
+     "slot": 342
+    },
+    "and": {
+     "alu": 350210,
+     "const": 350210
+    },
+    "eq": {
+     "argument": 1,
+     "const": 1,
+     "return": 1,
+     "slot": 171
+    },
+    "mul": {
+     "const": 175104,
+     "load": 175104
+    },
+    "sh": {
+     "alu": 350037,
+     "const": 350379
+    },
+    "sub": {
+     "alu": 174933,
+     "const": 171
+    },
+    "xor": {
+     "alu": 350550,
+     "const": 171,
+     "load": 175104,
+     "return": 175104,
+     "slot": 342
+    }
+   },
+   "alu_input_route": {
+    "direct": 2102448,
+    "dup": 700074,
+    "echo": 175621
+   },
+   "alu_inputs": 2978143,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 175286
@@ -982,6 +1178,52 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 1392641,
+    "const": 1044991,
+    "load": 348160,
+    "return": 174080,
+    "slot": 850
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 174080,
+     "const": 174080,
+     "slot": 340
+    },
+    "and": {
+     "alu": 348161,
+     "const": 348161
+    },
+    "eq": {
+     "slot": 170
+    },
+    "mul": {
+     "const": 174080,
+     "load": 174080
+    },
+    "sh": {
+     "alu": 347990,
+     "const": 348330
+    },
+    "sub": {
+     "alu": 173910,
+     "const": 170
+    },
+    "xor": {
+     "alu": 348500,
+     "const": 170,
+     "load": 174080,
+     "return": 174080,
+     "slot": 340
+    }
+   },
+   "alu_input_route": {
+    "direct": 2090151,
+    "dup": 695980,
+    "echo": 174591
+   },
+   "alu_inputs": 2960722,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 174253
@@ -1583,6 +1825,58 @@
   "static_instructions": 1079,
   "static_text_bytes": 2158,
   "whole": {
+   "alu_input": {
+    "alu": 1330109,
+    "cast": 734720,
+    "const": 967627,
+    "load": 105024,
+    "return": 1,
+    "slot": 196864
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 947983,
+     "cast": 209920,
+     "const": 692097,
+     "slot": 196864
+    },
+    "eq": {
+     "load": 64,
+     "return": 1
+    },
+    "gt": {
+     "cast": 104960
+    },
+    "lt": {
+     "cast": 52480,
+     "const": 52480
+    },
+    "mul": {
+     "alu": 262400,
+     "cast": 262400
+    },
+    "sh": {
+     "alu": 104960,
+     "cast": 52480,
+     "const": 52480
+    },
+    "sub": {
+     "alu": 1638,
+     "cast": 52480,
+     "const": 157442,
+     "load": 104960
+    },
+    "xor": {
+     "alu": 13128,
+     "const": 13128
+    }
+   },
+   "alu_input_route": {
+    "direct": 1863192,
+    "dup": 975871,
+    "echo": 495282
+   },
+   "alu_inputs": 3334345,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 1651
@@ -1854,6 +2148,53 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 1329228,
+    "cast": 734272,
+    "const": 967011,
+    "load": 104896,
+    "slot": 196680
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 947342,
+     "cast": 209792,
+     "const": 691658,
+     "slot": 196680
+    },
+    "gt": {
+     "cast": 104896
+    },
+    "lt": {
+     "cast": 52448,
+     "const": 52448
+    },
+    "mul": {
+     "alu": 262240,
+     "cast": 262240
+    },
+    "sh": {
+     "alu": 104896,
+     "cast": 52448,
+     "const": 52448
+    },
+    "sub": {
+     "alu": 1638,
+     "cast": 52448,
+     "const": 157345,
+     "load": 104896
+    },
+    "xor": {
+     "alu": 13112,
+     "const": 13112
+    }
+   },
+   "alu_input_route": {
+    "direct": 1861904,
+    "dup": 975205,
+    "echo": 494978
+   },
+   "alu_inputs": 3332087,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 1642
@@ -2775,6 +3116,81 @@
   "static_instructions": 4228,
   "static_text_bytes": 8456,
   "whole": {
+   "alu_input": {
+    "alu": 2308369,
+    "argument": 167,
+    "cast": 1114134,
+    "const": 727340,
+    "frame": 668,
+    "load": 75597,
+    "return": 2,
+    "slot": 459364
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 2097665,
+     "argument": 164,
+     "cast": 30996,
+     "const": 525005,
+     "frame": 668,
+     "load": 20746,
+     "slot": 440832
+    },
+    "and": {
+     "alu": 663,
+     "const": 821,
+     "slot": 164
+    },
+    "eq": {
+     "alu": 1069,
+     "const": 167,
+     "load": 567,
+     "return": 2
+    },
+    "gt": {
+     "alu": 1184,
+     "const": 1184
+    },
+    "lt": {
+     "alu": 16564,
+     "argument": 1,
+     "const": 21321,
+     "slot": 4756
+    },
+    "mul": {
+     "alu": 15990,
+     "cast": 1023032,
+     "const": 12300,
+     "load": 54202
+    },
+    "or": {
+     "argument": 2
+    },
+    "sh": {
+     "alu": 31160,
+     "cast": 39114,
+     "const": 49446,
+     "slot": 164
+    },
+    "sub": {
+     "alu": 24436,
+     "cast": 20992,
+     "const": 10496,
+     "slot": 164
+    },
+    "xor": {
+     "alu": 119638,
+     "const": 106600,
+     "load": 82,
+     "slot": 13284
+    }
+   },
+   "alu_input_route": {
+    "direct": 2721709,
+    "dup": 1541463,
+    "echo": 422469
+   },
+   "alu_inputs": 4685641,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 258
@@ -3279,6 +3695,75 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 2279421,
+    "argument": 162,
+    "cast": 1100547,
+    "const": 717666,
+    "frame": 654,
+    "load": 74277,
+    "slot": 453762
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 2071494,
+     "argument": 162,
+     "cast": 30618,
+     "const": 518001,
+     "frame": 654,
+     "load": 20493,
+     "slot": 435456
+    },
+    "and": {
+     "alu": 648,
+     "const": 810,
+     "slot": 162
+    },
+    "eq": {
+     "alu": 1053,
+     "const": 162,
+     "load": 162
+    },
+    "gt": {
+     "alu": 972,
+     "const": 972
+    },
+    "lt": {
+     "alu": 16362,
+     "const": 21060,
+     "slot": 4698
+    },
+    "mul": {
+     "alu": 15795,
+     "cast": 1010556,
+     "const": 12150,
+     "load": 53541
+    },
+    "sh": {
+     "alu": 30780,
+     "cast": 38637,
+     "const": 48843,
+     "slot": 162
+    },
+    "sub": {
+     "alu": 24138,
+     "cast": 20736,
+     "const": 10368,
+     "slot": 162
+    },
+    "xor": {
+     "alu": 118179,
+     "const": 105300,
+     "load": 81,
+     "slot": 13122
+    }
+   },
+   "alu_input_route": {
+    "direct": 2687106,
+    "dup": 1522071,
+    "echo": 417312
+   },
+   "alu_inputs": 4626489,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 246
@@ -4137,6 +4622,98 @@
   "static_instructions": 4407,
   "static_text_bytes": 8814,
   "whole": {
+   "alu_input": {
+    "alu": 1706361,
+    "argument": 111,
+    "cast": 17472,
+    "const": 1180921,
+    "frame": 604308,
+    "load": 648418,
+    "return": 2,
+    "slot": 1764
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 823368,
+     "argument": 12,
+     "const": 937254,
+     "frame": 604308,
+     "load": 89244,
+     "slot": 1152
+    },
+    "and": {
+     "alu": 61885,
+     "argument": 12,
+     "cast": 768,
+     "const": 5509,
+     "load": 61824,
+     "slot": 252
+    },
+    "div": {
+     "alu": 30720,
+     "cast": 384,
+     "load": 29928
+    },
+    "eq": {
+     "alu": 230355,
+     "const": 156,
+     "load": 42730,
+     "return": 2,
+     "slot": 12
+    },
+    "gt": {
+     "alu": 1721,
+     "cast": 5496,
+     "const": 1325,
+     "load": 147396
+    },
+    "lt": {
+     "alu": 158928,
+     "argument": 85,
+     "cast": 5388,
+     "const": 31225,
+     "load": 241992,
+     "slot": 192
+    },
+    "mul": {
+     "alu": 168,
+     "const": 168
+    },
+    "or": {
+     "alu": 92724,
+     "argument": 2,
+     "cast": 3072,
+     "const": 35604,
+     "load": 3072
+    },
+    "sh": {
+     "alu": 94932,
+     "cast": 1956,
+     "const": 57924,
+     "load": 6972,
+     "slot": 96
+    },
+    "sub": {
+     "alu": 96024,
+     "cast": 408,
+     "const": 420,
+     "load": 13584,
+     "slot": 24
+    },
+    "xor": {
+     "alu": 115536,
+     "const": 111336,
+     "load": 11676,
+     "slot": 36
+    }
+   },
+   "alu_input_route": {
+    "direct": 2775424,
+    "dup": 1088368,
+    "echo": 264065,
+    "pick": 31500
+   },
+   "alu_inputs": 4159357,
    "call_depth_max": 5,
    "call_dynamic": {
     "0": 156
@@ -4451,6 +5028,95 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 1563705,
+    "argument": 99,
+    "cast": 16016,
+    "const": 1082048,
+    "frame": 553949,
+    "load": 594154,
+    "slot": 1617
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 754413,
+     "argument": 11,
+     "const": 858803,
+     "frame": 553949,
+     "load": 81807,
+     "slot": 1056
+    },
+    "and": {
+     "alu": 56727,
+     "argument": 11,
+     "cast": 704,
+     "const": 5049,
+     "load": 56672,
+     "slot": 231
+    },
+    "div": {
+     "alu": 28160,
+     "cast": 352,
+     "load": 27434
+    },
+    "eq": {
+     "alu": 211156,
+     "const": 143,
+     "load": 38940,
+     "slot": 11
+    },
+    "gt": {
+     "alu": 1463,
+     "cast": 5038,
+     "const": 1100,
+     "load": 135113
+    },
+    "lt": {
+     "alu": 145684,
+     "argument": 77,
+     "cast": 4939,
+     "const": 28622,
+     "load": 221826,
+     "slot": 176
+    },
+    "mul": {
+     "alu": 154,
+     "const": 154
+    },
+    "or": {
+     "alu": 84997,
+     "cast": 2816,
+     "const": 32637,
+     "load": 2816
+    },
+    "sh": {
+     "alu": 87021,
+     "cast": 1793,
+     "const": 53097,
+     "load": 6391,
+     "slot": 88
+    },
+    "sub": {
+     "alu": 88022,
+     "cast": 374,
+     "const": 385,
+     "load": 12452,
+     "slot": 22
+    },
+    "xor": {
+     "alu": 105908,
+     "const": 102058,
+     "load": 10703,
+     "slot": 33
+    }
+   },
+   "alu_input_route": {
+    "direct": 2543332,
+    "dup": 997326,
+    "echo": 242055,
+    "pick": 28875
+   },
+   "alu_inputs": 3811588,
    "call_depth_max": 5,
    "call_dynamic": {
     "0": 135
@@ -5471,6 +6137,73 @@
   "static_instructions": 3863,
   "static_text_bytes": 7726,
   "whole": {
+   "alu_input": {
+    "alu": 956068,
+    "argument": 3,
+    "cast": 800,
+    "const": 281392,
+    "frame": 106134,
+    "load": 809800,
+    "return": 2,
+    "slot": 129200
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 941385,
+     "const": 267709,
+     "frame": 106134,
+     "load": 168880,
+     "slot": 128760
+    },
+    "and": {
+     "alu": 81,
+     "const": 161,
+     "slot": 80
+    },
+    "eq": {
+     "alu": 283,
+     "load": 880,
+     "return": 2
+    },
+    "gt": {
+     "alu": 4400,
+     "const": 4400
+    },
+    "lt": {
+     "alu": 80,
+     "argument": 1,
+     "const": 241
+    },
+    "mul": {
+     "alu": 2359,
+     "cast": 800,
+     "const": 3041,
+     "load": 640000,
+     "slot": 200
+    },
+    "or": {
+     "argument": 2
+    },
+    "sh": {
+     "alu": 800,
+     "const": 800
+    },
+    "sub": {
+     "alu": 1600
+    },
+    "xor": {
+     "alu": 5080,
+     "const": 5040,
+     "load": 40,
+     "slot": 160
+    }
+   },
+   "alu_input_route": {
+    "direct": 925633,
+    "dup": 739736,
+    "echo": 618030
+   },
+   "alu_inputs": 2283399,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 92
@@ -5953,6 +6686,56 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 924573,
+    "const": 267899,
+    "frame": 103436,
+    "load": 788775,
+    "slot": 125736
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 914784,
+     "const": 258110,
+     "frame": 103436,
+     "load": 164658,
+     "slot": 125502
+    },
+    "and": {
+     "alu": 78,
+     "const": 156,
+     "slot": 78
+    },
+    "eq": {
+     "alu": 273,
+     "load": 78
+    },
+    "gt": {
+     "alu": 3900,
+     "const": 3900
+    },
+    "lt": {
+     "alu": 78,
+     "const": 234
+    },
+    "mul": {
+     "alu": 741,
+     "const": 819,
+     "load": 624000
+    },
+    "xor": {
+     "alu": 4719,
+     "const": 4680,
+     "load": 39,
+     "slot": 156
+    }
+   },
+   "alu_input_route": {
+    "direct": 891127,
+    "dup": 716810,
+    "echo": 602482
+   },
+   "alu_inputs": 2210419,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 81
@@ -6756,6 +7539,84 @@
   "static_instructions": 2657,
   "static_text_bytes": 5314,
   "whole": {
+   "alu_input": {
+    "alu": 1696913,
+    "argument": 336,
+    "cast": 68608,
+    "const": 926278,
+    "frame": 203,
+    "load": 275914,
+    "return": 1,
+    "slot": 490574
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 681390,
+     "argument": 67,
+     "const": 458215,
+     "frame": 203,
+     "load": 137886,
+     "slot": 419286
+    },
+    "and": {
+     "alu": 69144,
+     "argument": 67,
+     "const": 52327,
+     "load": 67,
+     "slot": 51657
+    },
+    "eq": {
+     "alu": 225187,
+     "argument": 1,
+     "const": 68810,
+     "return": 1,
+     "slot": 134
+    },
+    "gt": {
+     "alu": 156043,
+     "const": 158053,
+     "load": 134
+    },
+    "lt": {
+     "alu": 201,
+     "argument": 67,
+     "const": 536,
+     "slot": 2412
+    },
+    "mul": {
+     "alu": 134,
+     "argument": 134,
+     "const": 134
+    },
+    "or": {
+     "alu": 84353,
+     "const": 50451
+    },
+    "sh": {
+     "alu": 206025,
+     "const": 402,
+     "load": 68608,
+     "slot": 201
+    },
+    "sub": {
+     "alu": 871,
+     "cast": 68608,
+     "const": 137350,
+     "load": 68608
+    },
+    "xor": {
+     "alu": 273565,
+     "load": 611,
+     "slot": 16884
+    }
+   },
+   "alu_input_route": {
+    "direct": 2000771,
+    "dup": 957631,
+    "echo": 500291,
+    "pick": 134
+   },
+   "alu_inputs": 3458827,
    "call_depth_max": 5,
    "call_dynamic": {
     "0": 480
@@ -7000,6 +7861,81 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 1671584,
+    "argument": 330,
+    "cast": 67584,
+    "const": 912451,
+    "frame": 199,
+    "load": 271792,
+    "slot": 483252
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 671220,
+     "argument": 66,
+     "const": 451375,
+     "frame": 199,
+     "load": 135828,
+     "slot": 413028
+    },
+    "and": {
+     "alu": 68112,
+     "argument": 66,
+     "const": 51546,
+     "load": 66,
+     "slot": 50886
+    },
+    "eq": {
+     "alu": 221826,
+     "const": 67782,
+     "slot": 132
+    },
+    "gt": {
+     "alu": 153714,
+     "const": 155694,
+     "load": 132
+    },
+    "lt": {
+     "alu": 198,
+     "argument": 66,
+     "const": 528,
+     "slot": 2376
+    },
+    "mul": {
+     "alu": 132,
+     "argument": 132,
+     "const": 132
+    },
+    "or": {
+     "alu": 83094,
+     "const": 49698
+    },
+    "sh": {
+     "alu": 202950,
+     "const": 396,
+     "load": 67584,
+     "slot": 198
+    },
+    "sub": {
+     "alu": 858,
+     "cast": 67584,
+     "const": 135300,
+     "load": 67584
+    },
+    "xor": {
+     "alu": 269480,
+     "load": 598,
+     "slot": 16632
+    }
+   },
+   "alu_input_route": {
+    "direct": 1970900,
+    "dup": 943338,
+    "echo": 492822,
+    "pick": 132
+   },
+   "alu_inputs": 3407192,
    "call_depth_max": 5,
    "call_dynamic": {
     "0": 465
@@ -7722,6 +8658,80 @@
   "static_instructions": 3499,
   "static_text_bytes": 6998,
   "whole": {
+   "alu_input": {
+    "alu": 2449735,
+    "argument": 385,
+    "cast": 35574,
+    "const": 1240253,
+    "frame": 154,
+    "load": 748386,
+    "return": 1,
+    "slot": 66220
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 931385,
+     "argument": 231,
+     "const": 173662,
+     "frame": 154,
+     "slot": 50435
+    },
+    "and": {
+     "alu": 559097,
+     "argument": 154,
+     "const": 565719,
+     "load": 6006
+    },
+    "div": {
+     "alu": 3927,
+     "slot": 4081
+    },
+    "eq": {
+     "alu": 7700,
+     "const": 5544,
+     "load": 1024,
+     "return": 1,
+     "slot": 5698
+    },
+    "gt": {
+     "const": 231,
+     "slot": 77
+    },
+    "lt": {
+     "alu": 1078,
+     "const": 2695,
+     "slot": 2695
+    },
+    "or": {
+     "alu": 83391,
+     "const": 77,
+     "load": 11858
+    },
+    "sh": {
+     "alu": 413952,
+     "cast": 35574,
+     "const": 492107,
+     "load": 42196,
+     "slot": 385
+    },
+    "sub": {
+     "alu": 29722,
+     "const": 154,
+     "slot": 2772
+    },
+    "xor": {
+     "alu": 419483,
+     "const": 64,
+     "load": 687302,
+     "slot": 77
+    }
+   },
+   "alu_input_route": {
+    "direct": 2339182,
+    "dup": 1518288,
+    "echo": 683238
+   },
+   "alu_inputs": 4540708,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 242
@@ -8154,6 +9164,76 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 2416800,
+    "argument": 380,
+    "cast": 35112,
+    "const": 1222992,
+    "frame": 152,
+    "load": 737656,
+    "slot": 65360
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 918232,
+     "argument": 228,
+     "const": 170316,
+     "frame": 152,
+     "slot": 49780
+    },
+    "and": {
+     "alu": 551836,
+     "argument": 152,
+     "const": 558372,
+     "load": 5928
+    },
+    "div": {
+     "alu": 3876,
+     "slot": 4028
+    },
+    "eq": {
+     "alu": 7600,
+     "const": 5472,
+     "slot": 5624
+    },
+    "gt": {
+     "const": 228,
+     "slot": 76
+    },
+    "lt": {
+     "alu": 1064,
+     "const": 2660,
+     "slot": 2660
+    },
+    "or": {
+     "alu": 82308,
+     "const": 76,
+     "load": 11704
+    },
+    "sh": {
+     "alu": 408576,
+     "cast": 35112,
+     "const": 485716,
+     "load": 41648,
+     "slot": 380
+    },
+    "sub": {
+     "alu": 29336,
+     "const": 152,
+     "slot": 2736
+    },
+    "xor": {
+     "alu": 413972,
+     "load": 678376,
+     "slot": 76
+    }
+   },
+   "alu_input_route": {
+    "direct": 2308424,
+    "dup": 1496440,
+    "echo": 673588
+   },
+   "alu_inputs": 4478452,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 231
@@ -9294,6 +10374,76 @@
   "static_instructions": 6079,
   "static_text_bytes": 12158,
   "whole": {
+   "alu_input": {
+    "alu": 6213282,
+    "argument": 1689,
+    "const": 1781955,
+    "frame": 16950,
+    "load": 350202,
+    "return": 1,
+    "slot": 37721
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 1415945,
+     "argument": 1126,
+     "const": 211183,
+     "frame": 16948,
+     "load": 125549,
+     "slot": 30402
+    },
+    "and": {
+     "alu": 450414,
+     "const": 52359,
+     "load": 30402,
+     "slot": 1689
+    },
+    "eq": {
+     "alu": 6193,
+     "const": 1126,
+     "load": 579,
+     "return": 1
+    },
+    "lt": {
+     "alu": 3378,
+     "argument": 563,
+     "const": 8445,
+     "slot": 2252
+    },
+    "mul": {
+     "alu": 1126,
+     "const": 1126
+    },
+    "or": {
+     "alu": 1433398,
+     "const": 2,
+     "frame": 2
+    },
+    "sh": {
+     "alu": 1321361,
+     "const": 1502647,
+     "load": 180160,
+     "slot": 1126
+    },
+    "sub": {
+     "alu": 3378,
+     "const": 563,
+     "load": 563,
+     "slot": 1126
+    },
+    "xor": {
+     "alu": 1578089,
+     "const": 4504,
+     "load": 12949,
+     "slot": 1126
+    }
+   },
+   "alu_input_route": {
+    "direct": 5296243,
+    "dup": 2561646,
+    "echo": 543911
+   },
+   "alu_inputs": 8401800,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 2263
@@ -9804,6 +10954,74 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 6202232,
+    "argument": 1686,
+    "const": 1778760,
+    "frame": 16890,
+    "load": 349564,
+    "slot": 37654
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 1413430,
+     "argument": 1124,
+     "const": 210779,
+     "frame": 16889,
+     "load": 125326,
+     "slot": 30348
+    },
+    "and": {
+     "alu": 449600,
+     "const": 52266,
+     "load": 30348,
+     "slot": 1686
+    },
+    "eq": {
+     "alu": 6182,
+     "const": 1124,
+     "load": 562
+    },
+    "lt": {
+     "alu": 3372,
+     "argument": 562,
+     "const": 8430,
+     "slot": 2248
+    },
+    "mul": {
+     "alu": 1124,
+     "const": 1124
+    },
+    "or": {
+     "alu": 1430852,
+     "const": 1,
+     "frame": 1
+    },
+    "sh": {
+     "alu": 1319014,
+     "const": 1499978,
+     "load": 179840,
+     "slot": 1124
+    },
+    "sub": {
+     "alu": 3372,
+     "const": 562,
+     "load": 562,
+     "slot": 1124
+    },
+    "xor": {
+     "alu": 1575286,
+     "const": 4496,
+     "load": 12926,
+     "slot": 1124
+    }
+   },
+   "alu_input_route": {
+    "direct": 5286776,
+    "dup": 2557098,
+    "echo": 542912
+   },
+   "alu_inputs": 8386786,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 2251
@@ -10511,6 +11729,47 @@
   "static_instructions": 10725,
   "static_text_bytes": 21450,
   "whole": {
+   "alu_input": {
+    "alu": 311949,
+    "cast": 621432,
+    "const": 310718,
+    "load": 606639,
+    "return": 1,
+    "slot": 4932
+   },
+   "alu_input_by_op": {
+    "add": {
+     "slot": 1233
+    },
+    "eq": {
+     "alu": 310716,
+     "const": 2,
+     "load": 601707,
+     "return": 1,
+     "slot": 1233
+    },
+    "gt": {
+     "cast": 451278,
+     "const": 155358
+    },
+    "lt": {
+     "cast": 170154,
+     "const": 155358
+    },
+    "sub": {
+     "slot": 1233
+    },
+    "xor": {
+     "alu": 1233,
+     "load": 4932,
+     "slot": 1233
+    }
+   },
+   "alu_input_route": {
+    "direct": 1855670,
+    "echo": 1
+   },
+   "alu_inputs": 1855671,
    "call_depth_max": 3,
    "call_dynamic": {
     "0": 11
@@ -10632,6 +11891,43 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 311696,
+    "cast": 620928,
+    "const": 310464,
+    "load": 606144,
+    "slot": 4928
+   },
+   "alu_input_by_op": {
+    "add": {
+     "slot": 1232
+    },
+    "eq": {
+     "alu": 310464,
+     "load": 601216,
+     "slot": 1232
+    },
+    "gt": {
+     "cast": 450912,
+     "const": 155232
+    },
+    "lt": {
+     "cast": 170016,
+     "const": 155232
+    },
+    "sub": {
+     "slot": 1232
+    },
+    "xor": {
+     "alu": 1232,
+     "load": 4928,
+     "slot": 1232
+    }
+   },
+   "alu_input_route": {
+    "direct": 1854160
+   },
+   "alu_inputs": 1854160,
    "call_depth_max": 3,
    "call_dynamic": {
     "0": 3
@@ -11764,6 +13060,97 @@
   "static_instructions": 27724,
   "static_text_bytes": 55448,
   "whole": {
+   "alu_input": {
+    "alu": 1266030,
+    "argument": 33,
+    "cast": 408972,
+    "const": 1081011,
+    "frame": 13656,
+    "load": 442209,
+    "return": 2,
+    "slot": 249780
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 693426,
+     "cast": 83244,
+     "const": 522081,
+     "frame": 13656,
+     "load": 101637,
+     "slot": 206550
+    },
+    "and": {
+     "alu": 26829,
+     "argument": 18,
+     "cast": 5100,
+     "const": 32001,
+     "slot": 114
+    },
+    "eq": {
+     "alu": 55662,
+     "cast": 12,
+     "const": 10371,
+     "load": 19986,
+     "return": 2,
+     "slot": 2748
+    },
+    "gt": {
+     "alu": 121266,
+     "cast": 30006,
+     "const": 143772,
+     "load": 10698,
+     "slot": 198
+    },
+    "lt": {
+     "alu": 3174,
+     "argument": 9,
+     "cast": 2520,
+     "const": 8595,
+     "load": 4422,
+     "slot": 7242
+    },
+    "mul": {
+     "alu": 2028,
+     "cast": 16620,
+     "const": 101874,
+     "load": 89682,
+     "slot": 888
+    },
+    "or": {
+     "alu": 91104,
+     "argument": 6,
+     "const": 24,
+     "load": 119748
+    },
+    "sh": {
+     "alu": 134592,
+     "cast": 162696,
+     "const": 230886,
+     "load": 5820,
+     "slot": 24030
+    },
+    "sub": {
+     "alu": 96645,
+     "cast": 41862,
+     "const": 7815,
+     "load": 89532,
+     "slot": 3138
+    },
+    "xor": {
+     "alu": 41304,
+     "cast": 66912,
+     "const": 23592,
+     "load": 684,
+     "slot": 4872
+    }
+   },
+   "alu_input_route": {
+    "direct": 2302251,
+    "dup": 778623,
+    "echo": 355217,
+    "pick": 25602
+   },
+   "alu_inputs": 3461693,
    "call_depth_max": 7,
    "call_dynamic": {
     "0": 6806
@@ -12317,6 +13704,94 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 1054545,
+    "argument": 20,
+    "cast": 340810,
+    "const": 900830,
+    "frame": 11380,
+    "load": 368185,
+    "slot": 208150
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 577540,
+     "cast": 69370,
+     "const": 435065,
+     "frame": 11380,
+     "load": 84695,
+     "slot": 172125
+    },
+    "and": {
+     "alu": 22355,
+     "argument": 15,
+     "cast": 4250,
+     "const": 26665,
+     "slot": 95
+    },
+    "eq": {
+     "alu": 46380,
+     "cast": 10,
+     "const": 8640,
+     "load": 16335,
+     "slot": 2290
+    },
+    "gt": {
+     "alu": 101055,
+     "cast": 25005,
+     "const": 119810,
+     "load": 8915,
+     "slot": 165
+    },
+    "lt": {
+     "alu": 2645,
+     "argument": 5,
+     "cast": 2100,
+     "const": 7160,
+     "load": 3685,
+     "slot": 6035
+    },
+    "mul": {
+     "alu": 1690,
+     "cast": 13850,
+     "const": 84895,
+     "load": 74735,
+     "slot": 740
+    },
+    "or": {
+     "alu": 75920,
+     "const": 20,
+     "load": 99790
+    },
+    "sh": {
+     "alu": 112160,
+     "cast": 135580,
+     "const": 192405,
+     "load": 4850,
+     "slot": 20025
+    },
+    "sub": {
+     "alu": 80380,
+     "cast": 34885,
+     "const": 6510,
+     "load": 74610,
+     "slot": 2615
+    },
+    "xor": {
+     "alu": 34420,
+     "cast": 55760,
+     "const": 19660,
+     "load": 570,
+     "slot": 4060
+    }
+   },
+   "alu_input_route": {
+    "direct": 1918210,
+    "dup": 648370,
+    "echo": 296005,
+    "pick": 21335
+   },
+   "alu_inputs": 2883920,
    "call_depth_max": 7,
    "call_dynamic": {
     "0": 5663
@@ -13663,6 +15138,105 @@
   "static_instructions": 16811,
   "static_text_bytes": 33622,
   "whole": {
+   "alu_input": {
+    "alu": 1442754,
+    "argument": 64,
+    "cast": 290382,
+    "const": 628920,
+    "frame": 2652,
+    "load": 492227,
+    "return": 8,
+    "slot": 295176
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 364132,
+     "argument": 13,
+     "cast": 31878,
+     "const": 175739,
+     "frame": 2652,
+     "load": 143480,
+     "slot": 119394
+    },
+    "and": {
+     "alu": 224221,
+     "argument": 6,
+     "cast": 57042,
+     "const": 102415,
+     "load": 24684,
+     "slot": 57192
+    },
+    "div": {
+     "alu": 20514,
+     "cast": 150,
+     "const": 6
+    },
+    "eq": {
+     "alu": 156347,
+     "const": 34002,
+     "load": 39824,
+     "return": 2,
+     "slot": 22932
+    },
+    "gt": {
+     "alu": 26220,
+     "cast": 18618,
+     "const": 36407,
+     "load": 30403,
+     "slot": 324
+    },
+    "lt": {
+     "alu": 127056,
+     "argument": 19,
+     "cast": 37632,
+     "const": 9937,
+     "load": 99396,
+     "return": 6,
+     "slot": 1548
+    },
+    "mul": {
+     "alu": 52644,
+     "argument": 24,
+     "cast": 23256,
+     "const": 3378,
+     "load": 72312,
+     "slot": 44562
+    },
+    "or": {
+     "alu": 20178,
+     "argument": 2,
+     "cast": 1950,
+     "const": 150,
+     "load": 3462
+    },
+    "sh": {
+     "alu": 203490,
+     "cast": 21870,
+     "const": 134886,
+     "load": 63570,
+     "slot": 5796
+    },
+    "sub": {
+     "alu": 9698,
+     "cast": 97986,
+     "const": 93462,
+     "load": 78,
+     "slot": 2124
+    },
+    "xor": {
+     "alu": 238254,
+     "const": 38538,
+     "load": 15018,
+     "slot": 41304
+    }
+   },
+   "alu_input_route": {
+    "direct": 2085564,
+    "dup": 776020,
+    "echo": 209623,
+    "pick": 80976
+   },
+   "alu_inputs": 3152183,
    "call_depth_max": 6,
    "call_dynamic": {
     "0": 259
@@ -14262,6 +15836,103 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 1202270,
+    "argument": 50,
+    "cast": 241985,
+    "const": 524080,
+    "frame": 2210,
+    "load": 410175,
+    "return": 5,
+    "slot": 245980
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 303430,
+     "argument": 10,
+     "cast": 26565,
+     "const": 146435,
+     "frame": 2210,
+     "load": 119565,
+     "slot": 99495
+    },
+    "and": {
+     "alu": 186850,
+     "argument": 5,
+     "cast": 47535,
+     "const": 85345,
+     "load": 20570,
+     "slot": 47660
+    },
+    "div": {
+     "alu": 17095,
+     "cast": 125,
+     "const": 5
+    },
+    "eq": {
+     "alu": 130285,
+     "const": 28335,
+     "load": 33175,
+     "slot": 19110
+    },
+    "gt": {
+     "alu": 21845,
+     "cast": 15515,
+     "const": 30335,
+     "load": 25335,
+     "slot": 270
+    },
+    "lt": {
+     "alu": 105880,
+     "argument": 15,
+     "cast": 31360,
+     "const": 8280,
+     "load": 82830,
+     "return": 5,
+     "slot": 1290
+    },
+    "mul": {
+     "alu": 43870,
+     "argument": 20,
+     "cast": 19380,
+     "const": 2815,
+     "load": 60260,
+     "slot": 37135
+    },
+    "or": {
+     "alu": 16815,
+     "cast": 1625,
+     "const": 125,
+     "load": 2885
+    },
+    "sh": {
+     "alu": 169575,
+     "cast": 18225,
+     "const": 112405,
+     "load": 52975,
+     "slot": 4830
+    },
+    "sub": {
+     "alu": 8080,
+     "cast": 81655,
+     "const": 77885,
+     "load": 65,
+     "slot": 1770
+    },
+    "xor": {
+     "alu": 198545,
+     "const": 32115,
+     "load": 12515,
+     "slot": 34420
+    }
+   },
+   "alu_input_route": {
+    "direct": 1737930,
+    "dup": 646665,
+    "echo": 174680,
+    "pick": 67480
+   },
+   "alu_inputs": 2626755,
    "call_depth_max": 6,
    "call_dynamic": {
     "0": 208
@@ -15216,6 +16887,99 @@
   "static_instructions": 6143,
   "static_text_bytes": 12286,
   "whole": {
+   "alu_input": {
+    "alu": 562002,
+    "argument": 100,
+    "cast": 461284,
+    "const": 903027,
+    "frame": 562212,
+    "load": 366178,
+    "return": 2,
+    "slot": 10453
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 208440,
+     "argument": 33,
+     "cast": 12800,
+     "const": 636480,
+     "frame": 562212,
+     "load": 166465,
+     "slot": 9476
+    },
+    "and": {
+     "alu": 9921,
+     "argument": 32,
+     "const": 10113,
+     "load": 96,
+     "slot": 160
+    },
+    "div": {
+     "alu": 4224,
+     "load": 3168
+    },
+    "eq": {
+     "alu": 125288,
+     "cast": 9568,
+     "const": 22401,
+     "load": 90892,
+     "return": 2,
+     "slot": 1
+    },
+    "gt": {
+     "alu": 9925,
+     "cast": 49024,
+     "const": 2596,
+     "load": 9601
+    },
+    "lt": {
+     "alu": 1536,
+     "argument": 33,
+     "cast": 363968,
+     "const": 23265,
+     "load": 16448,
+     "slot": 192
+    },
+    "mul": {
+     "alu": 6464,
+     "cast": 9700,
+     "const": 9764,
+     "load": 12900,
+     "slot": 100
+    },
+    "or": {
+     "alu": 13248,
+     "argument": 2,
+     "const": 13248
+    },
+    "sh": {
+     "alu": 95460,
+     "cast": 6400,
+     "const": 140932,
+     "load": 8672,
+     "slot": 96
+    },
+    "sub": {
+     "alu": 55076,
+     "cast": 9824,
+     "const": 9728,
+     "load": 21764,
+     "slot": 64
+    },
+    "xor": {
+     "alu": 32420,
+     "const": 34500,
+     "load": 36172,
+     "slot": 364
+    }
+   },
+   "alu_input_route": {
+    "direct": 2321609,
+    "dup": 432728,
+    "echo": 61705,
+    "pick": 49216
+   },
+   "alu_inputs": 2865258,
    "call_depth_max": 12,
    "call_dynamic": {
     "0": 30317
@@ -15694,6 +17458,94 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 543560,
+    "argument": 93,
+    "cast": 446772,
+    "const": 874070,
+    "frame": 544596,
+    "load": 353958,
+    "slot": 9641
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 201537,
+     "argument": 31,
+     "cast": 12400,
+     "const": 616243,
+     "frame": 544596,
+     "load": 161262,
+     "slot": 9083
+    },
+    "and": {
+     "alu": 9610,
+     "argument": 31,
+     "const": 9796,
+     "load": 93,
+     "slot": 155
+    },
+    "div": {
+     "alu": 4092,
+     "load": 3069
+    },
+    "eq": {
+     "alu": 121272,
+     "cast": 9269,
+     "const": 21700,
+     "load": 87761
+    },
+    "gt": {
+     "alu": 9517,
+     "cast": 47492,
+     "const": 2418,
+     "load": 9300
+    },
+    "lt": {
+     "alu": 1488,
+     "argument": 31,
+     "cast": 352594,
+     "const": 22537,
+     "load": 15934,
+     "slot": 186
+    },
+    "mul": {
+     "alu": 6262,
+     "cast": 9300,
+     "const": 9362,
+     "load": 12400
+    },
+    "or": {
+     "alu": 12834,
+     "const": 12834
+    },
+    "sh": {
+     "alu": 92380,
+     "cast": 6200,
+     "const": 136431,
+     "load": 8401,
+     "slot": 93
+    },
+    "sub": {
+     "alu": 53258,
+     "cast": 9517,
+     "const": 9424,
+     "load": 20987,
+     "slot": 62
+    },
+    "xor": {
+     "alu": 31310,
+     "const": 33325,
+     "load": 34751,
+     "slot": 62
+    }
+   },
+   "alu_input_route": {
+    "direct": 2246620,
+    "dup": 418624,
+    "echo": 59768,
+    "pick": 47678
+   },
+   "alu_inputs": 2772690,
    "call_depth_max": 12,
    "call_dynamic": {
     "0": 29360
@@ -16509,6 +18361,80 @@
   "static_instructions": 4656,
   "static_text_bytes": 9312,
   "whole": {
+   "alu_input": {
+    "alu": 401427,
+    "argument": 586,
+    "cast": 395694,
+    "const": 725752,
+    "frame": 141336,
+    "load": 359190,
+    "return": 586,
+    "slot": 325962
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 129753,
+     "argument": 585,
+     "cast": 6669,
+     "const": 326664,
+     "frame": 141336,
+     "load": 93834,
+     "return": 585,
+     "slot": 192699
+    },
+    "and": {
+     "alu": 6318,
+     "load": 21177
+    },
+    "eq": {
+     "alu": 204282,
+     "argument": 1,
+     "const": 135721,
+     "load": 106821,
+     "return": 1,
+     "slot": 29250
+    },
+    "gt": {
+     "alu": 16965,
+     "cast": 192114,
+     "const": 59436
+    },
+    "lt": {
+     "alu": 702,
+     "cast": 190242,
+     "const": 60255
+    },
+    "or": {
+     "alu": 9009,
+     "load": 9009
+    },
+    "sh": {
+     "alu": 7371,
+     "const": 18486,
+     "load": 351,
+     "slot": 9828
+    },
+    "sub": {
+     "alu": 19422,
+     "cast": 6669,
+     "const": 3510,
+     "load": 11583,
+     "slot": 51597
+    },
+    "xor": {
+     "alu": 7605,
+     "const": 121680,
+     "load": 116415,
+     "slot": 42588
+    }
+   },
+   "alu_input_route": {
+    "direct": 1842868,
+    "dup": 325375,
+    "echo": 172696,
+    "pick": 9594
+   },
+   "alu_inputs": 2350533,
    "call_depth_max": 8,
    "call_dynamic": {
     "0": 14753
@@ -16801,6 +18727,78 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 397996,
+    "argument": 580,
+    "cast": 392312,
+    "const": 719548,
+    "frame": 140128,
+    "load": 356120,
+    "return": 580,
+    "slot": 323176
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 128644,
+     "argument": 580,
+     "cast": 6612,
+     "const": 323872,
+     "frame": 140128,
+     "load": 93032,
+     "return": 580,
+     "slot": 191052
+    },
+    "and": {
+     "alu": 6264,
+     "load": 20996
+    },
+    "eq": {
+     "alu": 202536,
+     "const": 134560,
+     "load": 105908,
+     "slot": 29000
+    },
+    "gt": {
+     "alu": 16820,
+     "cast": 190472,
+     "const": 58928
+    },
+    "lt": {
+     "alu": 696,
+     "cast": 188616,
+     "const": 59740
+    },
+    "or": {
+     "alu": 8932,
+     "load": 8932
+    },
+    "sh": {
+     "alu": 7308,
+     "const": 18328,
+     "load": 348,
+     "slot": 9744
+    },
+    "sub": {
+     "alu": 19256,
+     "cast": 6612,
+     "const": 3480,
+     "load": 11484,
+     "slot": 51156
+    },
+    "xor": {
+     "alu": 7540,
+     "const": 120640,
+     "load": 115420,
+     "slot": 42224
+    }
+   },
+   "alu_input_route": {
+    "direct": 1827116,
+    "dup": 322595,
+    "echo": 171217,
+    "pick": 9512
+   },
+   "alu_inputs": 2330440,
    "call_depth_max": 8,
    "call_dynamic": {
     "0": 14619
@@ -17512,6 +19510,76 @@
   "static_instructions": 5315,
   "static_text_bytes": 10630,
   "whole": {
+   "alu_input": {
+    "alu": 156808,
+    "argument": 3332,
+    "cast": 3331,
+    "const": 816202,
+    "frame": 646280,
+    "load": 153373,
+    "return": 1,
+    "slot": 63362
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 50153,
+     "const": 712903,
+     "frame": 646280,
+     "load": 9993,
+     "slot": 23385
+    },
+    "and": {
+     "alu": 20020,
+     "const": 33314,
+     "slot": 13326
+    },
+    "eq": {
+     "alu": 39978,
+     "const": 10001,
+     "load": 86750,
+     "return": 1
+    },
+    "gt": {
+     "alu": 3331,
+     "const": 3331
+    },
+    "lt": {
+     "alu": 3331,
+     "argument": 3332,
+     "const": 19991,
+     "slot": 13326
+    },
+    "mul": {
+     "alu": 6664,
+     "const": 6664
+    },
+    "or": {
+     "alu": 1,
+     "load": 3
+    },
+    "sh": {
+     "alu": 6663,
+     "const": 13326,
+     "slot": 6663
+    },
+    "sub": {
+     "alu": 23320,
+     "cast": 3331,
+     "const": 3332,
+     "slot": 6662
+    },
+    "xor": {
+     "alu": 3347,
+     "const": 13340,
+     "load": 56627
+    }
+   },
+   "alu_input_route": {
+    "direct": 1669289,
+    "dup": 123404,
+    "echo": 49996
+   },
+   "alu_inputs": 1842689,
    "call_depth_max": 5,
    "call_dynamic": {
     "0": 19998
@@ -17817,6 +19885,70 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 156510,
+    "argument": 3330,
+    "cast": 3330,
+    "const": 815851,
+    "frame": 646021,
+    "load": 153180,
+    "slot": 63270
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 49950,
+     "const": 712621,
+     "frame": 646021,
+     "load": 9990,
+     "slot": 23310
+    },
+    "and": {
+     "alu": 19980,
+     "const": 33300,
+     "slot": 13320
+    },
+    "eq": {
+     "alu": 39960,
+     "const": 9990,
+     "load": 86580
+    },
+    "gt": {
+     "alu": 3330,
+     "const": 3330
+    },
+    "lt": {
+     "alu": 3330,
+     "argument": 3330,
+     "const": 19980,
+     "slot": 13320
+    },
+    "mul": {
+     "alu": 6660,
+     "const": 6660
+    },
+    "sh": {
+     "alu": 6660,
+     "const": 13320,
+     "slot": 6660
+    },
+    "sub": {
+     "alu": 23310,
+     "cast": 3330,
+     "const": 3330,
+     "slot": 6660
+    },
+    "xor": {
+     "alu": 3330,
+     "const": 13320,
+     "load": 56610
+    }
+   },
+   "alu_input_route": {
+    "direct": 1668332,
+    "dup": 123210,
+    "echo": 49950
+   },
+   "alu_inputs": 1841492,
    "call_depth_max": 5,
    "call_dynamic": {
     "0": 19983
@@ -18392,6 +20524,81 @@
   "static_instructions": 1459,
   "static_text_bytes": 2918,
   "whole": {
+   "alu_input": {
+    "alu": 625623,
+    "argument": 1740,
+    "cast": 146217,
+    "const": 408715,
+    "load": 61801,
+    "return": 1,
+    "slot": 98169
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 229881,
+     "argument": 47,
+     "cast": 108570,
+     "const": 141611,
+     "load": 376,
+     "slot": 39701
+    },
+    "and": {
+     "alu": 46436,
+     "argument": 47,
+     "const": 53956,
+     "slot": 7473
+    },
+    "eq": {
+     "alu": 14807,
+     "argument": 1,
+     "const": 3904,
+     "load": 4700,
+     "return": 1,
+     "slot": 94
+    },
+    "gt": {
+     "alu": 3525,
+     "const": 3478,
+     "load": 47
+    },
+    "lt": {
+     "alu": 3102,
+     "argument": 1645,
+     "const": 9306,
+     "slot": 4559
+    },
+    "mul": {
+     "alu": 45543,
+     "cast": 36190,
+     "const": 75952,
+     "load": 36190,
+     "slot": 42535
+    },
+    "sh": {
+     "alu": 111108,
+     "const": 113646,
+     "slot": 2538
+    },
+    "sub": {
+     "alu": 88924,
+     "cast": 1457,
+     "const": 1504,
+     "slot": 1222
+    },
+    "xor": {
+     "alu": 82297,
+     "const": 5358,
+     "load": 20488,
+     "slot": 47
+    }
+   },
+   "alu_input_route": {
+    "direct": 936282,
+    "dup": 368427,
+    "echo": 37510,
+    "pick": 47
+   },
+   "alu_inputs": 1342266,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 37987
@@ -18614,6 +20821,78 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 612312,
+    "argument": 1702,
+    "cast": 143106,
+    "const": 400017,
+    "load": 60488,
+    "slot": 96084
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 224991,
+     "argument": 46,
+     "cast": 106260,
+     "const": 138598,
+     "load": 368,
+     "slot": 38860
+    },
+    "and": {
+     "alu": 45448,
+     "argument": 46,
+     "const": 52808,
+     "slot": 7314
+    },
+    "eq": {
+     "alu": 14491,
+     "const": 3819,
+     "load": 4600,
+     "slot": 92
+    },
+    "gt": {
+     "alu": 3450,
+     "const": 3404,
+     "load": 46
+    },
+    "lt": {
+     "alu": 3036,
+     "argument": 1610,
+     "const": 9108,
+     "slot": 4462
+    },
+    "mul": {
+     "alu": 44574,
+     "cast": 35420,
+     "const": 74336,
+     "load": 35420,
+     "slot": 41630
+    },
+    "sh": {
+     "alu": 108744,
+     "const": 111228,
+     "slot": 2484
+    },
+    "sub": {
+     "alu": 87032,
+     "cast": 1426,
+     "const": 1472,
+     "slot": 1196
+    },
+    "xor": {
+     "alu": 80546,
+     "const": 5244,
+     "load": 20054,
+     "slot": 46
+    }
+   },
+   "alu_input_route": {
+    "direct": 916363,
+    "dup": 360591,
+    "echo": 36709,
+    "pick": 46
+   },
+   "alu_inputs": 1313709,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 37171
@@ -19158,6 +21437,85 @@
   "static_instructions": 2134,
   "static_text_bytes": 4268,
   "whole": {
+   "alu_input": {
+    "alu": 1428911,
+    "argument": 37511,
+    "cast": 75012,
+    "const": 730658,
+    "frame": 71507,
+    "load": 387602,
+    "return": 2,
+    "slot": 378645
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 625165,
+     "const": 423423,
+     "frame": 71507,
+     "load": 3572,
+     "slot": 221469
+    },
+    "and": {
+     "alu": 5,
+     "const": 7,
+     "slot": 2
+    },
+    "div": {
+     "alu": 75012
+    },
+    "eq": {
+     "alu": 1797,
+     "const": 2,
+     "load": 3612,
+     "return": 1,
+     "slot": 26790
+    },
+    "gt": {
+     "alu": 20,
+     "const": 20
+    },
+    "lt": {
+     "argument": 2,
+     "const": 7,
+     "slot": 3
+    },
+    "mul": {
+     "alu": 71442,
+     "const": 55368,
+     "load": 250040,
+     "slot": 16074
+    },
+    "or": {
+     "argument": 3,
+     "return": 1
+    },
+    "sh": {
+     "alu": 17862,
+     "argument": 37506,
+     "cast": 75012,
+     "const": 187534,
+     "load": 37506,
+     "slot": 16076
+    },
+    "sub": {
+     "alu": 275050,
+     "const": 1787,
+     "load": 44650,
+     "slot": 17861
+    },
+    "xor": {
+     "alu": 362558,
+     "const": 62510,
+     "load": 48222,
+     "slot": 80370
+    }
+   },
+   "alu_input_route": {
+    "direct": 2056012,
+    "dup": 787708,
+    "echo": 266128
+   },
+   "alu_inputs": 3109848,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 37519
@@ -19433,6 +21791,64 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 1428000,
+    "argument": 37485,
+    "cast": 74970,
+    "const": 730098,
+    "frame": 71433,
+    "load": 387345,
+    "slot": 378420
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 624750,
+     "const": 423078,
+     "frame": 71433,
+     "load": 3570,
+     "slot": 221340
+    },
+    "div": {
+     "alu": 74970
+    },
+    "eq": {
+     "alu": 1785,
+     "load": 3570,
+     "slot": 26775
+    },
+    "mul": {
+     "alu": 71400,
+     "const": 55335,
+     "load": 249900,
+     "slot": 16065
+    },
+    "sh": {
+     "alu": 17850,
+     "argument": 37485,
+     "cast": 74970,
+     "const": 187425,
+     "load": 37485,
+     "slot": 16065
+    },
+    "sub": {
+     "alu": 274890,
+     "const": 1785,
+     "load": 44625,
+     "slot": 17850
+    },
+    "xor": {
+     "alu": 362355,
+     "const": 62475,
+     "load": 48195,
+     "slot": 80325
+    }
+   },
+   "alu_input_route": {
+    "direct": 2054601,
+    "dup": 787185,
+    "echo": 265965
+   },
+   "alu_inputs": 3107751,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 37488
@@ -20070,6 +22486,103 @@
   "static_instructions": 8167,
   "static_text_bytes": 16334,
   "whole": {
+   "alu_input": {
+    "alu": 1111544,
+    "argument": 16542,
+    "cast": 292635,
+    "const": 838114,
+    "frame": 129430,
+    "load": 84328,
+    "return": 6128,
+    "slot": 150318
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 357360,
+     "argument": 1200,
+     "const": 377449,
+     "frame": 129430,
+     "load": 33549,
+     "slot": 38349
+    },
+    "and": {
+     "alu": 117502,
+     "argument": 1350,
+     "cast": 25218,
+     "const": 165031,
+     "slot": 21555
+    },
+    "div": {
+     "alu": 5346,
+     "cast": 1305
+    },
+    "eq": {
+     "alu": 142932,
+     "cast": 90,
+     "const": 12567,
+     "load": 11179,
+     "return": 110,
+     "slot": 15012
+    },
+    "gt": {
+     "alu": 47444,
+     "cast": 92778,
+     "const": 28490,
+     "slot": 10476
+    },
+    "lt": {
+     "alu": 17418,
+     "argument": 1,
+     "cast": 159558,
+     "const": 32164,
+     "load": 1425,
+     "slot": 774
+    },
+    "mul": {
+     "alu": 125604,
+     "const": 8508,
+     "load": 6000,
+     "return": 2400,
+     "slot": 3240
+    },
+    "or": {
+     "alu": 70904,
+     "argument": 2,
+     "cast": 108,
+     "const": 21710,
+     "slot": 20898
+    },
+    "sh": {
+     "alu": 131085,
+     "argument": 9189,
+     "cast": 13524,
+     "const": 160632,
+     "load": 5886,
+     "slot": 22044
+    },
+    "sub": {
+     "alu": 67992,
+     "argument": 4800,
+     "cast": 54,
+     "const": 16524,
+     "load": 6009,
+     "slot": 6612
+    },
+    "xor": {
+     "alu": 27957,
+     "const": 15039,
+     "load": 20280,
+     "return": 3618,
+     "slot": 11358
+    }
+   },
+   "alu_input_route": {
+    "direct": 1932100,
+    "dup": 543622,
+    "echo": 147917,
+    "pick": 5400
+   },
+   "alu_inputs": 2629039,
    "call_depth_max": 6,
    "call_dynamic": {
     "0": 34866
@@ -20455,6 +22968,101 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 738895,
+    "argument": 11026,
+    "cast": 195090,
+    "const": 556601,
+    "frame": 86282,
+    "load": 55152,
+    "return": 4084,
+    "slot": 100212
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 236642,
+     "argument": 800,
+     "const": 250026,
+     "frame": 86282,
+     "load": 22366,
+     "slot": 25566
+    },
+    "and": {
+     "alu": 78334,
+     "argument": 900,
+     "cast": 16812,
+     "const": 110020,
+     "slot": 14370
+    },
+    "div": {
+     "alu": 3564,
+     "cast": 870
+    },
+    "eq": {
+     "alu": 95286,
+     "cast": 60,
+     "const": 8378,
+     "load": 6386,
+     "return": 72,
+     "slot": 10008
+    },
+    "gt": {
+     "alu": 31096,
+     "cast": 61852,
+     "const": 18460,
+     "slot": 6984
+    },
+    "lt": {
+     "alu": 11612,
+     "cast": 106372,
+     "const": 21442,
+     "load": 950,
+     "slot": 516
+    },
+    "mul": {
+     "alu": 83736,
+     "const": 5672,
+     "load": 4000,
+     "return": 1600,
+     "slot": 2160
+    },
+    "or": {
+     "alu": 47269,
+     "cast": 72,
+     "const": 14473,
+     "slot": 13932
+    },
+    "sh": {
+     "alu": 87390,
+     "argument": 6126,
+     "cast": 9016,
+     "const": 107088,
+     "load": 3924,
+     "slot": 14696
+    },
+    "sub": {
+     "alu": 45328,
+     "argument": 3200,
+     "cast": 36,
+     "const": 11016,
+     "load": 4006,
+     "slot": 4408
+    },
+    "xor": {
+     "alu": 18638,
+     "const": 10026,
+     "load": 13520,
+     "return": 2412,
+     "slot": 7572
+    }
+   },
+   "alu_input_route": {
+    "direct": 1284320,
+    "dup": 360814,
+    "echo": 98608,
+    "pick": 3600
+   },
+   "alu_inputs": 1747342,
    "call_depth_max": 6,
    "call_dynamic": {
     "0": 23239
@@ -21103,6 +23711,65 @@
   "static_instructions": 518,
   "static_text_bytes": 1036,
   "whole": {
+   "alu_input": {
+    "alu": 987109,
+    "argument": 1,
+    "cast": 366820,
+    "const": 480233,
+    "frame": 3328,
+    "load": 943562,
+    "return": 1,
+    "slot": 1296104
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 879842,
+     "const": 7170,
+     "frame": 2560,
+     "load": 102656,
+     "slot": 1193702
+    },
+    "and": {
+     "const": 102400,
+     "load": 102400
+    },
+    "eq": {
+     "cast": 256,
+     "load": 256,
+     "return": 1
+    },
+    "gt": {
+     "cast": 366564,
+     "const": 366566,
+     "load": 4610
+    },
+    "lt": {
+     "const": 256,
+     "load": 733384
+    },
+    "or": {
+     "const": 768,
+     "frame": 768
+    },
+    "sh": {
+     "alu": 2305,
+     "const": 513,
+     "load": 256
+    },
+    "xor": {
+     "alu": 104962,
+     "argument": 1,
+     "const": 2560,
+     "slot": 102402
+    }
+   },
+   "alu_input_route": {
+    "direct": 2349496,
+    "dup": 980964,
+    "echo": 378086,
+    "pick": 368612
+   },
+   "alu_inputs": 4077158,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 267
@@ -21377,6 +24044,61 @@
    }
   },
   "window": {
+   "alu_input": {
+    "alu": 493554,
+    "cast": 183410,
+    "const": 240116,
+    "frame": 1664,
+    "load": 471781,
+    "slot": 648052
+   },
+   "alu_input_by_op": {
+    "add": {
+     "alu": 439921,
+     "const": 3585,
+     "frame": 1280,
+     "load": 51328,
+     "slot": 596851
+    },
+    "and": {
+     "const": 51200,
+     "load": 51200
+    },
+    "eq": {
+     "cast": 128,
+     "load": 128
+    },
+    "gt": {
+     "cast": 183282,
+     "const": 183283,
+     "load": 2305
+    },
+    "lt": {
+     "const": 128,
+     "load": 366692
+    },
+    "or": {
+     "const": 384,
+     "frame": 384
+    },
+    "sh": {
+     "alu": 1152,
+     "const": 256,
+     "load": 128
+    },
+    "xor": {
+     "alu": 52481,
+     "const": 1280,
+     "slot": 51201
+    }
+   },
+   "alu_input_route": {
+    "direct": 1174747,
+    "dup": 490482,
+    "echo": 189042,
+    "pick": 184306
+   },
+   "alu_inputs": 2038577,
    "call_depth_max": 4,
    "call_dynamic": {
     "0": 131

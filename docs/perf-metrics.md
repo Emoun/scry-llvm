@@ -8,8 +8,9 @@ next to the same programs compiled for rv32imac by the same LLVM
 repository's libc and compiler-rt builtins, `-O2`) and run under Spike.
 `perf-results.md` gives the instruction counts against the
 baseline; this document looks at code size, the instruction mix, what
-the constants are for, how long operands and control flow stay in
-flight, memory traffic and operands in flight.
+the constants are for, what the ALU instructions consume, how long
+operands and control flow stay in flight, memory traffic and operands in
+flight.
 
 The dynamic figures come from the simulator's event stream
 (`scripts/scry_metrics.py`), the static ones from decoding the linked
@@ -268,6 +269,107 @@ they are, and the consumer by the instruction after the group (so
 | wikisort | 1,097 | 2,296 | 28.1% | 66.2% | 17.7% | 1.7% | 0.1% | 13.8% | 0.5% |
 | xgboost | 74 | 129 | 24.9% | 16.2% | 18.9% | 21.6% | 12.2% | 20.3% | 10.8% |
 | **pooled** | 16,542 | 25,672 | 23.1% | 59.1% | 14.6% | 11.5% | 3.3% | 9.9% | 1.6% |
+
+## ALU operands
+
+What the ALU instructions (`add sub mul div sh and or xor eq lt gt isnar
+narto`, 21% of the executed instructions) consume, by the instruction that
+produced each operand.  The simulator gives every value an id when it is
+produced and keeps it through `echo`, `pick`, `const` and `grow`
+forwards; a `dup` copy gets a new id and is credited to the origin of the
+value it copies.  An **argument** is a value produced in the caller and
+consumed in a callee, a **return** value the reverse (told apart by the
+call depth); **frame addr** is the address a `saddr` produces.  The
+route columns say how the operand reached the ALU instruction: directly
+from its producer, through an `echo`, as a `dup` copy, or chosen by a
+`pick` (overlaps are counted once, pick first, then dup, then echo).
+
+Over the 19 benchmarks the ALU instructions consume 59.3 M operands,
+1.87 per instruction: 13% of the instructions use the implicit second
+operand that the ISA supplies when only one is ready (1 for `add`/`sub`/`and`, 0 for
+the compares, all ones for `or`/`xor`), so `eq` averages 1.29 inputs
+(seven in ten are compares with zero) and `sub` 1.66.  Of the operands:
+
+* **46% are other ALU results**: the values of expressions in flight.
+  nettle-sha256 (74%) and aha-mont64 (70%) are pure arithmetic chains;
+  statemate (8.5%) and nsichneu (17%) are branching code that mostly
+  tests what it loads.
+* **25% are constants** (14.6 M operands, from the 13.4 M const/grow
+  groups that feed ALU instructions plus `dup` copies of them).  Shifts
+  take the most (44% of `sh` inputs are immediates: shift amounts),
+  then `and` (37%, masks), `gt` (31%) and `add` (27%, offsets and
+  strides).  statemate (44%) and crc32 (35%) are the extremes above,
+  xgboost and matmult-int (12%) below.
+* **11% are memory loads**: two thirds of the 9.9 M loads from memory
+  go straight into an ALU instruction (the rest are stored, cast, or
+  used as addresses and jump conditions).  matmult-int (36%) and
+  nsichneu (33%) load their operands; the compares `eq` (33%) and `lt`
+  (25%) and `xor` (20%, the hash and cipher mixing) take the most loads.
+* **8% are casts**: a width change in front of the ALU instruction, in
+  practice the extension of a narrow load (nsichneu 34%: the loads of its
+  byte flags are each followed by a `cast i32`) or the retyping of 16-bit
+  (edn 24%) and 64-bit (depthconv 22%) arithmetic.  Compares and `mul`
+  see the most casts (46% of `gt`, 36% of `mul`, 33% of `lt` inputs).
+* **6.4% are slot loads** (`ld [i]`): 55% of the 6.8 M slot loads go to
+  an ALU instruction (the rest to stores, calls and jumps).  xgboost
+  (32%) and md5sum (14%) keep their working set in slots.
+* **3.7% are frame addresses** (`saddr`), almost always one input of an
+  `add` that indexes a local array (statemate 35%, sglib-combined 20%,
+  huffbench 15%).
+* **0.4% are arguments or return values**: with the whole call sequence
+  moving values through slots and `echo`, a value crossing a call goes
+  straight into an ALU instruction only in crc32 (the `rand()` result
+  xor-ed into the CRC, 5.9%) and ud (1.2%).
+
+Two thirds of the operands reach the ALU instruction directly from
+their producer; a quarter are `dup` copies (nettle-aes, edn and
+matmult-int above 32%: a loaded or computed value used twice), 8.6%
+pass through an `echo` (matmult-int 27%: values carried across the
+unrolled loop body) and 0.9% through a `pick` (xgboost 9%, aha-mont64
+5%).  nsichneu's inputs are all direct: its code is straight-line tests
+and assignments with no reuse.
+
+| benchmark | operands | per ALU instr | const | alu | load | slot | cast | frame addr | arg/ret | other | via echo | dup copy | via pick |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 3,587,714 | 1.69 | 15.2% | 70.1% | 0.1% | 9.3% | 5.3% | 0.0% | 0.0% | 0.0% | 3.5% | 24.7% | 5.1% |
+| crc32 | 2,960,722 | 1.89 | 35.3% | 47.0% | 11.8% | 0.0% | 0.0% | 0.0% | 5.9% | 0.0% | 5.9% | 23.5% | 0.0% |
+| depthconv | 3,332,087 | 2.00 | 29.0% | 39.9% | 3.1% | 5.9% | 22.0% | 0.0% | 0.0% | 0.0% | 14.9% | 29.3% | 0.0% |
+| edn | 4,626,489 | 2.00 | 15.5% | 49.3% | 1.6% | 9.8% | 23.8% | 0.0% | 0.0% | 0.0% | 9.0% | 32.9% | 0.0% |
+| huffbench | 3,811,588 | 1.70 | 28.4% | 41.0% | 15.6% | 0.0% | 0.4% | 14.5% | 0.0% | 0.0% | 6.4% | 26.2% | 0.8% |
+| matmult-int | 2,210,419 | 2.00 | 12.1% | 41.8% | 35.7% | 5.7% | 0.0% | 4.7% | 0.0% | 0.0% | 27.3% | 32.4% | 0.0% |
+| md5sum | 3,407,192 | 1.86 | 26.8% | 49.1% | 8.0% | 14.2% | 2.0% | 0.0% | 0.0% | 0.0% | 14.5% | 27.7% | 0.0% |
+| nettle-aes | 4,478,452 | 1.98 | 27.3% | 54.0% | 16.5% | 1.5% | 0.8% | 0.0% | 0.0% | 0.0% | 15.0% | 33.4% | 0.0% |
+| nettle-sha256 | 8,386,786 | 1.99 | 21.2% | 74.0% | 4.2% | 0.4% | 0.0% | 0.2% | 0.0% | 0.0% | 6.5% | 30.5% | 0.0% |
+| nsichneu | 1,854,160 | 1.71 | 16.7% | 16.8% | 32.7% | 0.3% | 33.5% | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% |
+| picojpeg | 2,883,920 | 1.80 | 31.2% | 36.6% | 12.8% | 7.2% | 11.8% | 0.4% | 0.0% | 0.0% | 10.3% | 22.5% | 0.7% |
+| qrduino | 2,626,755 | 1.69 | 20.0% | 45.8% | 15.6% | 9.4% | 9.2% | 0.1% | 0.0% | 0.0% | 6.7% | 24.6% | 2.6% |
+| sglib-combined | 2,772,690 | 1.81 | 31.5% | 19.6% | 12.8% | 0.3% | 16.1% | 19.6% | 0.0% | 0.0% | 2.2% | 15.1% | 1.7% |
+| slre | 2,330,440 | 1.74 | 30.9% | 17.1% | 15.3% | 13.9% | 16.8% | 6.0% | 0.0% | 0.0% | 7.3% | 13.8% | 0.4% |
+| statemate | 1,841,492 | 1.86 | 44.3% | 8.5% | 8.3% | 3.4% | 0.2% | 35.1% | 0.2% | 0.0% | 2.7% | 6.7% | 0.0% |
+| tarfind | 1,313,709 | 1.87 | 30.4% | 46.6% | 4.6% | 7.3% | 10.9% | 0.0% | 0.1% | 0.0% | 2.8% | 27.4% | 0.0% |
+| ud | 3,107,751 | 1.92 | 23.5% | 45.9% | 12.5% | 12.2% | 2.4% | 2.3% | 1.2% | 0.0% | 8.6% | 25.3% | 0.0% |
+| wikisort | 1,747,342 | 1.84 | 31.9% | 42.3% | 3.2% | 5.7% | 11.2% | 4.9% | 0.9% | 0.0% | 5.6% | 20.6% | 0.2% |
+| xgboost | 2,038,577 | 1.90 | 11.8% | 24.2% | 23.1% | 31.8% | 9.0% | 0.1% | 0.0% | 0.0% | 9.3% | 24.1% | 9.0% |
+| **pooled** | 59,318,285 | 1.87 | 24.6% | 45.9% | 10.9% | 6.4% | 8.1% | 3.7% | 0.4% | 0.0% | 8.6% | 25.2% | 0.9% |
+
+#### ALU operands by opcode
+
+The same origins per opcode, pooled over the benchmarks (`isnar` and
+`narto` do not occur).
+
+| opcode | operands | of all | const | alu | load | slot | cast | frame addr | arg/ret | other |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| add | 23,541,013 | 39.7% | 27.3% | 45.7% | 4.6% | 11.2% | 2.0% | 9.3% | 0.0% | 0.0% |
+| sh | 8,514,829 | 14.4% | 44.2% | 43.1% | 4.7% | 1.0% | 6.5% | 0.0% | 0.5% | 0.0% |
+| xor | 5,864,489 | 9.9% | 9.0% | 62.3% | 20.2% | 4.5% | 1.0% | 0.0% | 3.0% | 0.0% |
+| mul | 3,738,468 | 6.3% | 11.4% | 15.1% | 34.5% | 2.8% | 36.1% | 0.0% | 0.0% | 0.0% |
+| and | 3,704,936 | 6.2% | 37.4% | 51.1% | 5.0% | 4.4% | 2.1% | 0.0% | 0.0% | 0.0% |
+| or | 3,220,644 | 5.4% | 3.4% | 91.7% | 3.9% | 0.8% | 0.1% | 0.0% | 0.0% | 0.0% |
+| eq | 3,009,046 | 5.1% | 9.7% | 54.1% | 32.7% | 3.2% | 0.3% | 0.0% | 0.0% | 0.0% |
+| lt | 2,725,224 | 4.6% | 15.3% | 17.6% | 25.4% | 8.1% | 33.3% | 0.0% | 0.2% | 0.0% |
+| sub | 2,411,387 | 4.1% | 21.6% | 45.4% | 14.2% | 7.1% | 11.6% | 0.0% | 0.1% | 0.0% |
+| gt | 2,360,193 | 4.0% | 31.2% | 14.8% | 7.7% | 0.3% | 45.9% | 0.0% | 0.0% | 0.0% |
+| div | 228,056 | 0.4% | 0.2% | 84.1% | 13.4% | 1.8% | 0.6% | 0.0% | 0.0% | 0.0% |
 
 ## Operand lifetime
 
@@ -638,7 +740,8 @@ constant instructions, 54% of the dynamic count, and the unrolled loop
 bodies that carry their deliveries.  Half of the operand lifetimes fit the next
 instruction and 90% fit the 5-bit reference; the remaining tenth, and
 the constants (17% of the instructions, three quarters of them ALU
-immediates that a register ISA folds into the instruction), are where
+immediates that a register ISA folds into the instruction; a quarter of
+all ALU operands), are where
 the encoding costs most.  Control flow is
 issued on average 17 instructions ahead of its trigger, a quarter of it
 with no lookahead.

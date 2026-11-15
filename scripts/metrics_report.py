@@ -300,14 +300,15 @@ def main():
     # 3c. ALU operands
     if all("alu_input" in r[1] for r in rows):
         out.append("\n### ALU operands\n")
-        origins = ("const", "alu", "load", "slot", "argument", "return")
+        origins = ("const", "alu", "load", "slot", "cast", "frame")
 
         def origin_cells(n, c):
-            other = n - sum(c.get(x, 0) for x in origins)
-            return [pct(c.get(x, 0), n) for x in origins] + [pct(other, n)]
+            calls = c.get("argument", 0) + c.get("return", 0)
+            other = n - sum(c.get(x, 0) for x in origins) - calls
+            return [pct(c.get(x, 0), n) for x in origins] + [pct(calls, n), pct(other, n)]
 
-        hdr = ["benchmark", "operands", "per ALU instr", "const", "alu", "load", "slot", "argument",
-               "return", "other", "via echo", "dup copy", "via pick"]
+        hdr = ["benchmark", "operands", "per ALU instr", "const", "alu", "load", "slot", "cast",
+               "frame addr", "arg/ret", "other", "via echo", "dup copy", "via pick"]
         t = []
         for n, w, s, r in all_rows:
             k = w["alu_inputs"]
@@ -317,7 +318,8 @@ def main():
                      + [pct(rt.get("echo", 0), k), pct(rt.get("dup", 0), k), pct(rt.get("pick", 0), k)])
         out.append(table(hdr, t))
         out.append("\n#### ALU operands by opcode\n")
-        hdr = ["opcode", "operands", "of all", "const", "alu", "load", "slot", "argument", "return", "other"]
+        hdr = ["opcode", "operands", "of all", "const", "alu", "load", "slot", "cast", "frame addr",
+               "arg/ret", "other"]
         t = []
         by_op = tot_w["alu_input_by_op"]
         for op in sorted(by_op, key=lambda o: -sum(by_op[o].values())):
