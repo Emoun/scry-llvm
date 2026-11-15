@@ -12,7 +12,9 @@ Columns: executed instructions; dataflow instructions (`echo`, `dup`, `nop`)
 and their share; slot/memory instructions (`ld`, `ld.s`, `st`, `st.s`,
 `saddr`); constants (`const`, `grow`); mean distance (instructions) between
 a `jmp` and its trigger; mean `ld` output reference; mean and maximum
-number of operands in flight in the current frame.
+number of operands in flight in the current frame.  The last two rows
+are the pooled counts (shares and means over all events) and the
+geometric mean over the benchmarks of each column.
 
 | benchmark | instructions | dataflow | DF% | mem | const | jmp dist | ld ref | in flight |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -33,7 +35,8 @@ number of operands in flight in the current frame.
 | tarfind | 25,816,534 | 3,636,393 | 14.1 | 51.1% | 19.0% | 0.0 | 0.0 | 0.94 / 4 |
 | ud | 64,761,665 | 6,952,588 | 10.7 | 34.9% | 33.7% | 0.0 | 0.0 | 1.65 / 3 |
 | xgboost | 32,029,599 | 4,687,372 | 14.6 | 54.5% | 14.9% | 0.0 | 0.0 | 1.11 / 4 |
-| **pooled** | 554,828,370 | 76,256,976 | 13.7 | | | | | |
+| **pooled** | 554,828,370 | 76,256,976 | 13.7 | 48.2% | 19.2% | 0.0 | 0.0 | 1.27 / 6 |
+| **geometric mean** | 30,309,422 | 4,187,529 | 13.8 | 49.7% | 16.3% | 0.0 | 0.0 | 1.16 / 3.9 |
 
 For reference, the same benchmark windows execute 51,262,616 instructions
 on rv32imac (Spike, the clang 22.1.8 images of `perf-rv32.json`), a

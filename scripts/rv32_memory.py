@@ -27,6 +27,7 @@ import argparse
 import bisect
 import collections
 import json
+import math
 import re
 import subprocess
 import sys
@@ -187,14 +188,14 @@ def main():
 
 
 def markdown(res):
-    """The per-benchmark table with a pooled row."""
+    """The per-benchmark table with a pooled and a geometric-mean row."""
     hdr = ["benchmark", "ld/st", "rodata", "global", "stack", "callee-save", "sp spills/locals",
            "gp", "computed"]
     rows = []
     tot = collections.Counter()
     tn = 0
 
-    def row(name, c, n):
+    def values(c, n):
         t = sum(c.values())
         reg = collections.Counter()
         kind = collections.Counter()
@@ -202,16 +203,29 @@ def markdown(res):
             _, region, kd = k.split("/")
             reg[region] += v
             kind[kd] += v
-        pc = lambda a, b: f"{100.0 * a / b:.1f}%" if b else "-"
-        return [name, pc(t, n), pc(reg["rodata"], t), pc(reg["global"], t), pc(reg["stack"], t),
+        pc = lambda a, b: 100.0 * a / b if b else 0.0
+        return [pc(t, n), pc(reg["rodata"], t), pc(reg["global"], t), pc(reg["stack"], t),
                 pc(kind["callee-save"], t), pc(kind["sp-direct"], t), pc(kind["gp"], t),
                 pc(kind["computed"], t)]
+
+    def fmt(name, vals, mark=""):
+        return [name] + [f"{v:.1f}%{mark}" for v in vals]
+    per_bench = []
     for name in sorted(res):
         c = res[name]["counts"]
-        rows.append(row(name, c, res[name]["window_instructions"]))
+        per_bench.append(values(c, res[name]["window_instructions"]))
+        rows.append(fmt(name, per_bench[-1]))
         tot.update(c)
         tn += res[name]["window_instructions"]
-    rows.append(row("**pooled**", tot, tn))
+    rows.append(fmt("**pooled**", values(tot, tn)))
+    # Geometric mean over the benchmarks of each column; zeros are left out
+    # (they would make the mean zero) and such cells are marked with a dagger.
+    gm = ["**geometric mean**"]
+    for i in range(len(hdr) - 1):
+        xs = [v[i] for v in per_bench if v[i] > 0]
+        g = math.exp(sum(math.log(x) for x in xs) / len(xs)) if xs else 0.0
+        gm.append(f"{g:.1f}%" + ("†" if len(xs) < len(per_bench) else ""))
+    rows.append(gm)
     out = ["| " + " | ".join(hdr) + " |", "|" + "|".join("---:" if i else "---" for i in range(len(hdr))) + "|"]
     out += ["| " + " | ".join(r) + " |" for r in rows]
     return "\n".join(out)

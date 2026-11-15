@@ -6,12 +6,13 @@
 metrics.json is written by run_embench.py --metrics --profile --json (the
 static view under "static" needs --profile for the execution-weighted
 figures); rv32.json by rv32_metrics.py --json for the same benchmarks.
-Every table has one row per benchmark and a **pooled** row computed from
-the summed counts and histograms (means, shares and quantiles over all
-benchmarks' events, not averages of the per-benchmark figures); the
-code-size table, which compares the two ISAs, ends in a **geometric
-mean** row over the benchmarks instead, with the pooled sums in a
-sentence after it.
+Every per-benchmark table ends in two summary rows: **pooled**, computed
+from the summed counts and histograms (means, shares and quantiles over
+all benchmarks' events), and **geometric mean**, the geometric mean over
+the benchmarks of each column's values (so a ratio there is also the
+ratio of the mean counts).  A geometric mean leaves out benchmarks whose
+value is zero (a zero would make the mean zero) and is then marked with
+a dagger.
 
 Tables: code size, dynamic instruction mix, static instruction mix,
 constant groups (what the immediates built by const/grow are used for,
@@ -70,11 +71,44 @@ def h_max(h):
 QUANTILE_HDR = ["mean", "p10", "p25", "median", "p75", "p90", "p99", "max"]
 
 
+class Num:
+    """A table cell that keeps its value(s) for the geometric-mean row.
+
+    fmt is a format string with one field per value; gfmt formats the
+    geometric mean (by default fmt, with one decimal for integer formats
+    when the mean is small).
+    """
+
+    def __init__(self, value, fmt, gfmt=None):
+        self.values = value if isinstance(value, tuple) else (value,)
+        self.fmt = fmt
+        self.gfmt = gfmt
+
+    def __str__(self):
+        return self.fmt.format(*self.values)
+
+    def format_mean(self, means):
+        fmt = self.gfmt or self.fmt
+        if self.gfmt is None:
+            for spec in (":,.0f", ":.0f"):
+                if spec in fmt and max(means) < 1000:
+                    fmt = fmt.replace(spec, ":.1f")
+        return fmt.format(*means)
+
+
+def cnt(x):
+    return Num(x, "{:,.0f}")
+
+
+def num(x, decimals=1):
+    return Num(x, "{:.%df}" % decimals)
+
+
 def quantile_row(h):
     """mean, p10, p25, median, p75, p90, p99, max of a {value: count} histogram."""
     if not h_n(h):
         return ["-"] * len(QUANTILE_HDR)
-    return [f"{h_mean(h):.1f}"] + [h_quantile(h, q) for q in (0.1, 0.25, 0.5, 0.75, 0.9, 0.99)] + [h_max(h)]
+    return [num(h_mean(h))] + [num(h_quantile(h, q), 0) for q in (0.1, 0.25, 0.5, 0.75, 0.9, 0.99)] + [num(h_max(h), 0)]
 
 
 def h_share(h, pred):
@@ -82,19 +116,20 @@ def h_share(h, pred):
     return 100.0 * sum(v for k, v in h.items() if pred(int(k))) / n if n else 0.0
 
 
-def pct(a, b):
-    return f"{100.0 * a / b:.1f}%" if b else "-"
+def pct(a, b, decimals=1):
+    return Num(100.0 * a / b, "{:.%df}%%" % decimals) if b else "-"
 
 
 def per_k(a, b):
-    return f"{1000.0 * a / b:.1f}" if b else "-"
+    return Num(1000.0 * a / b, "{:.1f}") if b else "-"
 
 
 def ratio(a, b):
-    return f"{a / b:.2f}" if b else "-"
+    return Num(a / b, "{:.2f}") if b else "-"
 
 
 def gmean(xs):
+    """Geometric mean of the positive values (a zero would make the whole mean zero)."""
     xs = [x for x in xs if x > 0]
     return math.exp(sum(math.log(x) for x in xs) / len(xs)) if xs else 0.0
 
@@ -105,6 +140,33 @@ def table(header, rows, align=None):
     for r in rows:
         out.append("| " + " | ".join(str(c) for c in r) + " |")
     return "\n".join(out)
+
+
+def gmean_cell(cells):
+    """Geometric mean of one column, formatted like its cells.
+
+    "-" cells are left out, and so are zero values, which would otherwise
+    make the mean zero; a cell computed without some benchmarks' values
+    is marked with a dagger.
+    """
+    nums = [c for c in cells if isinstance(c, Num)]
+    if not nums:
+        return "-"
+    k = len(nums[0].values)
+    means = tuple(gmean(c.values[i] for c in nums) for i in range(k))
+    partial = any(c.values[i] <= 0 for c in nums for i in range(k))
+    return nums[0].format_mean(means) + ("†" if partial else "")
+
+
+def quantile_table(named_hists):
+    rows = [[n] + quantile_row(h) for n, h in named_hists]
+    return emit(["benchmark"] + QUANTILE_HDR, rows[:-1], rows[-1])
+
+
+def emit(header, rows, pooled_row):
+    """A table of per-benchmark rows followed by the pooled and the geometric-mean row."""
+    gm = ["**geometric mean**"] + [gmean_cell([r[i] for r in rows]) for i in range(1, len(header))]
+    return table(header, rows + [pooled_row, gm])
 
 
 def pooled(scopes, static):
@@ -203,70 +265,35 @@ def main():
     hdr = ["benchmark", "Scry text bytes", "Scry instrs", "rv32imac text bytes", "ratio",
            "Scry executed bytes", "rv32imac executed bytes", "ratio"]
     t = []
-    for n, w, s, r in rows:
+    for n, w, s, r in all_rows:
         xb = 2 * w["instructions"]
-        t.append([n, f"{s['static_bytes']:,}", f"{s['static_instructions']:,}",
-                  f"{r['static_bytes']:,}" if r else "-", ratio(s["static_bytes"], r["static_bytes"]) if r else "-",
-                  f"{xb:,}", f"{r['window_bytes']:,}" if r else "-",
+        t.append([n, cnt(s["static_bytes"]), cnt(s["static_instructions"]),
+                  cnt(r["static_bytes"]) if r else "-", ratio(s["static_bytes"], r["static_bytes"]) if r else "-",
+                  cnt(xb), cnt(r["window_bytes"]) if r else "-",
                   ratio(xb, r["window_bytes"]) if r else "-"])
-    # This table compares the two ISAs, so its summary row is the geometric
-    # mean of every column (the ratio cells are then also the ratio of the
-    # mean counts); the pooled sums follow in a sentence.
-    gm = [gmean([r[2]["static_bytes"] for r in rows]), gmean([r[2]["static_instructions"] for r in rows])]
-    if tot_rv:
-        gm += [gmean([r[3]["static_bytes"] for r in rows]),
-               gmean([r[2]["static_bytes"] / r[3]["static_bytes"] for r in rows])]
-    else:
-        gm += [None, None]
-    gm.append(gmean([2 * r[1]["instructions"] for r in rows]))
-    if tot_rv:
-        gm += [gmean([r[3]["window_bytes"] for r in rows]),
-               gmean([2 * r[1]["instructions"] / r[3]["window_bytes"] for r in rows])]
-    else:
-        gm += [None, None]
-    t.append(["**geometric mean**"] + [("-" if g is None else f"{g:.2f}" if i in (3, 6) else f"{round(g):,}")
-                                      for i, g in enumerate(gm)])
-    out.append(table(hdr, t))
-    xb = 2 * tot_w["instructions"]
-    if tot_rv:
-        out.append(f"\nPooled over the benchmarks: {tot_s['static_bytes']:,} against "
-                   f"{tot_rv['static_bytes']:,} bytes of code (ratio "
-                   f"{ratio(tot_s['static_bytes'], tot_rv['static_bytes'])}), "
-                   f"{tot_s['static_instructions']:,} against {tot_rv['static_instructions']:,} static "
-                   f"instructions ({ratio(tot_s['static_instructions'], tot_rv['static_instructions'])}), "
-                   f"{xb:,} against {tot_rv['window_bytes']:,} executed bytes "
-                   f"({ratio(xb, tot_rv['window_bytes'])}).")
-    else:
-        out.append(f"\nPooled over the benchmarks: {tot_s['static_bytes']:,} bytes of code, "
-                   f"{tot_s['static_instructions']:,} static instructions, {xb:,} executed bytes.")
+    out.append(emit(hdr, t[:-1], t[-1]))
 
     # 2. Dynamic mix
     out.append("\n### Dynamic instruction mix\n")
     hdr = ["benchmark", "executed", "control", "dataflow", "alu", "cast/pick", "const/grow",
            "memory", "frame", "stack", "rv32 control", "rv32 ld/st", "control vs rv32", "ld/st vs rv32"]
     t = []
-    ctl_ratios, mem_ratios = [], []
     for n, w, s, r in all_rows:
         xc = s["executed_classes"]
         e = s["executed"]
         ctl = sum(w["opcodes"].get(o, 0) for o in ("jmp", "call", "ret"))
         mem = w["loads"] + w["stores"]
-        if r and r["window_control"] and n != "**pooled**":
-            ctl_ratios.append(ctl / r["window_control"])
-            mem_ratios.append(mem / (r["window_loads"] + r["window_stores"]))
-        t.append([n, f"{w['instructions']:,}", pct(xc["control"], e), pct(xc["dataflow"], e),
+        t.append([n, cnt(w["instructions"]), pct(xc["control"], e), pct(xc["dataflow"], e),
                   pct(xc["alu"], e), pct(xc["cast"] + xc["pick"], e), pct(xc["const"], e),
                   pct(xc["memory"], e), pct(xc["frame"], e), pct(xc["stack"], e),
                   pct(r["window_control"], r["window_instructions"]) if r else "-",
                   pct(r["window_loads"] + r["window_stores"], r["window_instructions"]) if r else "-",
                   ratio(ctl, r["window_control"]) if r else "-",
                   ratio(mem, r["window_loads"] + r["window_stores"]) if r else "-"])
-    out.append(table(hdr, t))
-    if ctl_ratios:
-        out.append(f"\nThe two ratio columns compare absolute counts (Scry `jmp`, `call` and "
-                   f"`ret` against rv32imac branches, jumps, calls and returns; all Scry loads and "
-                   f"stores, frame slots included, against rv32imac loads and stores); their geometric "
-                   f"means over the benchmarks are {gmean(ctl_ratios):.2f} and {gmean(mem_ratios):.2f}.")
+    out.append(emit(hdr, t[:-1], t[-1]))
+    out.append("\nThe two ratio columns compare absolute counts: Scry `jmp`, `call` and `ret` "
+               "against rv32imac branches, jumps, calls and returns, and all Scry loads and "
+               "stores, frame slots included, against rv32imac loads and stores.")
 
     # 3. Static mix
     out.append("\n### Static instruction mix\n")
@@ -276,11 +303,11 @@ def main():
     for n, w, s, r in all_rows:
         c = s["classes"]
         k = s["static_instructions"]
-        t.append([n, f"{k:,}", pct(c["control"], k), pct(c["dataflow"], k), pct(c["alu"], k),
+        t.append([n, cnt(k), pct(c["control"], k), pct(c["dataflow"], k), pct(c["alu"], k),
                   pct(c["cast"] + c["pick"], k), pct(c["const"], k), pct(c["memory"], k),
                   pct(c["frame"], k), pct(c["stack"], k), pct(s["covered_instructions"], k),
-                  f"{s['hot90']:,} ({pct(s['hot90'], k)})"])
-    out.append(table(hdr, t))
+                  Num((s["hot90"], 100.0 * s["hot90"] / k), "{:,.0f} ({:.1f}%)")])
+    out.append(emit(hdr, t[:-1], t[-1]))
 
     # 3b. Constant groups
     if all("const_groups" in r[1] for r in rows):
@@ -292,11 +319,11 @@ def main():
             g = w["const_groups"]
             c = w["const_consumer"]
             length = sum(int(k) * v for k, v in w["const_length"].items())
-            t.append([n, f"{g:,}", per_k(g, w["instructions"]), f"{length / g:.2f}" if g else "-",
+            t.append([n, cnt(g), per_k(g, w["instructions"]), num(length / g, 2) if g else "-",
                       pct(c.get("alu", 0), g), pct(c.get("control", 0), g), pct(c.get("memory", 0), g),
                       pct(c.get("frame", 0), g), pct(c.get("cast", 0) + c.get("pick", 0), g),
                       pct(c.get("discarded", 0), g), pct(w["const_direct"].get("dataflow", 0), g)])
-        out.append(table(hdr, t))
+        out.append(emit(hdr, t[:-1], t[-1]))
         out.append("\n#### Constant groups in the code\n")
         hdr = ["benchmark", "groups", "instrs", "of the code", "alu", "control", "ld/st", "to slot",
                "echo/dup", "other"]
@@ -305,10 +332,10 @@ def main():
             g = s["const_groups"]
             k, c = g["groups"], g["by_class"]
             other = k - sum(c.get(x, 0) for x in ("alu", "control", "memory", "frame", "dataflow"))
-            t.append([n, f"{k:,}", f"{g['instructions']:,}", pct(g["instructions"], s["static_instructions"]),
+            t.append([n, cnt(k), cnt(g["instructions"]), pct(g["instructions"], s["static_instructions"]),
                       pct(c.get("alu", 0), k), pct(c.get("control", 0), k), pct(c.get("memory", 0), k),
                       pct(c.get("frame", 0), k), pct(c.get("dataflow", 0), k), pct(other, k)])
-        out.append(table(hdr, t))
+        out.append(emit(hdr, t[:-1], t[-1]))
 
     # 3c. ALU operands
     if all("alu_input" in r[1] for r in rows):
@@ -327,9 +354,9 @@ def main():
             k = w["alu_inputs"]
             alu_n = sum(v for o, v in w["opcodes"].items() if o in ALU_OPS)
             rt = w["alu_input_route"]
-            t.append([n, f"{k:,}", f"{k / alu_n:.2f}" if alu_n else "-"] + origin_cells(k, w["alu_input"])
+            t.append([n, cnt(k), num(k / alu_n, 2) if alu_n else "-"] + origin_cells(k, w["alu_input"])
                      + [pct(rt.get("echo", 0), k), pct(rt.get("dup", 0), k), pct(rt.get("pick", 0), k)])
-        out.append(table(hdr, t))
+        out.append(emit(hdr, t[:-1], t[-1]))
         out.append("\n#### ALU operands by opcode\n")
         hdr = ["opcode", "operands", "of all", "const", "alu", "load", "slot", "cast", "frame addr",
                "arg/ret", "other"]
@@ -337,7 +364,7 @@ def main():
         by_op = tot_w["alu_input_by_op"]
         for op in sorted(by_op, key=lambda o: -sum(by_op[o].values())):
             k = sum(by_op[op].values())
-            t.append([op, f"{k:,}", pct(k, tot_w["alu_inputs"])] + origin_cells(k, by_op[op]))
+            t.append([op, cnt(k), pct(k, tot_w["alu_inputs"])] + origin_cells(k, by_op[op]))
         out.append(table(hdr, t))
 
     # 4. Operand lifetime
@@ -348,12 +375,12 @@ def main():
     for n, w, s, r in all_rows:
         v = w["value_ref"]
         rx = s["ref_executed"]
-        t.append([n, f"{w['produced']:,}", f"{w['produced'] / w['instructions']:.2f}",
-                  f"{h_mean(v):.1f}", h_quantile(v, 0.5), h_quantile(v, 0.9),
-                  f"{h_share(v, lambda d: d == 0):.0f}%", f"{h_share(v, lambda d: d >= 32):.1f}%",
-                  f"{h_mean(rx):.1f}", f"{h_share(rx, lambda d: d == 0):.0f}%",
-                  pct(w["discards"], w["produced"]), f"{w['forwards'] / w['instructions']:.2f}"])
-    out.append(table(hdr, t))
+        t.append([n, cnt(w["produced"]), num(w["produced"] / w["instructions"], 2),
+                  num(h_mean(v)), num(h_quantile(v, 0.5), 0), num(h_quantile(v, 0.9), 0),
+                  Num(h_share(v, lambda d: d == 0), "{:.0f}%"), Num(h_share(v, lambda d: d >= 32), "{:.1f}%"),
+                  num(h_mean(rx)), Num(h_share(rx, lambda d: d == 0), "{:.0f}%"),
+                  pct(w["discards"], w["produced"]), num(w["forwards"] / w["instructions"], 2)])
+    out.append(emit(hdr, t[:-1], t[-1]))
 
     # 5. Control flow
     out.append("\n### Control-flow lifetime\n")
@@ -368,17 +395,15 @@ def main():
         add_hist(cr, w["call_dynamic"])
         add_hist(cr, w["ret_dynamic"])
         t.append([n, per_k(jm, w["instructions"]), pct(w["jmp_taken"], jm), pct(w["jmp_overridden"], jm),
-                  f"{h_mean(w['jmp_trigger']):.1f}", f"{h_mean(jd):.1f}",
-                  f"{h_share(jd, lambda d: d == 0):.0f}%", f"{h_share(jd, lambda d: d >= 32):.0f}%",
-                  per_k(w["opcodes"].get("call", 0), w["instructions"]), f"{h_mean(cr):.2f}",
-                  w["call_depth_max"]])
-    out.append(table(hdr, t))
+                  num(h_mean(w["jmp_trigger"])), num(h_mean(jd)),
+                  Num(h_share(jd, lambda d: d == 0), "{:.0f}%"), Num(h_share(jd, lambda d: d >= 32), "{:.0f}%"),
+                  per_k(w["opcodes"].get("call", 0), w["instructions"]), num(h_mean(cr), 2),
+                  num(w["call_depth_max"], 0)])
+    out.append(emit(hdr, t[:-1], t[-1]))
     out.append("\n#### Jump distance as written (trigger field)\n")
-    out.append(table(["benchmark"] + QUANTILE_HDR,
-                     [[n] + quantile_row(w["jmp_trigger"]) for n, w, s, r in all_rows]))
+    out.append(quantile_table([(n, w["jmp_trigger"]) for n, w, s, r in all_rows]))
     out.append("\n#### Jump distance as executed (issue to trigger)\n")
-    out.append(table(["benchmark"] + QUANTILE_HDR,
-                     [[n] + quantile_row(w["jmp_dynamic"]) for n, w, s, r in all_rows]))
+    out.append(quantile_table([(n, w["jmp_dynamic"]) for n, w, s, r in all_rows]))
 
     # 6. Memory
     out.append("\n### Memory traffic\n")
@@ -389,26 +414,24 @@ def main():
     for n, w, s, r in all_rows:
         ld = w["load_dynamic"]
         t.append([n, per_k(w["loads"], w["instructions"]),
-                  f"{w['load_bytes'] / w['loads']:.1f}" if w["loads"] else "-",
+                  num(w["load_bytes"] / w["loads"]) if w["loads"] else "-",
                   pct(w["stack_loads"], w["loads"]), per_k(w["stores"], w["instructions"]),
-                  f"{w['store_bytes'] / w['stores']:.1f}" if w["stores"] else "-",
-                  pct(w["stack_stores"], w["stores"]), f"{h_mean(ld):.1f}",
+                  num(w["store_bytes"] / w["stores"]) if w["stores"] else "-",
+                  pct(w["stack_stores"], w["stores"]), num(h_mean(ld)),
                   per_k(r["window_loads"], r["window_instructions"]) if r else "-",
                   per_k(r["window_stores"], r["window_instructions"]) if r else "-"])
-    out.append(table(hdr, t))
+    out.append(emit(hdr, t[:-1], t[-1]))
     out.append("\n#### Load distance as written (output reference)\n")
-    out.append(table(["benchmark"] + QUANTILE_HDR,
-                     [[n] + quantile_row(w["load_ref"]) for n, w, s, r in all_rows]))
+    out.append(quantile_table([(n, w["load_ref"]) for n, w, s, r in all_rows]))
     out.append("\n#### Load distance as executed (load to use)\n")
-    out.append(table(["benchmark"] + QUANTILE_HDR,
-                     [[n] + quantile_row(w["load_dynamic"]) for n, w, s, r in all_rows]))
+    out.append(quantile_table([(n, w["load_dynamic"]) for n, w, s, r in all_rows]))
 
     # 7. In flight
     out.append("\n### Operands in flight\n")
     hdr = ["benchmark", "frame mean", "frame max", "all mean", "all max"]
-    t = [[n, f"{w['inflight_frame_mean']:.1f}", w["inflight_frame_max"],
-          f"{w['inflight_all_mean']:.1f}", w["inflight_all_max"]] for n, w, s, r in all_rows]
-    out.append(table(hdr, t))
+    t = [[n, num(w["inflight_frame_mean"]), num(w["inflight_frame_max"], 0),
+          num(w["inflight_all_mean"]), num(w["inflight_all_max"], 0)] for n, w, s, r in all_rows]
+    out.append(emit(hdr, t[:-1], t[-1]))
 
     print("\n".join(out))
 

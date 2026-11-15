@@ -28,12 +28,15 @@ python3 scripts/rv32_memory.py --spike build/spike/bin/spike --llvm-bin install/
     --json docs/perf-rv32-memory.json build/rv32/*.elf
 ```
 
-Every **pooled** row sums the counts and histograms of all benchmarks,
-so its means, shares and quantiles are over all events, not averages of
-the rows.  The code-size table, which compares the two ISAs, ends in a
-**geometric mean** row instead: the mean over the benchmarks of each
-column, so that its ratio cells are also the mean of the per-benchmark
-ratios; the pooled sums follow that table in a sentence.
+Every table ends in two summary rows.  The **pooled** row sums the
+counts and histograms of all benchmarks, so its means, shares and
+quantiles are over all events, not averages of the rows.  The
+**geometric mean** row is the geometric mean over the benchmarks of each
+column, so that a ratio cell in it is also the ratio of the two mean
+counts; it weights every benchmark the same where the pooled row weights
+them by their event counts.  A geometric mean leaves out the benchmarks
+whose value is zero (one zero would make the whole mean zero) and is
+then marked with a dagger (†).
 
 Instruction classes: **control** `jmp`, `call`, `ret`; **dataflow**
 `echo`, `dup`, `nop` (the instructions that only move or pad, the
@@ -83,9 +86,8 @@ executed (geometric means; pooled 1.75x and 2.71x).
 | ud | 4,268 | 2,134 | 1,304 | 3.27 | 14,045,392 | 7,811,304 | 1.80 |
 | wikisort | 16,334 | 8,167 | 6,966 | 2.34 | 10,285,384 | 4,998,950 | 2.06 |
 | xgboost | 1,036 | 518 | 752 | 1.38 | 17,426,466 | 10,920,064 | 1.60 |
+| **pooled** | 222,524 | 111,262 | 77,472 | 2.87 | 300,843,448 | 171,813,730 | 1.75 |
 | **geometric mean** | 6,897 | 3,449 | 2,460 | 2.80 | 15,118,850 | 8,307,525 | 1.82 |
-
-Pooled over the benchmarks: 222,524 against 77,472 bytes of code (ratio 2.87), 111,262 against 26,375 static instructions (4.22), 300,843,448 against 171,813,730 executed bytes (1.75).
 
 ## Dynamic instruction mix
 
@@ -148,8 +150,9 @@ spills the message schedule and state words that Scry keeps in flight).
 | wikisort | 5,142,692 | 4.9% | 34.8% | 18.5% | 5.2% | 26.6% | 4.8% | 4.5% | 0.6% | 15.3% | 23.1% | 0.96 | 0.99 |
 | xgboost | 8,713,233 | 2.7% | 52.4% | 12.3% | 4.8% | 4.0% | 9.6% | 14.1% | 0.0% | 16.4% | 24.9% | 0.43 | 2.45 |
 | **pooled** | 150,421,724 | 3.7% | 37.2% | 21.1% | 4.7% | 16.8% | 8.6% | 7.7% | 0.2% | 13.0% | 24.2% | 0.77 | 1.61 |
+| **geometric mean** | 7,559,425 | 2.4% | 34.7% | 20.3% | 2.4%† | 14.2% | 6.2% | 5.7% | 0.0% | 10.8% | 20.4% | 0.62 | 1.64 |
 
-The two ratio columns compare absolute counts (Scry `jmp`, `call` and `ret` against rv32imac branches, jumps, calls and returns; all Scry loads and stores, frame slots included, against rv32imac loads and stores); their geometric means over the benchmarks are 0.62 and 1.64.
+The two ratio columns compare absolute counts: Scry `jmp`, `call` and `ret` against rv32imac branches, jumps, calls and returns, and all Scry loads and stores, frame slots included, against rv32imac loads and stores.
 
 ## Static instruction mix
 
@@ -184,6 +187,7 @@ for 90% of the executed ones, 7% in md5sum and 9% in picojpeg.
 | wikisort | 8,167 | 5.1% | 38.5% | 16.7% | 1.3% | 28.1% | 4.3% | 5.0% | 1.1% | 41.6% | 1,169 (14.3%) |
 | xgboost | 518 | 6.4% | 35.5% | 8.3% | 4.2% | 24.9% | 6.6% | 12.5% | 1.5% | 84.9% | 71 (13.7%) |
 | **pooled** | 111,262 | 4.2% | 34.6% | 16.9% | 4.2% | 23.1% | 9.4% | 7.2% | 0.4% | 54.6% | 22,404 (20.1%) |
+| **geometric mean** | 3,449 | 4.3% | 33.4% | 14.9% | 1.6% | 23.8% | 7.0% | 7.0% | 0.4% | 62.9% | 712.5 (20.7%) |
 
 ## Constant groups
 
@@ -256,6 +260,7 @@ chains and table address dominate the little code there is.
 | wikisort | 628,629 | 122.2 | 2.18 | 83.2% | 14.7% | 1.5% | 0.0% | 0.0% | 0.5% | 4.9% |
 | xgboost | 346,497 | 39.8 | 1.01 | 69.0% | 15.1% | 15.2% | 0.4% | 0.0% | 0.3% | 15.3% |
 | **pooled** | 17,635,981 | 117.2 | 1.43 | 75.8% | 12.0% | 8.1% | 1.7% | 0.2% | 2.2% | 4.8% |
+| **geometric mean** | 811,179 | 107.3 | 1.33 | 76.0% | 4.5% | 0.9% | 0.2% | 0.1%† | 0.4%† | 1.6% |
 
 #### Constant groups in the code
 
@@ -285,6 +290,7 @@ they are, and the consumer by the instruction after the group (so
 | wikisort | 1,097 | 2,296 | 28.1% | 66.2% | 17.7% | 1.7% | 0.1% | 13.8% | 0.5% |
 | xgboost | 74 | 129 | 24.9% | 16.2% | 18.9% | 21.6% | 12.2% | 20.3% | 10.8% |
 | **pooled** | 16,542 | 25,672 | 23.1% | 59.1% | 14.6% | 11.5% | 3.3% | 9.9% | 1.6% |
+| **geometric mean** | 502.1 | 819.5 | 23.8% | 48.8% | 14.4% | 7.8% | 3.1%† | 10.7% | 1.7%† |
 
 ## ALU operands
 
@@ -367,6 +373,7 @@ and assignments with no reuse.
 | wikisort | 1,747,342 | 1.84 | 31.9% | 42.3% | 3.2% | 5.7% | 11.2% | 4.9% | 0.9% | 0.0% | 5.6% | 20.6% | 0.2% |
 | xgboost | 2,038,577 | 1.90 | 11.8% | 24.2% | 23.1% | 31.8% | 9.0% | 0.1% | 0.0% | 0.0% | 9.3% | 24.1% | 9.0% |
 | **pooled** | 59,318,285 | 1.87 | 24.6% | 45.9% | 10.9% | 6.4% | 8.1% | 3.7% | 0.4% | 0.0% | 8.6% | 25.2% | 0.9% |
+| **geometric mean** | 2,846,735 | 1.85 | 23.9% | 36.1% | 7.7% | 2.7% | 5.6%† | 0.6%† | 0.0%† | 0.0%† | 7.2%† | 23.1%† | 0.4%† |
 
 #### ALU operands by opcode
 
@@ -433,6 +440,7 @@ both successors of a block.
 | wikisort | 3,556,124 | 0.69 | 10.7 | 0 | 24 | 54% | 6.0% | 3.8 | 53% | 2.9% | 0.37 |
 | xgboost | 5,267,106 | 0.60 | 9.0 | 2 | 31 | 18% | 9.7% | 3.5 | 38% | 11.9% | 0.52 |
 | **pooled** | 105,238,408 | 0.70 | 20.1 | 1 | 33 | 46% | 10.5% | 11.8 | 47% | 4.2% | 0.39 |
+| **geometric mean** | 5,290,918 | 0.70 | 11.3 | 1.5† | 27.1 | 43.8% | 8.5%† | 6.1 | 46.5% | 3.5% | 0.36 |
 
 ## Control-flow lifetime
 
@@ -497,6 +505,7 @@ written mean below 8.
 | wikisort | 40.1 | 48.9% | 0.1% | 6.5 | 52.6 | 37% | 9% | 4.5 | 0.00 | 6 |
 | xgboost | 27.1 | 77.7% | 0.1% | 6.5 | 7.8 | 0% | 0% | 0.0 | 0.00 | 4 |
 | **pooled** | 32.4 | 50.1% | 2.4% | 16.8 | 53.6 | 27% | 18% | 2.3 | 0.00 | 12 |
+| **geometric mean** | 20.7 | 59.2% | 0.8%† | 17.3 | 37.6 | 9.8%† | 5.7% | 0.2 | 0.00† | 4.7 |
 
 #### Jump distance as written (trigger field)
 
@@ -522,6 +531,7 @@ written mean below 8.
 | wikisort | 6.5 | 0 | 0 | 2 | 8 | 18 | 45 | 112 |
 | xgboost | 6.5 | 3 | 3 | 3 | 3 | 19 | 19 | 28 |
 | **pooled** | 16.8 | 0 | 0 | 2 | 12 | 27 | 280 | 2180 |
+| **geometric mean** | 17.3 | 5.0† | 8.0† | 10.9† | 25.4† | 59.7† | 124.8† | 235.4 |
 
 #### Jump distance as executed (issue to trigger)
 
@@ -547,6 +557,7 @@ written mean below 8.
 | wikisort | 52.6 | 0 | 0 | 5 | 6 | 19 | 301 | 34337 |
 | xgboost | 7.8 | 3 | 3 | 3 | 19 | 19 | 19 | 66281 |
 | **pooled** | 53.6 | 0 | 0 | 5 | 22 | 40 | 547 | 1531667 |
+| **geometric mean** | 37.6 | 12.2† | 10.2† | 15.5† | 29.5† | 79.4† | 201.8† | 4646 |
 
 ## Memory traffic
 
@@ -641,6 +652,7 @@ through a computed base register.
 | wikisort | 23.1% | 0.0% | 68.1% | 31.9% | 20.1% | 0.1% | 2.0% | 77.8% |
 | xgboost | 24.9% | 99.1% | 0.0% | 0.9% | 0.3% | 0.3% | 0.0% | 99.4% |
 | **pooled** | 24.2% | 19.2% | 55.5% | 25.4% | 8.3% | 9.2% | 5.7% | 76.8% |
+| **geometric mean** | 20.4% | 5.3%† | 13.6% | 2.6% | 0.4% | 0.1% | 0.0%† | 47.2% |
 
 | benchmark | loads per 1000 | bytes per load | from frame slots | stores per 1000 | bytes per store | to frame slots | load→use mean | rv32 loads per 1000 | rv32 stores per 1000 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -664,6 +676,7 @@ through a computed base register.
 | wikisort | 46.7 | 6.3 | 39.0% | 29.6 | 6.8 | 34.8% | 4.5 | 128.5 | 102.4 |
 | xgboost | 212.9 | 2.6 | 54.8% | 24.4 | 3.5 | 99.2% | 3.5 | 247.9 | 0.9 |
 | **pooled** | 110.9 | 3.4 | 40.8% | 32.7 | 3.3 | 36.6% | 47.7 | 176.4 | 65.4 |
+| **geometric mean** | 89.7 | 3.6 | 27.9% | 18.7 | 3.7 | 17.2% | 16.3 | 139.7 | 32.8 |
 
 #### Load distance as written (output reference)
 
@@ -689,6 +702,7 @@ through a computed base register.
 | wikisort | 1.1 | 0 | 0 | 0 | 1 | 2 | 26 | 26 |
 | xgboost | 2.8 | 0 | 1 | 3 | 4 | 8 | 8 | 24 |
 | **pooled** | 7.4 | 0 | 0 | 1 | 13 | 26 | 28 | 30 |
+| **geometric mean** | 4.8 | 4.7† | 4.8† | 9.1† | 6.8† | 10.6 | 17.3 | 20.5 |
 
 #### Load distance as executed (load to use)
 
@@ -714,6 +728,7 @@ through a computed base register.
 | wikisort | 4.5 | 0 | 1 | 1 | 4 | 12 | 41 | 41 |
 | xgboost | 3.5 | 1 | 1 | 4 | 5 | 8 | 8 | 66 |
 | **pooled** | 47.7 | 0 | 1 | 4 | 23 | 142 | 642 | 1555 |
+| **geometric mean** | 16.3 | 4.9† | 3.1† | 8.6† | 17.4 | 36.7 | 68.5 | 117.4 |
 
 ## Operands in flight
 
@@ -745,6 +760,7 @@ branchy state machines (nsichneu 0.2, slre 0.4).
 | wikisort | 3.0 | 11 | 8.4 | 21 |
 | xgboost | 4.0 | 19 | 6.0 | 21 |
 | **pooled** | 11.9 | 113 | 15.5 | 115 |
+| **geometric mean** | 5.2 | 23.3 | 9.9 | 29.1 |
 
 ## Reading the figures
 
