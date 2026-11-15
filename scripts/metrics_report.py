@@ -15,7 +15,9 @@ sentence after it.
 
 Tables: code size, dynamic instruction mix, static instruction mix,
 constant groups (what the immediates built by const/grow are used for,
-executed and in the code), operand lifetime, control-flow lifetime, jump distance quantiles (trigger
+executed and in the code), ALU operands (what produced the values the
+ALU instructions consume, per benchmark and per opcode), operand
+lifetime, control-flow lifetime, jump distance quantiles (trigger
 field as written and issue-to-trigger as executed), memory traffic, load
 distance quantiles (output reference as written and load-to-use as
 executed), operands in flight.
@@ -26,6 +28,7 @@ import math
 import sys
 
 CLASSES = ("control", "dataflow", "alu", "cast", "pick", "const", "memory", "frame", "stack", "trap")
+ALU_OPS = ("add", "sub", "mul", "div", "sh", "and", "or", "xor", "eq", "lt", "gt", "isnar", "narto")
 
 
 def add_counts(acc, h):
@@ -113,7 +116,8 @@ def pooled(scopes, static):
          "steps": 0, "inflight_frame_sum": 0.0,
          "inflight_all_sum": 0.0, "inflight_frame_max": 0, "inflight_all_max": 0,
          "opcodes": {}, "const_groups": 0, "const_consumer": {}, "const_direct": {},
-         "const_length": {}}
+         "const_length": {}, "alu_inputs": 0, "alu_input": {}, "alu_input_route": {},
+         "alu_input_by_op": {}}
     hists = ("value_ref", "load_dynamic", "load_ref", "jmp_trigger", "jmp_dynamic",
              "call_trigger", "call_dynamic", "ret_trigger", "ret_dynamic")
     for h in hists:
@@ -137,6 +141,11 @@ def pooled(scopes, static):
         add_counts(p["const_consumer"], w.get("const_consumer", {}))
         add_counts(p["const_direct"], w.get("const_direct", {}))
         add_hist(p["const_length"], w.get("const_length", {}))
+        p["alu_inputs"] += w.get("alu_inputs", 0)
+        add_counts(p["alu_input"], w.get("alu_input", {}))
+        add_counts(p["alu_input_route"], w.get("alu_input_route", {}))
+        for op, c in w.get("alu_input_by_op", {}).items():
+            add_counts(p["alu_input_by_op"].setdefault(op, {}), c)
     p["inflight_frame_mean"] = p["inflight_frame_sum"] / p["steps"] if p["steps"] else 0.0
     p["inflight_all_mean"] = p["inflight_all_sum"] / p["steps"] if p["steps"] else 0.0
     s = {"static_instructions": 0, "static_bytes": 0, "executed": 0, "covered_instructions": 0,
@@ -286,6 +295,34 @@ def main():
             t.append([n, f"{k:,}", f"{g['instructions']:,}", pct(g["instructions"], s["static_instructions"]),
                       pct(c.get("alu", 0), k), pct(c.get("control", 0), k), pct(c.get("memory", 0), k),
                       pct(c.get("frame", 0), k), pct(c.get("dataflow", 0), k), pct(other, k)])
+        out.append(table(hdr, t))
+
+    # 3c. ALU operands
+    if all("alu_input" in r[1] for r in rows):
+        out.append("\n### ALU operands\n")
+        origins = ("const", "alu", "load", "slot", "argument", "return")
+
+        def origin_cells(n, c):
+            other = n - sum(c.get(x, 0) for x in origins)
+            return [pct(c.get(x, 0), n) for x in origins] + [pct(other, n)]
+
+        hdr = ["benchmark", "operands", "per ALU instr", "const", "alu", "load", "slot", "argument",
+               "return", "other", "via echo", "dup copy", "via pick"]
+        t = []
+        for n, w, s, r in all_rows:
+            k = w["alu_inputs"]
+            alu_n = sum(v for o, v in w["opcodes"].items() if o in ALU_OPS)
+            rt = w["alu_input_route"]
+            t.append([n, f"{k:,}", f"{k / alu_n:.2f}" if alu_n else "-"] + origin_cells(k, w["alu_input"])
+                     + [pct(rt.get("echo", 0), k), pct(rt.get("dup", 0), k), pct(rt.get("pick", 0), k)])
+        out.append(table(hdr, t))
+        out.append("\n#### ALU operands by opcode\n")
+        hdr = ["opcode", "operands", "of all", "const", "alu", "load", "slot", "argument", "return", "other"]
+        t = []
+        by_op = tot_w["alu_input_by_op"]
+        for op in sorted(by_op, key=lambda o: -sum(by_op[o].values())):
+            k = sum(by_op[op].values())
+            t.append([op, f"{k:,}", pct(k, tot_w["alu_inputs"])] + origin_cells(k, by_op[op]))
         out.append(table(hdr, t))
 
     # 4. Operand lifetime

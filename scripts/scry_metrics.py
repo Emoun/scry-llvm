@@ -113,6 +113,15 @@ class Scope:
         self.const_consumer = collections.Counter()
         self.const_direct = collections.Counter()
         self.const_length = collections.Counter()
+        # Operands consumed by ALU instructions, by what produced them (a
+        # const/grow group, another ALU instruction, a load, a slot load, a
+        # cast, an argument from the caller, a value returned by a callee),
+        # by how they got there (direct, through echo, as a dup copy, chosen
+        # by a pick), and the origins per ALU opcode.
+        self.alu_inputs = 0
+        self.alu_input = collections.Counter()
+        self.alu_input_route = collections.Counter()
+        self.alu_input_by_op = collections.defaultdict(collections.Counter)
 
     def to_json(self):
         def hist(h):
@@ -141,6 +150,10 @@ class Scope:
             "const_consumer": dict(sorted(self.const_consumer.items())),
             "const_direct": dict(sorted(self.const_direct.items())),
             "const_length": hist(self.const_length),
+            "alu_inputs": self.alu_inputs,
+            "alu_input": dict(sorted(self.alu_input.items())),
+            "alu_input_route": dict(sorted(self.alu_input_route.items())),
+            "alu_input_by_op": {op: dict(sorted(c.items())) for op, c in sorted(self.alu_input_by_op.items())},
         }
 
     def write_text(self, title, out):
@@ -166,6 +179,10 @@ class Scope:
         out.write(f"ConstGroups: {self.const_groups}; consumer "
                   + ", ".join(f"{k}={v}" for k, v in self.const_consumer.most_common())
                   + "; first touched by " + ", ".join(f"{k}={v}" for k, v in self.const_direct.most_common()) + "\n")
+        n = max(self.alu_inputs, 1)
+        out.write(f"AluInputs: {self.alu_inputs}; from "
+                  + ", ".join(f"{k}={100.0 * v / n:.1f}%" for k, v in self.alu_input.most_common())
+                  + "; route " + ", ".join(f"{k}={100.0 * v / n:.1f}%" for k, v in self.alu_input_route.most_common()) + "\n")
 
 
 JMP_RE = re.compile(r"jmp (-?\d+), (\d+)")
@@ -184,6 +201,20 @@ def consumer_class(op, text):
     if op in ("ld", "st"):
         return "frame" if "[" in text else "memory"
     return CONSUMER_CLASS.get(op, op)
+
+
+def producer_class(op, text):
+    """What an operand produced by this instruction is, for the ALU-input figures."""
+    if op == "ld":
+        return "slot" if "[" in text else "load"
+    cls = CONSUMER_CLASS.get(op)
+    if cls in ("alu", "const"):
+        return cls
+    if op == "saddr":
+        return "frame"
+    return op
+
+
 CALL_RE = re.compile(r"(?:call|ret) (\d+)")
 LD_RE = re.compile(r"=>(\d+)")
 
@@ -202,6 +233,14 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
     # Constant values in flight: id -> [in window, length, first-touch class or None].
     cvals = {}
     grow_src = None  # the constant value a grow is extending in this step
+    # Operands in flight by origin: id -> [producer class, route, call depth
+    # when produced].  echo sets the route, pick sets it when it chooses the
+    # value, and a dup copy inherits the class of the original it copies: a
+    # dup forwards the originals first and then produces the copies in the
+    # same order (twice when it also copies to the next instruction).
+    src = {}
+    dup_fwd = []  # ids forwarded by the dup of this step, in order
+    dup_n = 0     # copies produced so far in this step
     outstanding = 0
     frame_base = [0]
     sym_by_addr = sorted((a, n) for n, a in symbols.items()) if trace else None
@@ -271,6 +310,9 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
             text = line[p + 2:].rstrip("\n")
             sp = text.find(" ")
             op = text[:sp] if sp > 0 else text
+            if dup_fwd:
+                dup_fwd = []
+            dup_n = 0
             if not done:
                 if addr == start:
                     in_win = True
@@ -310,6 +352,12 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                 if in_win:
                     window.produced += 1
                 pending[oid] = (step, op == "ld" and "[" not in text, in_win)
+                if op == "dup" and dup_fwd:
+                    orig = src.get(dup_fwd[dup_n % len(dup_fwd)])
+                    dup_n += 1
+                    src[oid] = [orig[0] if orig else "dup", "dup", len(frame_base)]
+                else:
+                    src[oid] = [producer_class(op, text), "direct", len(frame_base)]
                 if op == "const":
                     cvals[oid] = [in_win, 1, None]
                 elif op == "grow" and grow_src is not None:
@@ -320,6 +368,16 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                 consumes += 1
                 oid = int(line[17:line.index(")")])
                 outstanding -= 1
+                sv = src.pop(oid, None)
+                if sv is not None and CONSUMER_CLASS.get(op) == "alu":
+                    depth = len(frame_base)
+                    origin = "argument" if depth > sv[2] else "return" if depth < sv[2] else sv[0]
+                    for sc, active in ((whole, True), (window, in_win)):
+                        if active:
+                            sc.alu_inputs += 1
+                            sc.alu_input[origin] += 1
+                            sc.alu_input_route[sv[1]] += 1
+                            sc.alu_input_by_op[op][origin] += 1
                 cv = cvals.pop(oid, None)
                 if cv is not None:
                     if op == "grow":
@@ -345,6 +403,7 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
             elif k == "D":
                 oid = int(line[17:line.index(")")])
                 outstanding -= 1
+                src.pop(oid, None)
                 p = pending.pop(oid, None)
                 whole.discards += 1
                 if p is not None and p[2]:
@@ -365,6 +424,12 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                 cv = cvals.get(oid)
                 if cv is not None and cv[2] is None:
                     cv[2] = consumer_class(op, text)
+                if op == "dup":
+                    dup_fwd.append(oid)
+                elif op == "echo" or op == "pick":
+                    sv = src.get(oid)
+                    if sv is not None and (op == "pick" or sv[1] == "direct"):
+                        sv[1] = op
             continue
         if c == "I":  # Issue: Kind(id)
             k = line.index("(")
