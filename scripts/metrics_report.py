@@ -243,17 +243,30 @@ def main():
     # 2. Dynamic mix
     out.append("\n### Dynamic instruction mix\n")
     hdr = ["benchmark", "executed", "control", "dataflow", "alu", "cast/pick", "const/grow",
-           "memory", "frame", "stack", "rv32 control", "rv32 ld/st"]
+           "memory", "frame", "stack", "rv32 control", "rv32 ld/st", "control vs rv32", "ld/st vs rv32"]
     t = []
+    ctl_ratios, mem_ratios = [], []
     for n, w, s, r in all_rows:
         xc = s["executed_classes"]
         e = s["executed"]
+        ctl = sum(w["opcodes"].get(o, 0) for o in ("jmp", "call", "ret"))
+        mem = w["loads"] + w["stores"]
+        if r and r["window_control"] and n != "**pooled**":
+            ctl_ratios.append(ctl / r["window_control"])
+            mem_ratios.append(mem / (r["window_loads"] + r["window_stores"]))
         t.append([n, f"{w['instructions']:,}", pct(xc["control"], e), pct(xc["dataflow"], e),
                   pct(xc["alu"], e), pct(xc["cast"] + xc["pick"], e), pct(xc["const"], e),
                   pct(xc["memory"], e), pct(xc["frame"], e), pct(xc["stack"], e),
                   pct(r["window_control"], r["window_instructions"]) if r else "-",
-                  pct(r["window_loads"] + r["window_stores"], r["window_instructions"]) if r else "-"])
+                  pct(r["window_loads"] + r["window_stores"], r["window_instructions"]) if r else "-",
+                  ratio(ctl, r["window_control"]) if r else "-",
+                  ratio(mem, r["window_loads"] + r["window_stores"]) if r else "-"])
     out.append(table(hdr, t))
+    if ctl_ratios:
+        out.append(f"\nThe two ratio columns compare absolute counts (Scry `jmp`, `call` and "
+                   f"`ret` against rv32imac branches, jumps, calls and returns; all Scry loads and "
+                   f"stores, frame slots included, against rv32imac loads and stores); their geometric "
+                   f"means over the benchmarks are {gmean(ctl_ratios):.2f} and {gmean(mem_ratios):.2f}.")
 
     # 3. Static mix
     out.append("\n### Static instruction mix\n")

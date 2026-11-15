@@ -101,9 +101,12 @@ constant instructions, 54%, are the cost of the temporal encoding
 format (an address or a 32-bit immediate takes `const` plus up to three
 `grow`s).
 
-Control flow is a smaller share than on rv32imac in absolute terms as
-well: 4.9 million `jmp` and 0.35 million calls against 7.2 million
-rv32imac branches, jumps, calls and returns on the same programs.  The
+The last two columns compare absolute counts with rv32imac on the same
+programs.  Control flow is smaller in absolute terms as well: 5.6
+million `jmp`, `call` and `ret` (4.9 million of them jumps) against 7.2
+million rv32imac branches, jumps, calls and returns, 0.77 of the count
+pooled and 0.62 as the geometric mean over the benchmarks; only crc32,
+nsichneu, sglib-combined and tarfind have as many.  The
 backend's jumps are issued once per block and its selective unrolling
 removes loop back-edges, and the rv32 count includes the compare-and-
 branch chains of the 64-bit helper routines (aha-mont64: 7.6% control on
@@ -112,28 +115,41 @@ most control flow, nsichneu, is a chain of if-statements on globals: one
 instruction in eight is a `jmp` on Scry, more than one in three on
 rv32imac.
 
-| benchmark | executed | control | dataflow | alu | cast/pick | const/grow | memory | frame | stack | rv32 control | rv32 ld/st |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| aha-mont64 | 5,324,355 | 2.0% | 35.6% | 40.0% | 7.1% | 13.2% | 0.1% | 2.0% | 0.0% | 7.6% | 0.2% |
-| crc32 | 8,016,581 | 6.5% | 21.8% | 19.6% | 0.0% | 41.3% | 6.5% | 4.4% | 0.0% | 13.7% | 13.6% |
-| depthconv | 8,144,232 | 0.2% | 41.3% | 20.5% | 17.4% | 10.7% | 7.1% | 2.7% | 0.0% | 9.8% | 22.0% |
-| edn | 9,842,737 | 1.4% | 37.5% | 23.5% | 16.7% | 7.2% | 8.8% | 4.8% | 0.0% | 9.3% | 25.5% |
-| huffbench | 10,755,154 | 4.1% | 40.5% | 20.9% | 0.7% | 19.8% | 8.6% | 5.4% | 0.0% | 20.7% | 23.0% |
-| matmult-int | 3,935,333 | 0.2% | 45.1% | 28.1% | 0.0% | 5.4% | 13.7% | 7.4% | 0.0% | 1.8% | 45.4% |
-| md5sum | 9,551,541 | 3.1% | 50.7% | 19.2% | 1.2% | 12.6% | 3.1% | 10.1% | 0.0% | 13.4% | 12.6% |
-| nettle-aes | 8,349,155 | 0.7% | 50.6% | 27.1% | 0.4% | 10.9% | 9.3% | 1.0% | 0.0% | 2.2% | 24.1% |
-| nettle-sha256 | 10,836,207 | 0.3% | 40.7% | 38.8% | 0.0% | 16.5% | 2.5% | 1.1% | 0.1% | 1.4% | 20.6% |
-| nsichneu | 6,140,403 | 12.6% | 10.3% | 17.7% | 10.1% | 9.2% | 20.0% | 20.1% | 0.0% | 38.5% | 61.3% |
-| picojpeg | 8,204,717 | 2.3% | 38.6% | 19.5% | 7.7% | 18.7% | 8.5% | 4.5% | 0.2% | 11.7% | 28.6% |
-| qrduino | 7,658,528 | 4.8% | 42.2% | 20.3% | 4.2% | 10.8% | 7.4% | 10.3% | 0.0% | 15.1% | 19.1% |
-| sglib-combined | 10,335,282 | 6.6% | 34.7% | 14.8% | 5.0% | 20.8% | 11.2% | 6.5% | 0.4% | 25.6% | 35.2% |
-| slre | 9,110,952 | 7.2% | 28.6% | 14.7% | 4.6% | 22.6% | 6.1% | 15.1% | 1.0% | 25.3% | 34.8% |
-| statemate | 9,853,681 | 2.8% | 19.2% | 10.0% | 0.1% | 28.8% | 22.1% | 16.4% | 0.5% | 15.9% | 72.1% |
-| tarfind | 3,484,245 | 5.2% | 32.7% | 20.1% | 5.2% | 25.6% | 5.5% | 5.5% | 0.1% | 14.3% | 20.1% |
-| ud | 7,022,696 | 4.5% | 42.7% | 23.1% | 1.1% | 11.7% | 7.8% | 9.3% | 0.0% | 12.2% | 22.7% |
-| wikisort | 5,142,692 | 4.9% | 34.8% | 18.5% | 5.2% | 26.6% | 4.8% | 4.5% | 0.6% | 15.3% | 23.1% |
-| xgboost | 8,713,233 | 2.7% | 52.4% | 12.3% | 4.8% | 4.0% | 9.6% | 14.1% | 0.0% | 16.4% | 24.9% |
-| **pooled** | 150,421,724 | 3.7% | 37.2% | 21.1% | 4.7% | 16.8% | 8.6% | 7.7% | 0.2% | 13.0% | 24.2% |
+Loads and stores go the other way: Scry executes 1.6 times as many as
+rv32imac (21.6 against 13.4 million; geometric mean 1.64), so its lower
+share (14% of its instructions against 24%) is only the larger instruction count.  The
+addressed loads and stores alone, 13.0 million, are 0.97 of the rv32imac
+total and match its accesses to program data; the 8.6 million frame-slot
+accesses are 3.7 times rv32imac's spill and callee-save traffic, the
+values that a register file would hold (see Memory traffic).  The
+extremes are aha-mont64 (8.8: its 64-bit values live in frame slots and
+rv32imac keeps them in register pairs) and nettle-sha256 (0.32: rv32imac
+spills the message schedule and state words that Scry keeps in flight).
+
+| benchmark | executed | control | dataflow | alu | cast/pick | const/grow | memory | frame | stack | rv32 control | rv32 ld/st | control vs rv32 | ld/st vs rv32 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 5,324,355 | 2.0% | 35.6% | 40.0% | 7.1% | 13.2% | 0.1% | 2.0% | 0.0% | 7.6% | 0.2% | 0.22 | 8.78 |
+| crc32 | 8,016,581 | 6.5% | 21.8% | 19.6% | 0.0% | 41.3% | 6.5% | 4.4% | 0.0% | 13.7% | 13.6% | 1.00 | 1.67 |
+| depthconv | 8,144,232 | 0.2% | 41.3% | 20.5% | 17.4% | 10.7% | 7.1% | 2.7% | 0.0% | 9.8% | 22.0% | 0.07 | 1.33 |
+| edn | 9,842,737 | 1.4% | 37.5% | 23.5% | 16.7% | 7.2% | 8.8% | 4.8% | 0.0% | 9.3% | 25.5% | 0.43 | 1.48 |
+| huffbench | 10,755,154 | 4.1% | 40.5% | 20.9% | 0.7% | 19.8% | 8.6% | 5.4% | 0.0% | 20.7% | 23.0% | 0.85 | 1.63 |
+| matmult-int | 3,935,333 | 0.2% | 45.1% | 28.1% | 0.0% | 5.4% | 13.7% | 7.4% | 0.0% | 1.8% | 45.4% | 0.41 | 1.16 |
+| md5sum | 9,551,541 | 3.1% | 50.7% | 19.2% | 1.2% | 12.6% | 3.1% | 10.1% | 0.0% | 13.4% | 12.6% | 0.85 | 3.89 |
+| nettle-aes | 8,349,155 | 0.7% | 50.6% | 27.1% | 0.4% | 10.9% | 9.3% | 1.0% | 0.0% | 2.2% | 24.1% | 0.76 | 1.01 |
+| nettle-sha256 | 10,836,207 | 0.3% | 40.7% | 38.8% | 0.0% | 16.5% | 2.5% | 1.1% | 0.1% | 1.4% | 20.6% | 0.50 | 0.32 |
+| nsichneu | 6,140,403 | 12.6% | 10.3% | 17.7% | 10.1% | 9.2% | 20.0% | 20.1% | 0.0% | 38.5% | 61.3% | 1.00 | 2.01 |
+| picojpeg | 8,204,717 | 2.3% | 38.6% | 19.5% | 7.7% | 18.7% | 8.5% | 4.5% | 0.2% | 11.7% | 28.6% | 0.61 | 1.34 |
+| qrduino | 7,658,528 | 4.8% | 42.2% | 20.3% | 4.2% | 10.8% | 7.4% | 10.3% | 0.0% | 15.1% | 19.1% | 0.84 | 2.36 |
+| sglib-combined | 10,335,282 | 6.6% | 34.7% | 14.8% | 5.0% | 20.8% | 11.2% | 6.5% | 0.4% | 25.6% | 35.2% | 1.00 | 1.36 |
+| slre | 9,110,952 | 7.2% | 28.6% | 14.7% | 4.6% | 22.6% | 6.1% | 15.1% | 1.0% | 25.3% | 34.8% | 0.90 | 1.53 |
+| statemate | 9,853,681 | 2.8% | 19.2% | 10.0% | 0.1% | 28.8% | 22.1% | 16.4% | 0.5% | 15.9% | 72.1% | 0.89 | 2.05 |
+| tarfind | 3,484,245 | 5.2% | 32.7% | 20.1% | 5.2% | 25.6% | 5.5% | 5.5% | 0.1% | 14.3% | 20.1% | 1.06 | 1.58 |
+| ud | 7,022,696 | 4.5% | 42.7% | 23.1% | 1.1% | 11.7% | 7.8% | 9.3% | 0.0% | 12.2% | 22.7% | 0.98 | 1.83 |
+| wikisort | 5,142,692 | 4.9% | 34.8% | 18.5% | 5.2% | 26.6% | 4.8% | 4.5% | 0.6% | 15.3% | 23.1% | 0.96 | 0.99 |
+| xgboost | 8,713,233 | 2.7% | 52.4% | 12.3% | 4.8% | 4.0% | 9.6% | 14.1% | 0.0% | 16.4% | 24.9% | 0.43 | 2.45 |
+| **pooled** | 150,421,724 | 3.7% | 37.2% | 21.1% | 4.7% | 16.8% | 8.6% | 7.7% | 0.2% | 13.0% | 24.2% | 0.77 | 1.61 |
+
+The two ratio columns compare absolute counts (Scry `jmp`, `call` and `ret` against rv32imac branches, jumps, calls and returns; all Scry loads and stores, frame slots included, against rv32imac loads and stores); their geometric means over the benchmarks are 0.62 and 1.64.
 
 ## Static instruction mix
 
