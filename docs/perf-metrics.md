@@ -8,7 +8,8 @@ next to the same programs compiled for rv32imac by the same LLVM
 repository's libc and compiler-rt builtins, `-O2`) and run under Spike.
 `perf-results.md` gives the instruction counts against the
 baseline; this document looks at code size, the instruction mix, what
-the constants are for, what the ALU instructions consume, how long
+the constants are for and which values they are, what the ALU
+instructions consume, how long
 operands and control flow stay in flight, memory traffic and operands in
 flight.
 
@@ -261,6 +262,112 @@ chains and table address dominate the little code there is.
 | xgboost | 346,497 | 39.8 | 1.01 | 69.0% | 15.1% | 15.2% | 0.4% | 0.0% | 0.3% | 15.3% |
 | **pooled** | 17,635,981 | 117.2 | 1.43 | 75.8% | 12.0% | 8.1% | 1.7% | 0.2% | 2.2% | 4.8% |
 | **geometric mean** | 811,179 | 107.3 | 1.33 | 76.0% | 4.5% | 0.9% | 0.2% | 0.1%† | 0.4%† | 1.6% |
+
+#### Constant values
+
+The value a group builds, read as the type of its `const` says (a
+negative value is a signed type's immediate with the top bit set, so
+`const i32, 248` is -8).  Three quarters of the values fit in the single
+byte a `const` holds (-128 to 255; 75.4% of the groups, next to the
+74.7% that are one instruction long): 30% of all groups are 0 to 15,
+21% are -128 to -2 and 23% are 16 to 255.  By class, 6.2% are zero
+(compare operands, stored initial values and the operand a `pick` drops),
+4.2% one, 1.1% minus one (xgboost's -1 is 53% of its groups), 16% a
+power of two (4, the word size, is 5.9% of all groups, then 2, 8, 128,
+16, 32, 64), 12% a mask (255, 3, 7, 0x7FFFFFFF, 15, 127, 31),
+39% another one-byte value, 17% a two-byte value, 2.9% three bytes and
+1.7% four or more.  The negative values other than -1 (23% of the
+groups) are nearly all right-shift amounts: `sh` shifts right by a
+negative count, so -63 extracts the carry of a 64-bit sum in
+aha-mont64 (52% of its groups), -6, -14 and -22 pick the table index
+bytes in nettle-aes, -2, -11, -13 and -22 are the rotations of
+nettle-sha256, -8 and -16 the byte extractions of crc32 and picojpeg.
+The two-byte values are the PC-relative offsets of far jumps and of
+glued address chains (huffbench 41%, sglib-combined 39%, crc32 38%,
+statemate 30%, slre 29%), and the three- and four-byte values the absolute
+addresses of globals and the few large literals (the `rand()` constants
+1103515245, 12345 and 0x7FFFFFFF of crc32 and tarfind are 3.6% of all
+groups).  The 1,931 distinct values are concentrated: the 20 most
+frequent cover 46% of the groups, the 100 most frequent 80%.
+
+Groups are as long as their value needs except for 6.5%, which carry
+one instruction (0.1% two) more than the value: the PC-relative address
+chains, which the assembler emits at full length (three instructions)
+whatever the distance turns out to be, so that crc32 (25%), statemate
+(25%), tarfind (15%), depthconv (11%) and picojpeg (8.4%) have the
+most.  The groups are 52% `u32`, 24% `i32`, 15% one-byte and 6% two-byte
+types, and 3.6% 64-bit.
+
+| benchmark | groups | 0 | 1 | -1 | 2^k | 2^k-1 | other 1-byte | 2-byte | 3-byte | 4-byte+ | longer than needed |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| aha-mont64 | 700,485 | 26.5% | 0.9% | 0.0% | 1.1% | 0.0% | 71.2% | 0.2% | 0.0% | 0.0% | 0.0% |
+| crc32 | 1,393,503 | 0.0% | 0.0% | 0.0% | 0.0% | 25.0% | 25.0% | 37.5% | 0.0% | 12.5% | 25.0% |
+| depthconv | 653,969 | 8.5% | 8.0% | 0.0% | 38.1% | 24.1% | 10.0% | 0.0% | 11.0% | 0.3% | 11.0% |
+| edn | 694,552 | 4.6% | 0.0% | 0.0% | 47.2% | 2.1% | 44.9% | 0.7% | 0.0% | 0.6% | 0.1% |
+| huffbench | 1,336,209 | 1.9% | 4.9% | 0.0% | 27.8% | 6.9% | 17.7% | 40.8% | 0.0% | 0.0% | 0.5% |
+| matmult-int | 171,176 | 0.6% | 0.0% | 0.0% | 22.9% | 2.4% | 51.8% | 22.3% | 0.1% | 0.0% | 0.1% |
+| md5sum | 1,158,994 | 6.2% | 5.9% | 0.0% | 31.9% | 29.4% | 23.3% | 3.1% | 0.2% | 0.0% | 0.3% |
+| nettle-aes | 895,242 | 0.1% | 1.3% | 0.0% | 18.0% | 19.5% | 59.7% | 1.4% | 0.0% | 0.0% | 0.1% |
+| nettle-sha256 | 1,777,103 | 0.5% | 0.3% | 0.0% | 6.7% | 8.7% | 83.7% | 0.1% | 0.0% | 0.1% | 0.0% |
+| nsichneu | 556,889 | 0.2% | 0.0% | 0.0% | 5.3% | 29.4% | 63.7% | 1.3% | 0.0% | 0.0% | 0.0% |
+| picojpeg | 1,189,769 | 7.8% | 1.8% | 0.0% | 17.7% | 14.6% | 43.0% | 10.5% | 4.6% | 0.0% | 8.4% |
+| qrduino | 704,606 | 20.4% | 15.6% | 0.2% | 13.0% | 19.5% | 24.5% | 6.6% | 0.1% | 0.0% | 0.3% |
+| sglib-combined | 1,463,485 | 5.6% | 11.8% | 0.0% | 21.9% | 2.5% | 18.6% | 38.9% | 0.6% | 0.0% | 6.1% |
+| slre | 1,339,235 | 11.3% | 10.6% | 0.7% | 2.7% | 2.5% | 36.9% | 29.0% | 4.2% | 2.1% | 4.5% |
+| statemate | 1,401,974 | 8.3% | 4.8% | 0.0% | 6.4% | 3.6% | 24.0% | 30.2% | 22.3% | 0.5% | 25.2% |
+| tarfind | 488,138 | 1.7% | 0.1% | 0.0% | 7.7% | 11.0% | 49.7% | 22.0% | 0.0% | 7.9% | 14.9% |
+| ud | 735,526 | 4.4% | 0.2% | 0.0% | 26.0% | 0.0% | 60.2% | 8.0% | 1.2% | 0.0% | 1.2% |
+| wikisort | 628,629 | 4.1% | 1.3% | 0.4% | 20.2% | 16.5% | 31.3% | 19.5% | 0.1% | 6.5% | 3.9% |
+| xgboost | 346,497 | 15.0% | 0.0% | 52.9% | 0.3% | 14.9% | 16.6% | 0.0% | 0.2% | 0.0% | 0.2% |
+| **pooled** | 17,635,981 | 6.2% | 4.2% | 1.1% | 15.8% | 11.8% | 39.3% | 17.1% | 2.9% | 1.7% | 6.5% |
+| **geometric mean** | 811,179 | 2.6% | 0.4% | 1.4%† | 7.4% | 5.5%† | 34.3% | 2.3% | 0.1%† | 0.1%† | 0.6% |
+
+#### Constant values by consumer
+
+By consumer, the ALU operands are the small values: 42% other one-byte,
+19% powers of two, 14.5% masks and 14% two-byte (the large literals and
+the loop bounds).  The control-flow operands are 59% one-byte and 28%
+two-byte jump offsets plus the 0 and 1 polarity constants of
+unconditional far jumps (12%).  The load and store operands split into
+addresses (35% two-byte PC-relative, 18% three-byte absolute) and
+stored values (18% zero, 14% one, the state assignments of statemate
+and the counters of qrduino).  The hoisted constants that go to a slot
+are three quarters absolute addresses (three or four bytes), 21% zeros.  What a `pick` drops is a
+zero in 53% of the cases.
+
+| consumer | groups | of all groups | 0 | 1 | -1 | 2^k | 2^k-1 | other 1-byte | 2-byte | 3-byte | 4-byte+ |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| alu | 13,362,777 | 75.8% | 3.5% | 2.4% | 1.5% | 19.4% | 14.5% | 42.1% | 14.3% | 0.4% | 2.0% |
+| control | 2,110,777 | 12.0% | 4.9% | 7.5% | 0.0% | 0.3% | 0.0% | 59.4% | 27.8% | 0.0% | 0.0% |
+| ld/st | 1,432,628 | 8.1% | 17.9% | 14.0% | 0.0% | 9.1% | 3.2% | 2.0% | 35.4% | 18.4% | 0.0% |
+| to slot | 307,074 | 1.7% | 21.0% | 0.8% | 0.0% | 1.4% | 0.6% | 0.6% | 0.0% | 66.8% | 8.8% |
+| cast/pick | 39,216 | 0.2% | 1.2% | 39.5% | 0.0% | 16.1% | 38.7% | 0.4% | 0.0% | 0.0% | 4.2% |
+| discarded | 383,509 | 2.2% | 52.7% | 8.8% | 0.0% | 9.3% | 24.2% | 4.9% | 0.0% | 0.0% | 0.1% |
+
+#### Most frequent constant values
+
+| value | hex | groups | of all groups | cumulative |
+|---|---:|---:|---:|---:|
+| 0 |  | 1,088,193 | 6.2% | 6.2% |
+| 4 |  | 1,034,444 | 5.9% | 12.0% |
+| 1 |  | 732,512 | 4.2% | 16.2% |
+| 2 |  | 612,358 | 3.5% | 19.7% |
+| 255 |  | 489,575 | 2.8% | 22.4% |
+| 3 |  | 475,158 | 2.7% | 25.1% |
+| -63 |  | 406,744 | 2.3% | 27.4% |
+| -8 |  | 372,019 | 2.1% | 29.5% |
+| 8 |  | 304,590 | 1.7% | 31.3% |
+| 128 |  | 286,330 | 1.6% | 32.9% |
+| 5 |  | 266,452 | 1.5% | 34.4% |
+| 7 |  | 260,152 | 1.5% | 35.9% |
+| -16 |  | 257,509 | 1.5% | 37.3% |
+| -6 |  | 215,675 | 1.2% | 38.6% |
+| 12345 | 0x3039 | 213,500 | 1.2% | 39.8% |
+| 1103515245 | 0x41C64E6D | 213,500 | 1.2% | 41.0% |
+| 2147483647 | 0x7FFFFFFF | 213,500 | 1.2% | 42.2% |
+| -22 |  | 204,032 | 1.2% | 43.4% |
+| -1 |  | 197,270 | 1.1% | 44.5% |
+| 80 |  | 194,886 | 1.1% | 45.6% |
 
 #### Constant groups in the code
 
