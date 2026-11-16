@@ -113,6 +113,13 @@ class Scope:
         self.const_consumer = collections.Counter()
         self.const_direct = collections.Counter()
         self.const_length = collections.Counter()
+        # The values the groups build (read as the const's type says), the
+        # value classes per consumer class, the const types, and how many
+        # instructions longer a group is than its value needs.
+        self.const_value = collections.Counter()
+        self.const_value_consumer = collections.defaultdict(collections.Counter)
+        self.const_type = collections.Counter()
+        self.const_excess = collections.Counter()
         # Operands consumed by ALU instructions, by what produced them (a
         # const/grow group, another ALU instruction, a load, a slot load, a
         # cast, an argument from the caller, a value returned by a callee),
@@ -150,6 +157,10 @@ class Scope:
             "const_consumer": dict(sorted(self.const_consumer.items())),
             "const_direct": dict(sorted(self.const_direct.items())),
             "const_length": hist(self.const_length),
+            "const_value": hist(self.const_value),
+            "const_value_consumer": {c: dict(sorted(h.items())) for c, h in sorted(self.const_value_consumer.items())},
+            "const_type": dict(sorted(self.const_type.items())),
+            "const_excess": hist(self.const_excess),
             "alu_inputs": self.alu_inputs,
             "alu_input": dict(sorted(self.alu_input.items())),
             "alu_input_route": dict(sorted(self.alu_input_route.items())),
@@ -179,6 +190,13 @@ class Scope:
         out.write(f"ConstGroups: {self.const_groups}; consumer "
                   + ", ".join(f"{k}={v}" for k, v in self.const_consumer.most_common())
                   + "; first touched by " + ", ".join(f"{k}={v}" for k, v in self.const_direct.most_common()) + "\n")
+        n = max(self.const_groups, 1)
+        buckets = collections.Counter()
+        for v, k in self.const_value.items():
+            buckets[value_bucket(v)] += k
+        out.write("ConstValues: " + ", ".join(f"{v}={k}" for v, k in self.const_value.most_common(8))
+                  + "; " + ", ".join(f"{b}={100.0 * k / n:.1f}%" for b, k in buckets.most_common())
+                  + f"; longer than needed {100.0 * (n - self.const_excess.get(0, 0)) / n:.1f}%\n")
         n = max(self.alu_inputs, 1)
         out.write(f"AluInputs: {self.alu_inputs}; from "
                   + ", ".join(f"{k}={100.0 * v / n:.1f}%" for k, v in self.alu_input.most_common())
@@ -194,6 +212,51 @@ CONSUMER_CLASS = {
     "narto": "alu", "cast": "cast", "pick": "pick", "const": "const", "grow": "const",
     "saddr": "frame", "rsrv": "stack", "free": "stack", "trap": "trap",
 }
+
+
+BUCKETS = ("zero", "one", "minus one", "power of two", "mask", "other 1-byte", "2-byte", "3-byte",
+           "4-byte", "8-byte")
+
+
+def value_bucket(v):
+    """The class of a constant group's value: 0, 1, -1, a power of two, a
+    mask (2^k - 1), else the number of bytes it needs (a byte holds -128 to
+    255: signed or unsigned, as the type allows)."""
+    v = int(v)
+    if v == 0:
+        return "zero"
+    if v == 1:
+        return "one"
+    if v == -1:
+        return "minus one"
+    if v > 1 and v & (v - 1) == 0:
+        return "power of two"
+    if v >= 3 and (v + 1) & v == 0:
+        return "mask"
+    if -128 <= v <= 255:
+        return "other 1-byte"
+    if -32768 <= v <= 65535:
+        return "2-byte"
+    if -(1 << 23) <= v < (1 << 24):
+        return "3-byte"
+    if -(1 << 31) <= v < (1 << 32):
+        return "4-byte"
+    return "8-byte"
+
+
+def const_value(cv):
+    """(value, bytes needed) of a finished group: cv holds [..., type, size,
+    unsigned value]."""
+    typ, size, u = cv[3], cv[4], cv[5]
+    if typ[0] == "i" and u >> (8 * size - 1):
+        v = u - (1 << 8 * size)
+        needed = 1
+        while not -(1 << (8 * needed - 1)) <= v < (1 << (8 * needed - 1)):
+            needed += 1
+    else:
+        v = u
+        needed = max(1, (v.bit_length() + 7) // 8)
+    return v, needed
 
 
 def consumer_class(op, text):
@@ -230,7 +293,8 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
     issued = {}
     # Operand ids produced and not yet consumed: id -> (step, is load, in window).
     pending = {}
-    # Constant values in flight: id -> [in window, length, first-touch class or None].
+    # Constant groups in flight: id -> [in window, length, first-touch class
+    # or None, const type, size in bytes, unsigned value so far].
     cvals = {}
     grow_src = None  # the constant value a grow is extending in this step
     # Operands in flight by origin: id -> [producer class, route, call depth
@@ -358,10 +422,18 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                     src[oid] = [orig[0] if orig else "dup", "dup", len(frame_base)]
                 else:
                     src[oid] = [producer_class(op, text), "direct", len(frame_base)]
-                if op == "const":
-                    cvals[oid] = [in_win, 1, None]
-                elif op == "grow" and grow_src is not None:
+                if op == "const":  # const i32, -6
+                    tok = text.split()
+                    typ = tok[1].rstrip(",")
+                    size = int(typ[1:]) // 8
+                    imm = int(tok[-1]) & 0xFF
+                    if typ[0] == "i" and imm >= 128:
+                        imm |= ((1 << 8 * size) - 1) & ~0xFF
+                    cvals[oid] = [in_win, 1, None, typ, size, imm]
+                elif op == "grow" and grow_src is not None:  # grow 12
                     grow_src[1] += 1
+                    imm = int(text.split()[-1]) & 0xFF
+                    grow_src[5] = ((grow_src[5] << 8) | imm) & ((1 << 8 * grow_src[4]) - 1)
                     cvals[oid] = grow_src
                     grow_src = None
             elif k == "C":
@@ -384,12 +456,17 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                         grow_src = cv
                     else:
                         cls = consumer_class(op, text)
+                        v, needed = const_value(cv)
                         for sc, active in ((whole, True), (window, cv[0])):
                             if active:
                                 sc.const_groups += 1
                                 sc.const_consumer[cls] += 1
                                 sc.const_direct[cv[2] or cls] += 1
                                 sc.const_length[cv[1]] += 1
+                                sc.const_value[v] += 1
+                                sc.const_value_consumer[cls][value_bucket(v)] += 1
+                                sc.const_type[cv[3]] += 1
+                                sc.const_excess[max(cv[1] - needed, 0)] += 1
                 p = pending.pop(oid, None)
                 if p is not None:
                     d = step - p[0] - 1
@@ -410,12 +487,17 @@ def parse_stream(stream, start, stop, symbols, trace, trace_limit, profile):
                     window.discards += 1
                 cv = cvals.pop(oid, None)
                 if cv is not None:
+                    v, needed = const_value(cv)
                     for sc, active in ((whole, True), (window, cv[0])):
                         if active:
                             sc.const_groups += 1
                             sc.const_consumer["discarded"] += 1
                             sc.const_direct[cv[2] or "dataflow"] += 1
                             sc.const_length[cv[1]] += 1
+                            sc.const_value[v] += 1
+                            sc.const_value_consumer["discarded"][value_bucket(v)] += 1
+                            sc.const_type[cv[3]] += 1
+                            sc.const_excess[max(cv[1] - needed, 0)] += 1
             else:  # Forward
                 whole.forwards += 1
                 if in_win:

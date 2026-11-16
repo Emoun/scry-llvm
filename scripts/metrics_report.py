@@ -16,7 +16,9 @@ a dagger.
 
 Tables: code size, dynamic instruction mix, static instruction mix,
 constant groups (what the immediates built by const/grow are used for,
-executed and in the code), ALU operands (what produced the values the
+executed and in the code), constant values (the values the groups build
+by class per benchmark and per consumer, and the most frequent ones),
+ALU operands (what produced the values the
 ALU instructions consume, per benchmark and per opcode), operand
 lifetime, control-flow lifetime, jump distance quantiles (trigger
 field as written and issue-to-trigger as executed), memory traffic, load
@@ -26,7 +28,11 @@ executed), operands in flight.
 import argparse
 import json
 import math
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scry_metrics import BUCKETS, value_bucket  # noqa: E402
 
 CLASSES = ("control", "dataflow", "alu", "cast", "pick", "const", "memory", "frame", "stack", "trap")
 ALU_OPS = ("add", "sub", "mul", "div", "sh", "and", "or", "xor", "eq", "lt", "gt", "isnar", "narto")
@@ -178,7 +184,8 @@ def pooled(scopes, static):
          "steps": 0, "inflight_frame_sum": 0.0,
          "inflight_all_sum": 0.0, "inflight_frame_max": 0, "inflight_all_max": 0,
          "opcodes": {}, "const_groups": 0, "const_consumer": {}, "const_direct": {},
-         "const_length": {}, "alu_inputs": 0, "alu_input": {}, "alu_input_route": {},
+         "const_length": {}, "const_value": {}, "const_value_consumer": {}, "const_type": {},
+         "const_excess": {}, "alu_inputs": 0, "alu_input": {}, "alu_input_route": {},
          "alu_input_by_op": {}}
     hists = ("value_ref", "load_dynamic", "load_ref", "jmp_trigger", "jmp_dynamic",
              "call_trigger", "call_dynamic", "ret_trigger", "ret_dynamic")
@@ -203,6 +210,11 @@ def pooled(scopes, static):
         add_counts(p["const_consumer"], w.get("const_consumer", {}))
         add_counts(p["const_direct"], w.get("const_direct", {}))
         add_hist(p["const_length"], w.get("const_length", {}))
+        add_hist(p["const_value"], w.get("const_value", {}))
+        add_counts(p["const_type"], w.get("const_type", {}))
+        add_hist(p["const_excess"], w.get("const_excess", {}))
+        for c, h in w.get("const_value_consumer", {}).items():
+            add_counts(p["const_value_consumer"].setdefault(c, {}), h)
         p["alu_inputs"] += w.get("alu_inputs", 0)
         add_counts(p["alu_input"], w.get("alu_input", {}))
         add_counts(p["alu_input_route"], w.get("alu_input_route", {}))
@@ -324,6 +336,49 @@ def main():
                       pct(c.get("frame", 0), g), pct(c.get("cast", 0) + c.get("pick", 0), g),
                       pct(c.get("discarded", 0), g), pct(w["const_direct"].get("dataflow", 0), g)])
         out.append(emit(hdr, t[:-1], t[-1]))
+    if all("const_value" in r[1] for r in rows):
+        bucket_hdr = ["0", "1", "-1", "2^k", "2^k-1", "other 1-byte", "2-byte", "3-byte", "4-byte+"]
+        bucket_keys = tuple(b if b != "4-byte" else ("4-byte", "8-byte") for b in BUCKETS if b != "8-byte")
+
+        def bucket_cells(b, n):
+            return [pct(sum(b.get(k, 0) for k in (ks if isinstance(ks, tuple) else (ks,))), n)
+                    for ks in bucket_keys]
+
+        out.append("\n#### Constant values\n")
+        hdr = ["benchmark", "groups"] + bucket_hdr + ["longer than needed"]
+        t = []
+        for n, w, s, r in all_rows:
+            g = w["const_groups"]
+            b = {}
+            for v, k in w["const_value"].items():
+                b[value_bucket(v)] = b.get(value_bucket(v), 0) + k
+            excess = sum(k for e, k in w["const_excess"].items() if int(e) != 0)
+            t.append([n, cnt(g)] + bucket_cells(b, g) + [pct(excess, g)])
+        out.append(emit(hdr, t[:-1], t[-1]))
+        out.append("\n#### Constant values by consumer\n")
+        hdr = ["consumer", "groups", "of all groups"] + bucket_hdr
+        w = all_rows[-1][1]
+        g = w["const_groups"]
+        t = []
+        for name, keys in (("alu", ("alu",)), ("control", ("control",)), ("ld/st", ("memory",)),
+                           ("to slot", ("frame",)), ("cast/pick", ("cast", "pick")),
+                           ("discarded", ("discarded",))):
+            b = {}
+            for k in keys:
+                add_counts(b, w["const_value_consumer"].get(k, {}))
+            k = sum(b.values())
+            t.append([name, cnt(k), pct(k, g)] + bucket_cells(b, k))
+        out.append(table(hdr, t))
+        out.append("\n#### Most frequent constant values\n")
+        hdr = ["value", "hex", "groups", "of all groups", "cumulative"]
+        t = []
+        cum = 0
+        for v, k in sorted(w["const_value"].items(), key=lambda kv: (-kv[1], int(kv[0])))[:20]:
+            cum += k
+            v = int(v)
+            t.append([str(v), ("0x%X" % (v & 0xFFFFFFFF)) if abs(v) >= 256 else "", cnt(k), pct(k, g),
+                      pct(cum, g)])
+        out.append(table(hdr, t))
         out.append("\n#### Constant groups in the code\n")
         hdr = ["benchmark", "groups", "instrs", "of the code", "alu", "control", "ld/st", "to slot",
                "echo/dup", "other"]
